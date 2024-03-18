@@ -1,0 +1,20 @@
+#!/bin/bash
+
+top=$1
+app=$2
+device=$3
+
+dirname=$top/tools/eposflash/visionfive2
+
+# This script is used to flash the EPOS image into the VisionFive2 board.
+tools=$dirname/*
+
+for tool in $tools;
+do
+    cd $tool && go build;
+    cd $top;
+done
+
+$dirname/vf2-imager/vf2-imager -i $4 -o $top/img/$2.img
+
+$dirname/vf2/vf2 $top/img/$2.img $device
