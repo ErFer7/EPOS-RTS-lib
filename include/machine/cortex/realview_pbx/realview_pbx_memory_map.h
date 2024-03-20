@@ -42,7 +42,7 @@ struct Memory_Map: public Cortex_Memory_Map
         VECTOR_TABLE            = RAM_BASE, // 8 x 4b instructions + 8 x 4b pointers
         FLAT_PAGE_TABLE 	= (RAM_TOP - 16 * 1024) & ~(0x3fff),  // used only with No_MMU in LIBRARY mode; 16KB, 4096 4B entries, each pointing to 1 MB regions, thus mapping up to 4 GB; 16K-aligned for TTBR;
         BOOT_STACK              = FLAT_PAGE_TABLE - Traits<Machine>::STACK_SIZE, // will be used as the stack's base, not the stack pointer
-        FREE_TOP                = BOOT_STACK,
+        FREE_TOP                = BOOT_STACK - 1,
 
         // Logical Address Space
         APP_LOW                 = Traits<Machine>::APP_LOW,

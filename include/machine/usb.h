@@ -211,9 +211,9 @@ public:
             template<typename T>
             T* morph() { return reinterpret_cast<T*>(T::check(*this) ? this : 0); }
 
-            friend OStream & operator<<(OStream & db, const Device_Request & d) {
-                db << "Device_Request:{bmRequestType=" << d.bmRequestType << ",bRequest=" << d.bRequest << ",wValue=" << d.wValue << ",wIndex=" << d.wIndex << ",wLength=" << d.wLength << "}";
-                return db;
+            friend OStream & operator<<(OStream & os, const Device_Request & d) {
+                os << "Device_Request:{bmRequestType=" << d.bmRequestType << ",bRequest=" << d.bRequest << ",wValue=" << d.wValue << ",wIndex=" << d.wIndex << ",wLength=" << d.wLength << "}";
+                return os;
             }
         } __attribute__((packed));
 
@@ -239,9 +239,9 @@ public:
 
             static bool check(const Device_Request & data) { return (data.bRequest == SET_ADDRESS) && (data.bmRequestType == 0); }
 
-            friend OStream & operator<<(OStream & db, const Set_Address & d) {
-                db << "Set_Address:{bmRequestType=" << d.bmRequestType << ",bRequest=" << d.bRequest << ",device_address=" << d.device_address << ",wIndex=" << d.wIndex << ",wLength=" << d.wLength << "}";
-                return db;
+            friend OStream & operator<<(OStream & os, const Set_Address & d) {
+                os << "Set_Address:{bmRequestType=" << d.bmRequestType << ",bRequest=" << d.bRequest << ",device_address=" << d.device_address << ",wIndex=" << d.wIndex << ",wLength=" << d.wLength << "}";
+                return os;
             }
         } __attribute__((packed));
 
@@ -268,9 +268,9 @@ public:
 
             static bool check(const Device_Request & data) { return (data.bRequest == GET_DESCRIPTOR) && (data.bmRequestType == 128); }
 
-            friend OStream & operator<<(OStream & db, const Get_Descriptor & d) {
-                db << "Get_Descriptor:{bmRequestType=" << d.bmRequestType << ",bRequest=" << d.bRequest << ",descriptor_index=" << d.descriptor_index << ",descriptor_type=" << d.descriptor_type << ",language_id=" << d.language_id << ",descriptor_length=" << d.descriptor_length << "}";
-                return db;
+            friend OStream & operator<<(OStream & os, const Get_Descriptor & d) {
+                os << "Get_Descriptor:{bmRequestType=" << d.bmRequestType << ",bRequest=" << d.bRequest << ",descriptor_index=" << d.descriptor_index << ",descriptor_type=" << d.descriptor_type << ",language_id=" << d.language_id << ",descriptor_length=" << d.descriptor_length << "}";
+                return os;
             }
         } __attribute__((packed));
 
@@ -296,9 +296,9 @@ public:
 
             static bool check(const Device_Request & data) { return (data.bRequest == SET_CONFIGURATION) && (data.bmRequestType == 0) && (data.wIndex == 0) && (data.wLength == 0); }
 
-            friend OStream & operator<<(OStream & db, const Set_Configuration & d) {
-                db << "Set_Configuration:{bmRequestType=" << d.bmRequestType << ",bRequest=" << d.bRequest << ",configuration_number=" << d.configuration_number << ",wIndex=" << d.wIndex << ",wLength=" << d.wLength << "}";
-                return db;
+            friend OStream & operator<<(OStream & os, const Set_Configuration & d) {
+                os << "Set_Configuration:{bmRequestType=" << d.bmRequestType << ",bRequest=" << d.bRequest << ",configuration_number=" << d.configuration_number << ",wIndex=" << d.wIndex << ",wLength=" << d.wLength << "}";
+                return os;
             }
         } __attribute__((packed));
     };
@@ -454,9 +454,9 @@ public:
 
                 static bool check(const USB_2_0::Request::Device_Request & data) { return (data.bRequest == GET_LINE_CODING) && (data.bmRequestType == 161) && (data.wValue == 0); }
 
-                friend OStream & operator<<(OStream & db, const Get_Line_Coding & d) {
-                    db << "Get_Line_Coding:{bmRequestType=" << d.bmRequestType << ",bRequest=" << d.bRequest << ",wValue=" << d.wValue << ",interface_number=" << d.interface_number << ",size_of_data=" << d.size_of_data << "}";
-                    return db;
+                friend OStream & operator<<(OStream & os, const Get_Line_Coding & d) {
+                    os << "Get_Line_Coding:{bmRequestType=" << d.bmRequestType << ",bRequest=" << d.bRequest << ",wValue=" << d.wValue << ",interface_number=" << d.interface_number << ",size_of_data=" << d.size_of_data << "}";
+                    return os;
                 }
             } __attribute__((packed));
 
@@ -485,9 +485,9 @@ public:
 
                 static bool check(const USB_2_0::Request::Device_Request & data) { return (data.bRequest == SET_CONTROL_LINE_STATE) && (data.bmRequestType == 33) && (data.wLength == 0); }
 
-                friend OStream & operator<<(OStream & db, const Set_Control_Line_State & d) {
-                    db << "Set_Control_Line_State:{bmRequestType=" << d.bmRequestType << ",bRequest=" << d.bRequest << ",reserved=" << d.reserved << ",carrier_control=" << d.carrier_control << ",DTE_present=" << d.DTE_present << ",interface_number=" << d.interface_number << ",wLength=" << d.wLength << "}";
-                    return db;
+                friend OStream & operator<<(OStream & os, const Set_Control_Line_State & d) {
+                    os << "Set_Control_Line_State:{bmRequestType=" << d.bmRequestType << ",bRequest=" << d.bRequest << ",reserved=" << d.reserved << ",carrier_control=" << d.carrier_control << ",DTE_present=" << d.DTE_present << ",interface_number=" << d.interface_number << ",wLength=" << d.wLength << "}";
+                    return os;
                 }
             } __attribute__((packed));
         };

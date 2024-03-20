@@ -7,7 +7,6 @@
 #define __pmu_common_only__
 #include <architecture/pmu.h>
 #undef __pmu_common_only__
-#include <machine/ic.h>
 #include <utility/handler.h>
 
 __BEGIN_SYS
@@ -20,7 +19,7 @@ protected:
     typedef CPU::Reg32 Reg32;
     typedef CPU::Reg64 Reg64;
     typedef CPU::Log_Addr Log_Addr;
-    typedef IC::Interrupt_Id Interrupt_Id;
+    typedef CPU::Interrupt_Id Interrupt_Id;
 
     static const unsigned int CHANNELS = 3;
     static const unsigned int FIXED = 0;

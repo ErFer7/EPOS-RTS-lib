@@ -31,11 +31,11 @@ private:
     static const unsigned long RAM_TOP          = Memory_Map::RAM_TOP;
     static const unsigned long MIO_BASE         = Memory_Map::MIO_BASE;
     static const unsigned long MIO_TOP          = Memory_Map::MIO_TOP;
+    static const unsigned long FREE_BASE        = Memory_Map::FREE_BASE;
+    static const unsigned long FREE_TOP         = Memory_Map::FREE_TOP;
     static const unsigned long IMAGE            = Memory_Map::IMAGE;
     static const unsigned long SETUP            = Memory_Map::SETUP;
     static const unsigned long FLAT_PAGE_TABLE  = Memory_Map::FLAT_PAGE_TABLE;
-    static const unsigned long FREE_BASE        = Memory_Map::FREE_BASE;
-    static const unsigned long FREE_TOP         = Memory_Map::FREE_TOP;
 
     // Architecture Imports
     typedef CPU::Reg Reg;
@@ -146,7 +146,7 @@ void Setup::say_hi()
 
     kout << "This is EPOS!\n" << endl;
     kout << "Setting up this machine as follows: " << endl;
-    kout << "  Mode:         " << ((Traits<Build>::MODE == Traits<Build>::LIBRARY) ? "library" : (Traits<Build>::MODE == Traits<Build>::BUILTIN) ? "built-in" : "kernel") << endl;
+    kout << "  Mode:         " << ((Traits<Build>::SMOD == Traits<Build>::LIBRARY) ? "library" : (Traits<Build>::SMOD == Traits<Build>::BUILTIN) ? "built-in" : "kernel") << endl;
     kout << "  Processor:    " << Traits<Machine>::CPUS << " x Cortex A53 (ARMv" << ((Traits<CPU>::WORD_SIZE == 32) ? "7" : "8") << "-A) at " << Traits<CPU>::CLOCK / 1000000 << " MHz (BUS clock = " << Traits<CPU>::CLOCK / 1000000 << " MHz)" << endl;
     kout << "  Machine:      Raspberry Pi3" << endl;
     kout << "  Memory:       " << (RAM_TOP + 1 - RAM_BASE) / 1024 << " KB [" << reinterpret_cast<void *>(RAM_BASE) << ":" << reinterpret_cast<void *>(RAM_TOP) << "]" << endl;
@@ -154,7 +154,7 @@ void Setup::say_hi()
     kout << "  I/O space:    " << (MIO_TOP + 1 - MIO_BASE) / 1024 << " KB [" << reinterpret_cast<void *>(MIO_BASE) << ":" << reinterpret_cast<void *>(MIO_TOP) << "]" << endl;
     kout << "  Node Id:      ";
     if(si->bm.node_id != -1)
-        kout << si->bm.node_id << " (" << Traits<Build>::NODES << ")" << endl;
+        kout << si->bm.node_id << endl;
     else
         kout << "will get from the network!" << endl;
     kout << "  Position:     ";
@@ -296,8 +296,7 @@ void _reset()
         cpsr &= ~CPU::FLAG_M;           // clear mode bits
         cpsr |= CPU::MODE_SVC;          // set supervisor flag
         CPU::psr(cpsr);                 // enter supervisor mode
-        CPU::Reg address = CPU::ra();
-        CPU::elr_hyp(address);
+        CPU::elr_hyp(CPU::ra());
         CPU::tmp_to_cpsr();
     }
 
@@ -522,9 +521,6 @@ void _reset()
     for(int i = 0; i < (2056 / 8); i++)
         dst[i] = src[i];
 
-    // Clear the BSS (SETUP was linked to CRT0, but entry point didn't go through BSS clear)
-    Machine::clear_bss();
-
     // Set EL1 VBAR to the relocated vector table
     CPU::vbar_el1(static_cast<CPU::Phy_Addr>(Memory_Map::VECTOR_TABLE));
 
@@ -538,6 +534,9 @@ void _reset()
     CPU::elr_el2(el1_addr);
     CPU::eret();
     CPU::sp(Memory_Map::BOOT_STACK + Traits<Machine>::STACK_SIZE * (CPU::id() + 1)); // set stack
+
+    // Clear the BSS (SETUP was linked to CRT0, but entry point didn't go through BSS clear)
+    Machine::clear_bss();
 
     _setup();
 }

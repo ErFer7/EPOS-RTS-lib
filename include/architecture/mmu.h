@@ -21,6 +21,7 @@ protected:
 
 protected:
     // CPU imports
+    typedef CPU::Reg Reg;
     typedef CPU::Log_Addr Log_Addr;
     typedef CPU::Phy_Addr Phy_Addr;
 
@@ -56,34 +57,48 @@ public:
     class Flags
     {
     public:
-        enum {
-            PRE  = 1 << 0, // Present
-            RD   = 1 << 1, // Readable
-            WR   = 1 << 2, // Writable
-            EX   = 1 << 3, // Executable
-            USR  = 1 << 4, // Access Control (0=supervisor, 1=user)
-            CD   = 1 << 5, // Cache disable (0=cacheable, 1=non-cacheable)
-            CWT  = 1 << 6, // Cache mode (0=write-back, 1=write-through)
-            CT   = 1 << 7, // Contiguous (0=non-contiguous, 1=contiguous)
-            IO   = 1 << 8, // Memory Mapped I/O (0=memory, 1=I/O)
+        enum : Reg {
+            PRE  = 1 << 0,  // Present
+            RD   = 1 << 1,  // Readable
+            WR   = 1 << 2,  // Writable
+            EX   = 1 << 3,  // Executable
+            USR  = 1 << 4,  // Access Control (0=supervisor, 1=user)
+            CD   = 1 << 5,  // Cache disable (0=cacheable, 1=non-cacheable)
+            CWT  = 1 << 6,  // Cache mode (0=write-back, 1=write-through)
+            AC   = 1 << 7,  // Accessed
+            DT   = 1 << 8,  // Dirty
+            IO   = 1 << 11, // Memory Mapped I/O (0=memory, 1=I/O)
+            CT   = 1 << 12, // Contiguous (0=non-contiguous, 1=contiguous)
+            SPE  = 1 << 13,
             SYSC = (PRE | RD | EX),
             SYSD = (PRE | RD | WR),
             APPC = (PRE | RD | EX | USR),
             APPD = (PRE | RD | WR | USR),
-            DMA  = (SYSD | CD | CT)
+            DMA  = (PRE | RD | WR | CD | CT)
         };
 
     public:
         Flags() {}
-        Flags(const Flags & f) : _flags(f._flags) {}
-        Flags(unsigned long f) : _flags(f) {}
+        Flags(Reg f): _flags(f) {}
+        Flags(const Flags & f): _flags(f._flags) {}
 
-        operator unsigned long() const { return _flags; }
+        operator Reg() const { return _flags; }
 
-        friend OStream & operator<<(OStream & os, const Flags & f) { os << hex << f._flags; return os; }
+        friend OStream & operator<<(OStream & os, const Flags & f) {
+            if(f._flags & PRE) os << 'P'; else os << ' ';
+            if(f._flags & RD)  os << 'R'; else os << ' ';
+            if(f._flags & WR)  os << 'W'; else os << ' ';
+            if(f._flags & EX)  os << 'X'; else os << ' ';
+            if(f._flags & USR) os << 'U'; else os << ' ';
+            if(f._flags & CD)  os << 'C'; else os << ' ';
+            if(f._flags & AC)  os << 'A'; else os << ' ';
+            if(f._flags & DT)  os << 'D'; else os << ' ';
+            if(f._flags & SPE) os << 'S'; else os << ' ';
+            return os;
+        }
 
     private:
-        unsigned long _flags;
+        Reg _flags;
     };
 
     // Page types
@@ -141,6 +156,8 @@ public:
         Chunk(const Chunk & c): _free(false), _phy_addr(c._phy_addr), _bytes(c._bytes), _flags(c._flags) {} // avoid freeing memory when temporaries are created
         Chunk(unsigned long bytes, Flags flags, Color color = WHITE): _free(true), _phy_addr(alloc(bytes)), _bytes(bytes), _flags(flags) {}
         Chunk(Phy_Addr phy_addr, unsigned long bytes, Flags flags):  _free(false), _phy_addr(phy_addr), _bytes(bytes), _flags(flags) {}
+        Chunk(Phy_Addr pt, unsigned int from, unsigned int to, Flags flags):_free(false), _phy_addr(0), _bytes(to - from), _flags(flags) {}
+        Chunk(Phy_Addr pt, unsigned int from, unsigned int to, Flags flags, Phy_Addr phy_addr): _free(false), _phy_addr(phy_addr), _bytes(to - from), _flags(flags) {}
 
         ~Chunk() { if(_free) free(_phy_addr, _bytes); }
 

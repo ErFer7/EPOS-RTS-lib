@@ -4,13 +4,9 @@
 #include <system.h>
 #include <process.h>
 
-// This_Thread class attributes
-__BEGIN_UTIL
-bool This_Thread::_not_booting;
-__END_UTIL
-
 __BEGIN_SYS
 
+bool Thread::_not_booting;
 volatile unsigned int Thread::_thread_count;
 Scheduler_Timer * Thread::_timer;
 Scheduler<Thread> Thread::_scheduler;
@@ -201,7 +197,6 @@ void Thread::resume()
 }
 
 
-// Class methods
 void Thread::yield()
 {
     lock();
@@ -286,7 +281,6 @@ void Thread::wakeup_all(Queue * q)
 
     assert(locked()); // locking handled by caller
 
-
     if(!q->empty()) {
         while(!q->empty()) {
             Thread * t = q->remove()->object();
@@ -295,9 +289,8 @@ void Thread::wakeup_all(Queue * q)
             _scheduler.resume(t);
         }
 
-        if(preemptive){
+        if(preemptive)
             reschedule();
-        }
     }
 }
 
@@ -388,13 +381,3 @@ int Thread::idle()
 }
 
 __END_SYS
-
-// Id forwarder to the spin lock
-__BEGIN_UTIL
-
-volatile CPU::Reg This_Thread::id()
-{
-    return _not_booting ? CPU::Reg(Thread::self()) : CPU::Reg(CPU::id() + 1);
-}
-
-__END_UTIL

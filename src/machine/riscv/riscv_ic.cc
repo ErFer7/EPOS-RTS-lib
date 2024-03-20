@@ -35,21 +35,17 @@ void IC::dispatch()
 {
     Interrupt_Id id = int_id();
 
-    if(((id != INT_SYS_TIMER) && (id != INT_SYSCALL) && ((id == CPU::EXC_IPF) && (CPU::epc() != CPU::Log_Addr(&__exit)))) || Traits<IC>::hysterically_debugged)
-        db<IC, System>(TRC) << "IC::dispatch(i=" << id << ") [cpu=" << CPU::id() << ", sp=" << CPU::sp() << "]" << endl;
+    if((id != INT_SYS_TIMER) || Traits<IC>::hysterically_debugged)
+        db<IC, System>(TRC) << "IC::dispatch(i=" << id << ") [sp=" << CPU::sp() << "]" << endl;
 
-
-    if(id == INT_RESCHEDULER)
-        IC::ipi_eoi(id & CLINT::INT_MASK);
-    else if(id == INT_SYS_TIMER)
-        Timer::reset();             // MIP.MTI is a direct logic on (MTIME == MTIMECMP) and reseting the Timer seems to be the only way to clear it
+    if(id == INT_SYS_TIMER) {
+        if(supervisor)
+            CPU::ecall();   // we can't clear CPU::sipc(CPU::STI) in supervisor mode, so let's ecall int_m2s to do it for us
+        else
+            Timer::reset(); // MIP.MTI is a direct logic on (MTIME == MTIMECMP) and reseting the Timer seems to be the only way to clear it
+    }
 
     _int_vector[id](id);
-
-    if(id > HARD_INT) {
-        complete(int2irq(id));
-        db<IC, System>(TRC) << "IC::dispatch(i=" << id << ") => interrupt handled!" << endl;
-    }
 
     if(id >= EXCS)
         CPU::fr(0); // tell CPU::Context::pop(true) not to increment PC since it is automatically incremented for hardware interrupts
@@ -64,16 +60,14 @@ void IC::int_not(Interrupt_Id id)
 
 void IC::exception(Interrupt_Id id)
 {
-    CPU::Log_Addr ksp = CPU::sp();
-    CPU::Log_Addr usp = multitask ? CPU::sscratch() : 0;
-    CPU::Log_Addr atp = 0;
+    CPU::Log_Addr sp = CPU::sp();
     CPU::Log_Addr epc = CPU::epc();
     CPU::Reg status = CPU::status();
     CPU::Reg cause = CPU::cause();
     CPU::Log_Addr tval = CPU::tval();
     Thread * thread = Thread::self();
-    
-    db<IC,System>(WRN) << "IC::Exception(" << id << ") => {" << hex << "thread=" << thread << ",atp=" << atp << ",usp=" << usp << ",ksp=" << ksp << ",status=" << status << ",cause=" << cause << ",epc=" << epc << ",tval=" << tval << "}" << dec;
+
+    db<IC,System>(WRN) << "IC::Exception(" << id << ") => {" << hex << "thread=" << thread << ",sp=" << sp << ",status=" << status << ",cause=" << cause << ",epc=" << epc << ",tval=" << tval << "}" << dec;
 
     switch(id) {
     case CPU::EXC_IALIGN: // instruction address misaligned
@@ -112,12 +106,7 @@ void IC::exception(Interrupt_Id id)
     case CPU::EXC_DRPF: // load page fault
     case CPU::EXC_RES: // reserved
     case CPU::EXC_DWPF: // store/AMO page fault
-        if(ksp < thread->_stack)
-            db<IC, Thread>(WRN) << " => kernel stack underflow";
-        else if(ksp > thread->_stack + thread->STACK_SIZE)
-            db<IC, Thread>(WRN) << " => kernel stack overflow";
-        else
-            db<IC, System>(WRN) << " => data page fault";
+        db<IC, System>(WRN) << " => data page fault";
         break;
     default:
         int_not(id);

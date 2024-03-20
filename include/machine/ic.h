@@ -3,14 +3,14 @@
 #ifndef __ic_h
 #define __ic_h
 
-#include <system/config.h>
+#include <architecture/cpu.h>
 
 __BEGIN_SYS
 
 class IC_Common
 {
 public:
-    typedef unsigned int Interrupt_Id;
+    typedef CPU::Interrupt_Id Interrupt_Id;
     typedef void (* Interrupt_Handler)(Interrupt_Id);
 
     static const unsigned int UNSUPPORTED_INTERRUPT = ~1;

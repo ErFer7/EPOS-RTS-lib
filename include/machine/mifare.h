@@ -103,13 +103,13 @@ public:
             return ret;
         }
 
-        friend Debug & operator<<(Debug & db, const UID & u) {
-            db << "{s=" << u._size << ",u=";
-            db << hex << u._uid_sak[0];
+        friend OStream & operator<<(OStream & os, const UID & u) {
+            os << "{s=" << u._size << ",u=";
+            os << hex << u._uid_sak[0];
             for(unsigned int i = 1; i < u._size; i++)
-                db << "," << hex << u._uid_sak[i];
-            db << ",sa=" << u._uid_sak[u._size] << "}";
-            return db;
+                os << "," << hex << u._uid_sak[i];
+            os << ",sa=" << u._uid_sak[u._size] << "}";
+            return os;
         }
 
         friend OStream & operator<<(OStream & os, const UID & u) {
@@ -147,13 +147,13 @@ public:
 
         void key(const void * k) { memcpy(_key, k, KEY_SIZE); }
 
-        friend Debug & operator<<(Debug & db, const Key & k) {
-            db << "{t=" << (k._type == TYPE_A ? 'A' : 'B') << ",k=[";
-            db << hex << k._key[0];
+        friend OStream & operator<<(OStream & os, const Key & k) {
+            os << "{t=" << (k._type == TYPE_A ? 'A' : 'B') << ",k=[";
+            os << hex << k._key[0];
             for(unsigned int i = 1; i < KEY_SIZE; i++)
-                db << "," << hex << k._key[i];
-            db << "]}";
-            return db;
+                os << "," << hex << k._key[i];
+            os << "]}";
+            return os;
         }
 
         friend OStream & operator<<(OStream & os, const Key & k) {

@@ -22,6 +22,7 @@ public:
     using CPU_Common::Reg;
     using CPU_Common::Log_Addr;
     using CPU_Common::Phy_Addr;
+    using CPU_Common::Interrupt_Id;
 
     // Flags
     typedef Reg32 Flags;
@@ -167,8 +168,8 @@ public:
         : limit_15_00((Reg16)l), base_15_00((Reg16)b), base_23_16((Reg8)(b >> 16)), p_dpl_s_type(f),
           g_d_0_a_limit_19_16(((f & SEG_NOSYS) ? (SEG_4K | SEG_32) : 0) | ((Reg8)(l >> 16))), base_31_24((Reg8)(b >> 24)) {}
 
-        friend Debug & operator<<(Debug & db, const GDT_Entry & g) {
-            db << "{bas=" << (void *)((g.base_31_24 << 24) | (g.base_23_16 << 16) | g.base_15_00)
+        friend OStream & operator<<(OStream & os, const GDT_Entry & g) {
+            os << "{bas=" << (void *)((g.base_31_24 << 24) | (g.base_23_16 << 16) | g.base_15_00)
                << ",lim=" << (void *)(((g.g_d_0_a_limit_19_16 & 0xf) << 16) | g.limit_15_00)
                << ",p=" << (g.p_dpl_s_type >> 7)
                << ",dpl=" << ((g.p_dpl_s_type >> 5) & 0x3)
@@ -177,7 +178,7 @@ public:
                << ",g=" << (g.g_d_0_a_limit_19_16 >> 7)
                << ",d=" << ((g.g_d_0_a_limit_19_16 >> 6) & 0x1)
                << ",a=" << ((g.g_d_0_a_limit_19_16 >> 4) & 0x1) << "}";
-            return db;
+            return os;
         }
 
     private:
@@ -198,13 +199,13 @@ public:
 
         Reg32 offset() const { return (offset_31_16 << 16) | offset_15_00; }
 
-        friend Debug & operator<<(Debug & db, const IDT_Entry & i) {
-            db << "{sel=" << i.selector
+        friend OStream & operator<<(OStream & os, const IDT_Entry & i) {
+            os << "{sel=" << i.selector
                << ",off=" << (void *)i.offset()
                << ",p=" << (i.p_dpl_0_d_1_1_0 >> 7)
                << ",dpl=" << ((i.p_dpl_0_d_1_1_0 >> 5) & 0x3)
                << ",d=" << ((i.p_dpl_0_d_1_1_0 >> 4) & 0x1) << "}";
-            return db;
+            return os;
         }
 
     private:
@@ -280,8 +281,8 @@ public:
         void save() volatile __attribute__ ((naked));
         void load() const volatile __attribute__ ((naked));
 
-        friend Debug & operator<<(Debug & db, const Context & c) {
-            db << hex
+        friend OStream & operator<<(OStream & os, const Context & c) {
+            os << hex
                << "{flags=" << c._eflags
                << ",ax=" << c._eax
                << ",bx=" << c._ebx
@@ -301,7 +302,7 @@ public:
                << ",css=" << ss()
                << ",cr3=" << reinterpret_cast<void *>(cr3())
                << "}"     << dec;
-            return db;
+            return os;
         }
 
     private:

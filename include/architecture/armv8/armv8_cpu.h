@@ -90,12 +90,12 @@ public:
 
     // TCR bits
     enum {
-        TTBR0_SIZE_OFFSET           = 0, // size = 2 ^(64 - TTBR0_SIZE)
-        TTBR0_SIZE_512GB            = 25 << TTBR0_SIZE_OFFSET,
-        TTBR0_SIZE_1GB              = 34 << TTBR0_SIZE_OFFSET,
-        TTBR0_SIZE_4GB              = 32 << TTBR0_SIZE_OFFSET,
-        TTBR0_SIZE_64GB             = 28 << TTBR0_SIZE_OFFSET,
-        TTBR0_DISABLE               = 0b1   << 7,
+        TTBR0_SIZE_OFFSET           = 0,        // size = 2 ^(64 - TTBR0_SIZE)
+        TTBR0_SIZE_512GB            = 25        << TTBR0_SIZE_OFFSET,
+        TTBR0_SIZE_1GB              = 34        << TTBR0_SIZE_OFFSET,
+        TTBR0_SIZE_4GB              = 32        << TTBR0_SIZE_OFFSET,
+        TTBR0_SIZE_64GB             = 28        << TTBR0_SIZE_OFFSET,
+        TTBR0_DISABLE               = 0b1       << 7,
         TTBR0_WALK_INNER_NO_CACHE   = 0b00      << 8,
         TTBR0_WALK_INNER_WB_WA      = 0b01      << 8,
         TTBR0_WALK_INNER_WT         = 0b10      << 8,
@@ -110,14 +110,14 @@ public:
         TTBR0_TG0_16KB              = 0b10      << 14,
         TTBR0_TG0_4KB               = 0b00      << 14,
         TTBR0_TG0_64KB              = 0b10      << 14,
-        TTBR1_SIZE_OFFSET           = 16, // size = 2 ^(64 - TTBR1_SIZE)
-        TTBR1_SIZE_512GB            = 25 << TTBR1_SIZE_OFFSET,
-        TTBR1_SIZE_1GB              = 34 << TTBR1_SIZE_OFFSET,
-        TTBR1_SIZE_4GB              = 32 << TTBR1_SIZE_OFFSET,
-        TTBR1_SIZE_64GB             = 28 << TTBR1_SIZE_OFFSET,
-        ASID_DEFINED_BY_TTBR0       = 0b0   << 22,
-        ASID_DEFINED_BY_TTBR1       = 0b1   << 22,
-        TTBR1_DISABLE               = 0b1   << 23,
+        TTBR1_SIZE_OFFSET           = 16,       // size = 2 ^(64 - TTBR1_SIZE)
+        TTBR1_SIZE_512GB            = 25        << TTBR1_SIZE_OFFSET,
+        TTBR1_SIZE_1GB              = 34        << TTBR1_SIZE_OFFSET,
+        TTBR1_SIZE_4GB              = 32        << TTBR1_SIZE_OFFSET,
+        TTBR1_SIZE_64GB             = 28        << TTBR1_SIZE_OFFSET,
+        ASID_DEFINED_BY_TTBR0       = 0b0       << 22,
+        ASID_DEFINED_BY_TTBR1       = 0b1       << 22,
+        TTBR1_DISABLE               = 0b1       << 23,
         TTBR1_WALK_INNER_NO_CACHE   = 0b00      << 24,
         TTBR1_WALK_INNER_WB_WA      = 0b01      << 24,
         TTBR1_WALK_INNER_WT         = 0b10      << 24,
@@ -164,9 +164,11 @@ public:
         EXC_PREFETCH_ABORT_LOWER    = 0x20,
         EXC_PREFETCH_ABORT_SAME     = 0x21,
         EXC_PREFETCH_ABORT          = (EXC_PREFETCH_ABORT_SAME | EXC_PREFETCH_ABORT_LOWER),
+        EXC_PC_ALIGNMENT_ABORT      = 0x22,
         EXC_DATA_ABORT_LOWER_EL     = 0x24,
         EXC_DATA_ABORT_SAME_EL      = 0x25,
-        EXC_DATA_ABORT              = (EXC_DATA_ABORT_SAME_EL | EXC_DATA_ABORT_LOWER_EL)
+        EXC_DATA_ABORT              = (EXC_DATA_ABORT_SAME_EL | EXC_DATA_ABORT_LOWER_EL),
+        EXC_SP_ALIGNMENT_ABORT      = 0x26
     };
 
 public:
@@ -313,7 +315,14 @@ public:
     static Reg  cpsrc() { Reg r; ASM("mrs %0, daif" : "=r"(r) :); return r; }
     static void cpsrc(Reg r) {   ASM("msr daif, %0" : "=r"(r) :); }
 
-    static Reg esr_el1() { Reg r; ASM("mrs %0, esr_el1" : "=r"(r) :); return r; }
+    static Reg  esr_el1() { Reg r; ASM("mrs %0, esr_el1" : "=r"(r) :); return r; }
+    static void esr_el1(Reg r) {   ASM("msr esr_el1, %0" : : "r"(r) :); }
+
+    static Reg  sp_el0() { Reg r; ASM("mrs %0, sp_el0" :  "=r"(r) : : ); return r; }
+    static void sp_el0(Reg r) {   ASM("msr sp_el0, %0" : : "r"(r): ); }
+
+    static Reg  sp_el1() { Reg r; ASM("mrs %0, sp_el1" :  "=r"(r) : : ); return r; }
+    static void sp_el1(Reg r) {   ASM("msr sp_el1, %0" : : "r"(r): ); }
 
     // x16 and x17 are the intra-procedure-call temporary registers
     static void pstate_to_tmp() {
@@ -355,7 +364,8 @@ public:
 
     static void iret() { ASM("1: br lr"); }
 
-    static void mode(unsigned int m) { ASM("msr currentel, %0" : : "r"(m) : "cc"); }
+    static Reg  mode() { Reg m; ASM("mrs %0, currentEl" : "=r"(m) : : ); return m; }
+    static void mode(Reg m) {   ASM("msr currentEl, %0" : : "r"(m) : "cc"); }
 
     static void svc_enter(unsigned int from, bool ret = true) { Context::push(true); }
     static void svc_leave() { Context::pop(true); }
@@ -543,41 +553,43 @@ public:
 
     template<typename T>
     static T tsl(volatile T & lock) {
-        bool ie = int_enabled();
-        int_disable();
-        T old = CPU_Common::tsl(lock);
-        if(ie)
-            int_enable();
-        return old;
+        register T old = 0;
+        register T one = 1;
+        ASM("1: ldaxr   %w0, [%1]       \n"
+            "   stlxr   w3, %2, [%1]    \n"
+            "   cbnz    w3, 1b          \n" : "=&r"(old) : "r"(&lock), "r"(one) : "x3", "cc");
+        return lock;
     }
 
     template<typename T>
     static T finc(volatile T & value) {
-        bool ie = int_enabled();
-        int_disable();
-        T old = CPU_Common::finc(value);
-        if(ie)
-            int_enable();
-        return old;
+        register T old;
+        ASM("1: ldaxr  %0, [%1]         \n"
+            "   add    %0, %0, #1       \n"
+            "   stlxr  w3, %0, [%1]     \n"
+            "   cbnz   w3, 1b           \n" : "=&r"(old) : "r"(&value) : "x3", "cc");
+        return old - 1;
     }
 
     template<typename T>
     static T fdec(volatile T & value) {
-        bool ie = int_enabled();
-        int_disable();
-        T old = CPU_Common::fdec(value);
-        if(ie)
-            int_enable();
-        return old;
+        register T old;
+        ASM("1: ldaxr  %0, [%1]         \n"
+            "   add    %0, %0, #-1      \n"
+            "   stlxr  w3, %0, [%1]     \n"
+            "   cbnz   w3, 1b           \n" : "=&r"(old) : "r"(&value) : "x3", "cc");
+        return old + 1;
     }
 
     template <typename T>
     static T cas(volatile T & value, T compare, T replacement) {
-        bool ie = int_enabled();
-        int_disable();
-        T old = CPU_Common::cas(value, compare, replacement);
-        if(ie)
-            int_enable();
+        register T old;
+        ASM("1: ldaxr  %w0, [%1]        \n"
+            "   cmp    %0, %2           \n"
+            "   bne    2f               \n"
+            "   stlxr  w6, %3, [%1]     \n"
+            "   cbnz   w6, 1b           \n"
+            "2:                         \n" : "=&r"(old) : "r"(&value), "r"(compare), "r"(replacement) : "x6", "cc");
         return old;
     }
  

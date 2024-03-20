@@ -26,8 +26,8 @@ public:
     static const unsigned int IRQS = 16;
 
     // Interrupts ([M|S]CAUSE with interrupt = 1)
-    enum : unsigned long {
-        IRQ_USR_SOFT    = 0,
+    enum : Reg {
+        IRQ_USR_SOFT    = 0, // IPI are called software interrupts in RISC-V
         IRQ_SUP_SOFT    = 1,
         IRQ_MAC_SOFT    = 3,
         IRQ_USR_TIMER   = 4,
@@ -36,6 +36,8 @@ public:
         IRQ_USR_EXT     = 8,
         IRQ_SUP_EXT     = 9,
         IRQ_MAC_EXT     = 11,
+        IRQ_SOFT        = (supervisor ? IRQ_SUP_SOFT: IRQ_MAC_SOFT),
+        IRQ_TIMER       = (supervisor ? IRQ_SUP_TIMER: IRQ_MAC_TIMER),
         IRQ_PLIC        = (supervisor ? IRQ_SUP_EXT: IRQ_MAC_EXT),
         INTERRUPT       = 1UL << (Traits<CPU>::WORD_SIZE - 1),
         INT_MASK        = ~INTERRUPT
@@ -43,41 +45,13 @@ public:
     };
 
     // Registers offsets from CLINT_BASE (all registers are 32 bits wide; 32-bit word pairs, like MTIMECMP, can be accessed as a 64-bit word in RV64)
-    enum {                        // Description
+    enum : Reg {                  // Description
         MSIP            = 0x0000, // Per-HART 32-bit software interrupts (IPI) trigger; each HART is offset by 4 bytes from MSIP
         MTIMECMP        = 0x4000, // Per-HART 64-bit timer compare register; lower 32 bits stored first; each HART is offset by 8 bytes from MTIMECMP
         MTIME           = 0xbff8, // Timer counter shared by all HARTs lower 32 bits stored first
     };
 
-    // MTVEC modes
-    enum Mode {
-        DIRECT  = 0,
-        INDEXED = 1
-    };
-
 public:
-    static void mtvec(Mode mode, Phy_Addr base) {
-        Reg tmp = (base & -4UL) | (Reg(mode) & 0x3);
-        ASM("csrw mtvec, %0" : : "r"(tmp) : "cc");
-    }
-
-    static Reg mtvec() {
-        Reg value;
-        ASM("csrr %0, mtvec" : "=r"(value) : : );
-        return value;
-    }
-
-    static void stvec(Mode mode, Log_Addr base) {
-        Reg tmp = (base & -4UL) | (Reg(mode) & 0x3);
-        ASM("csrw stvec, %0" : : "r"(tmp) : "cc");
-    }
-
-    static Reg stvec() {
-        Reg value;
-        ASM("csrr %0, stvec" : "=r"(value) : : );
-        return value;
-    }
-
     static Reg64 mtime() { return *reinterpret_cast<Reg64 *>(Memory_Map::CLINT_BASE + MTIME); }
     static void  mtimecmp(Reg64 v) { *reinterpret_cast<Reg64 *>(Memory_Map::CLINT_BASE + MTIMECMP + 8 * (CPU::id() + CPU_OFFSET)) = v; }
 
@@ -163,9 +137,7 @@ class IC: private IC_Common, private CLINT, private PLIC
 private:
     typedef CPU::Reg Reg;
 
-    static const bool multitask = Traits<System>::multitask;
     static const bool supervisor = Traits<Machine>::supervisor;
-    static const unsigned long CPU_OFFSET = Traits<Machine>::CPU_OFFSET;
 
 public:
     static const unsigned int EXCS = CPU::EXCEPTIONS;
@@ -177,8 +149,8 @@ public:
 
     enum {
         INT_SYSCALL     = CPU::EXC_ENVU,
-        INT_SYS_TIMER   = EXCS + (supervisor ? IRQ_SUP_TIMER : IRQ_MAC_TIMER),
-        INT_RESCHEDULER = EXCS + (supervisor ? IRQ_SUP_SOFT : IRQ_MAC_SOFT),  // IPI are called software interrupts in RISC-V
+        INT_SYS_TIMER   = EXCS + IRQ_TIMER,
+        INT_RESCHEDULER = EXCS + IRQ_SOFT,
         INT_PLIC        = EXCS + IRQ_PLIC,
         HARD_INT        = EXCS + CLINT::IRQS,
         INT_DDR         = HARD_INT + PLIC::IRQ_DDR,
@@ -224,32 +196,20 @@ public:
 
     static void enable() {
         db<IC>(TRC) << "IC::enable()" << endl;
-        if(supervisor)
-            CPU::sie(CPU::SSI | CPU::STI | CPU::SEI);
-        else
-            CPU::mie(CPU::MSI | CPU::MTI | CPU::MEI);
+        CPU::ie(CPU::SI | CPU::TI | CPU::EI);
         PLIC::enable();
     }
 
     static void enable(Interrupt_Id i) {
         db<IC>(TRC) << "IC::enable(int=" << i << ")" << endl;
         assert(i < INTS);
-        if(i == INT_RESCHEDULER) {
-            if(supervisor)
-                CPU::sies(CPU::SSI);
-            else
-                CPU::mies(CPU::MSI);
-        } else if(i == INT_SYS_TIMER) {
-            if(supervisor)
-                CPU::sies(CPU::STI);
-            else
-                CPU::mies(CPU::MTI);
-        } else if(i == INT_PLIC) {
-            if(supervisor)
-                CPU::sies(CPU::SEI);
-            else
-                CPU::mies(CPU::MEI);
-        } else if(i > HARD_INT) {
+        if(i == INT_RESCHEDULER)
+            CPU::ies(CPU::SI);
+        else if(i == INT_SYS_TIMER)
+            CPU::ies(CPU::TI);
+        else if(i == INT_PLIC)
+            CPU::ies(CPU::EI);
+        else if(i > HARD_INT) {
             i = int2irq(i);
             PLIC::enable(i);
             PLIC::priority(i, 1);
@@ -258,32 +218,20 @@ public:
 
     static void disable() {
         db<IC>(TRC) << "IC::disable()" << endl;
-        if(supervisor)
-            CPU::siec(CPU::SSI | CPU::STI | CPU::SEI);
-        else
-            CPU::miec(CPU::MSI | CPU::MTI | CPU::MEI);
+        CPU::iec(CPU::SI | CPU::TI | CPU::EI);
         PLIC::disable();
     }
 
     static void disable(Interrupt_Id i) {
         db<IC>(TRC) << "IC::disable(int=" << i << ")" << endl;
         assert(i < INTS);
-        if(i == INT_RESCHEDULER) {
-             if(supervisor)
-                 CPU::siec(CPU::SSI);
-             else
-                 CPU::miec(CPU::MSI);
-         } else if(i == INT_SYS_TIMER) {
-             if(supervisor)
-                 CPU::siec(CPU::STI);
-             else
-                 CPU::miec(CPU::MTI);
-         } else if(i == INT_PLIC) {
-             if(supervisor)
-                 CPU::siec(CPU::SEI);
-             else
-                 CPU::miec(CPU::MEI);
-         } else if(i > HARD_INT) {
+        if(i == INT_RESCHEDULER)
+            CPU::iec(CPU::SI);
+        else if(i == INT_SYS_TIMER)
+            CPU::iec(CPU::TI);
+        else if(i == INT_PLIC)
+            CPU::iec(CPU::EI);
+        else if(i > HARD_INT) {
              i = int2irq(i);
              PLIC::disable(i);
              PLIC::priority(i, 0);
@@ -297,15 +245,15 @@ public:
 
     static Interrupt_Id int_id() {
         // Id is retrieved from [m|s]cause even if mip has the equivalent bit up, because only [m|s]cause can tell if it is an interrupt or an exception
-        Reg id = (supervisor) ? CPU::scause() : CPU::mcause();
+        Reg id = CPU::cause();
         if(id & INTERRUPT)
             return irq2int(id & INT_MASK);
         else
             return (id & INT_MASK);
     }
 
-    static int irq2int(int i) { return ((i == IRQ_PLIC) ? claim() + CLINT::IRQS : i) + EXCS; }
-    static int int2irq(int i) { return  ((i > HARD_INT) ? i - CLINT::IRQS : i) - EXCS; }
+    static Interrupt_Id irq2int(Interrupt_Id i) { return ((i == IRQ_PLIC) ? claim() + CLINT::IRQS : i) + EXCS; }
+    static Interrupt_Id int2irq(Interrupt_Id i) { return  ((i > HARD_INT) ? i - CLINT::IRQS : i) - EXCS; }
 
     static void ipi(unsigned int cpu, Interrupt_Id i) {
         db<IC>(TRC) << "IC::ipi(cpu=" << cpu << ",int=" << i << ")" << endl;
@@ -313,7 +261,7 @@ public:
         msip(cpu) = 1;
     }
 
-    static void ipi_eoi(Interrupt_Id i) { msip(CPU::id() + CPU_OFFSET) = 0; }
+    static void ipi_eoi(Interrupt_Id i) { msip(CPU::id()) = 0; }
 
 private:
     static void dispatch();

@@ -10,7 +10,7 @@ __BEGIN_SYS
 class Machine_Common;
 template<> struct Traits<Machine_Common>: public Traits<Build>
 {
-    typedef IF<MODE != LIBRARY, void, bool>::Result Sanity;
+    typedef IF<SMOD != LIBRARY, void, bool>::Result Sanity;
     static const Sanity sane = true;
 
     static const bool debugged = Traits<Build>::debugged;
@@ -112,7 +112,7 @@ template<> struct Traits<Ethernet>: public Traits<Machine_Common>
     typedef LIST<Ethernet_NIC> DEVICES;
     static const unsigned int UNITS = DEVICES::Length;
 
-    static const bool enabled = (Traits<Build>::NODES > 1) && (UNITS > 0);
+    static const bool enabled = (Traits<Build>::NETWORKING != STANDALONE) && (UNITS > 0);
     static const bool promiscuous = false;
 };
 

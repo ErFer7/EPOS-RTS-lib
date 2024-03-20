@@ -36,11 +36,11 @@ public:
         DMA1_BASE       = 0x3fe05000,
 
         VECTOR_TABLE    = RAM_BASE,
-        FLAT_PAGE_TABLE = (RAM_TOP - 16 * 1024) & ~(0x3fff), // used only with No_MMU in LIBRARY mode; 32-bit: 16KB, 4096 4B entries, each pointing to 1 MB regions, thus mapping up to 4 GB; 64-bit: 16KB, 2048 8B entries, each pointing to 32 MB regions, thus mapping up to 64 GB; 16K-aligned for TTBR;
+        FLAT_PAGE_TABLE = (RAM_TOP + 1 - 16 * 1024) & ~(0x3fff), // used only with No_MMU in LIBRARY mode; 32-bit: 16KB, 4096 4B entries, each pointing to 1 MB regions, thus mapping up to 4 GB; 64-bit: 16KB, 2048 8B entries, each pointing to 32 MB regions, thus mapping up to 64 GB; 16K-aligned for TTBR;
         BOOT_STACK      = FLAT_PAGE_TABLE - Traits<Machine>::STACK_SIZE, // will be used as the stack's base, not the stack pointer
 
         FREE_BASE       = VECTOR_TABLE + (armv7 ? 4 : 16) * 1024,
-        FREE_TOP        = BOOT_STACK,
+        FREE_TOP        = BOOT_STACK - 1,
 
         // Logical Address Space -- Need to be verified
         APP_LOW         = Traits<Machine>::APP_LOW,

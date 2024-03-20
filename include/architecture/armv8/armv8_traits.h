@@ -35,7 +35,7 @@ template<> struct Traits<TSC>: public Traits<Build>
 
 template<> struct Traits<PMU>: public Traits<Build>
 {
-    static const bool enabled = false;
+    static const bool enabled = true;
 };
 
 __END_SYS

@@ -20,7 +20,7 @@ DOC=$EPOS/doc
 #=========================================================================
 # CONFIGURATION
 #=========================================================================
-. $ETC/eposcc.conf
+source $ETC/eposcc.cfg
 
 #=========================================================================
 # CUSTOMIZABLE DEFINITIONS
@@ -37,51 +37,51 @@ if [ "$SMOD" = "kernel" ] ; then
 COMP_FLGS="$COMP_FLGS -include $INC/framework/main.h"
 fi
 
-C_COMPILER="$TOOLS_PREFIX""gcc"
+C_COMPILER="$PREFIX""gcc"
 C_COMP_FLGS="$MACH_CC_FLAGS"
 C_COMP_HDRS=
 C_LINK_FLGS="$MACH_LD_FLAGS"
 C_LINK_OBJS=
 C_LINK_LIBS=
 
-CPP_COMPILER="$TOOLS_PREFIX""g++"
+CPP_COMPILER="$PREFIX""g++"
 CPP_COMP_FLGS="--no-exceptions --no-rtti --no-use-cxa-atexit -std=c++14"
 CPP_COMP_HDRS=
 CPP_LINK_FLGS="$MACH_LD_FLAGS"
 CPP_LINK_OBJS=
 CPP_LINK_LIBS=
 
-F77_COMPILER="$TOOLS_PREFIX""g77"
+F77_COMPILER="$PREFIX""g77"
 F77_COMP_FLGS=
 F77_COMP_HDRS=
 F77_LINK_FLGS="$MACH_LD_FLAGS"
 F77_LINK_OBJS=
 F77_LINK_LIBS="f2c"
 
-LINKER="$TOOLS_PREFIX""ld"
+LINKER="$PREFIX""ld"
 
 LINKER_LIBRARY=$LINKER
-LINK_FLGS_LIBRARY="-L$LIB -L`$C_COMPILER $C_COMP_FLGS -print-file-name=` -static --section-start $MACH_CODE_NAME=$APP_CODE"
-if [ "$SETUP" != "" -o "$APP_CODE" != "$APP_DATA" -a "$MACH_DATA_NAME" != "" ] ; then
-    LINK_FLGS_LIBRARY="$LINK_FLGS_LIBRARY --section-start $MACH_DATA_NAME=$APP_DATA"
+LINK_FLGS_LIBRARY="-L$LIB -L`$C_COMPILER $C_COMP_FLGS -print-file-name=` -static --section-start $MACH_CODE_NAME=$APP_CODE_ADDR"
+if [ "$SETUP_ADDR" != "" -o "$APP_CODE_ADDR" != "$APP_DATA_ADDR" -a "$MACH_DATA_NAME" != "" ] ; then
+    LINK_FLGS_LIBRARY="$LINK_FLGS_LIBRARY --section-start $MACH_DATA_NAME=$APP_DATA_ADDR"
 fi
 LINK_OBJI_LIBRARY="$LIB/crt0_$MMOD.o $LIB/crtbegin_$MMOD.o $LIB/init_end_$MMOD.o"
 LINK_OBJN_LIBRARY="$LIB/application_$MMOD.o $LIB/init_application_$MMOD.o $LIB/init_system_$MMOD.o $LIB/system_$MMOD.o $LIB/init_begin_$MMOD.o"
 LINK_OBJL_LIBRARY="$LIB/crtend_$MMOD.o"
 LINK_LIBS_LIBRARY="util_$MMOD sys_$MMOD init_$MMOD sys_$MMOD mach_$MMOD arch_$MMOD util_$MMOD gcc"
-if [ "$SETUP" = "" ] ; then
+if [ "$SETUP_ADDR" = "" ] ; then
     LINK_OBJI_LIBRARY="$LIB/setup_$MMOD.o $LINK_OBJI_LIBRARY"
 fi
 
 LINKER_BUILTIN=$LINKER
-LINK_FLGS_BUILTIN="-L$LIB -L`$C_COMPILER $C_COMP_FLGS -print-file-name=` -static --section-start $MACH_CODE_NAME=$APP_CODE --section-start $MACH_DATA_NAME=$APP_DATA"
+LINK_FLGS_BUILTIN="-L$LIB -L`$C_COMPILER $C_COMP_FLGS -print-file-name=` -static --section-start $MACH_CODE_NAME=$APP_CODE_ADDR --section-start $MACH_DATA_NAME=$APP_DATA_ADDR"
 LINK_OBJI_BUILTIN="$LIB/crt0_$MMOD.o $LIB/crtbegin_$MMOD.o"
 LINK_OBJN_BUILTIN="$LIB/application_$MMOD.o $LIB/init_application_$MMOD.o"
 LINK_OBJL_BUILTIN="$LIB/crtend_$MMOD.o -R$SRC/system/system_$MMOD"
 LINK_LIBS_BUILTIN="util_$MMOD gcc"
 
 LINKER_KERNEL=$LINKER
-LINK_FLGS_KERNEL="-L$LIB -L`$C_COMPILER $C_COMP_FLGS -print-file-name=` -static --section-start $MACH_CODE_NAME=$APP_CODE --section-start $MACH_DATA_NAME=$APP_DATA"
+LINK_FLGS_KERNEL="-L$LIB -L`$C_COMPILER $C_COMP_FLGS -print-file-name=` -static --section-start $MACH_CODE_NAME=$APP_CODE_ADDR --section-start $MACH_DATA_NAME=$APP_DATA_ADDR"
 LINK_OBJI_KERNEL="$LIB/crt0_$MMOD.o $LIB/crtbegin_$MMOD.o"
 LINK_OBJN_KERNEL="$LIB/application_$MMOD.o $LIB/init_application_$MMOD.o"
 LINK_OBJL_KERNEL="$LIB/crtend_$MMOD.o"

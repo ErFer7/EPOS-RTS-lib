@@ -11,7 +11,7 @@ class Machine_Common;
 template<> struct Traits<Machine_Common>: public Traits<Build>
 {
 protected:
-    static const bool library = (Traits<Build>::MODE == Traits<Build>::LIBRARY);
+    static const bool library = (Traits<Build>::SMOD == Traits<Build>::LIBRARY);
 };
 
 template<> struct Traits<Machine>: public Traits<Machine_Common>
@@ -19,6 +19,13 @@ template<> struct Traits<Machine>: public Traits<Machine_Common>
 public:
     // Value to be used for undefined addresses
     static const unsigned long NOT_USED         = 0xffffffff;
+
+    // RISC-V mode for library
+    static const bool supervisor = false;                                                       // Run EPOS library in supervisor mode
+
+    // CPU numbering
+    static const unsigned long CPU_OFFSET       = 0;
+    static const unsigned int  BSP              = 0;                                            // Bootstrap/service processor
 
     // Physical Memory
     static const unsigned long ROM_BASE         = 0x20400000;                           // 516 MB
@@ -53,6 +60,23 @@ public:
 template <> struct Traits<IC>: public Traits<Machine_Common>
 {
     static const bool debugged = hysterically_debugged;
+
+    static const unsigned int PLIC_IRQS = 53;           // IRQ0 is used by PLIC to signalize that there is no interrupt being serviced or pending
+
+    struct Interrupt_Source: public _SYS::Interrupt_Source {
+        static const unsigned int IRQ_GPIO0     = 1;    // 32 contiguous interrupt sources
+        static const unsigned int IRQ_UART0     = 33;
+        static const unsigned int IRQ_UART1     = 34;
+        static const unsigned int IRQ_QSPI0     = 35;
+        static const unsigned int IRQ_SPI1      = 36;
+        static const unsigned int IRQ_SPI2      = 37;
+        static const unsigned int IRQ_PWM0      = 38;   // 4 contiguous interrupt sources
+        static const unsigned int IRQ_PWM1      = 42;   // 4 contiguous interrupt sources
+        static const unsigned int IRQ_PWM2      = 46;   // 4 contiguous interrupt sources
+        static const unsigned int IRQ_I2C       = 50;
+        static const unsigned int IRQ_WDOG      = 51;
+        static const unsigned int IRQ_RTC       = 52;
+    };
 };
 
 template <> struct Traits<Timer>: public Traits<Machine_Common>

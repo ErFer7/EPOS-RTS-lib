@@ -2,8 +2,10 @@
 
 include	../makedefs
 
+DBSEC		= $(1) 0x$(shell objdump -h $(1) | grep $(2) | tr -s ' ' | cut -d ' ' -f 5 2> /dev/null)
+
 SYSTEM		:= $(shell find . -name $(MACH)_\* -and -not -name $(MACH)_boot)
-IMAGES		:= $(subst .img,,$(shell find . -name \*.img -printf "%f\n")) \
+IMAGES		:= $(subst .img,,$(shell find . -name \*.img ! -name loader.img -printf "%f\n")) \
 		$(IMAGES) $(subst .bin,,$(shell find . -name \*.bin -printf "%f\n")) \
 		$(IMAGES) $(subst .hex,,$(shell find . -name \*.bin -printf "%f\n"))
 IMAGE		:= $(addsuffix $(MACH_IMGSUFF),$(APPLICATION))
@@ -22,7 +24,7 @@ endif
 DEBUGGER	:= $(MACH_DEBUGGER)
 ifeq ($(DEBUG),1)
 ifeq ($(MMOD),sifive_u)
-DEBUGGER	:= $(DEBUGGER) -ex "set arch riscv:rv64" -ex "add-inferior" -ex "inferior 2" -ex "attach 2"
+DEBUGGER	:= $(DEBUGGER) -ex "set arch riscv:$(ARCH)" -ex "add-inferior" -ex "inferior 2" -ex "attach 2"
 endif
 ifneq ($(wildcard $(IMG)/setup_$(MMOD)),)
 DEBUGGER	:= $(DEBUGGER) -ex "add-symbol-file $(call DBSEC,$(SRC)/setup/setup_$(MMOD),.text)"
@@ -39,19 +41,16 @@ endif
 
 PEER_EMULATOR	:= $(subst 1235,1236,$(EMULATOR))
 
-NETWORK	        := -netdev socket,id=vlan0,mcast=230.0.0.1:1234 -object filter-dump,id=dump0,netdev=vlan0,file=$(APPLICATION).pcap -device pcnet,id=eth0,netdev=vlan0,mac=56:34:12:00:54:08 -device pcnet,id=eth1,mac=00:00:00:00:00:01
+NETWORK	        := -netdev socket,id=vlan0,mcast=230.0.0.1:1234 -object filter-dump,id=dump0,netdev=vlan0,file=$(APPLICATION).pcap -net nic,model=$(MACH_NIC),macaddr=56:34:12:00:54:08,id=eth0,netdev=vlan0
 # add the rest of the line to enable a dhcp server -netdev user,id=1,ipv6=off,restrict=on,net=10.0.1.0/24,host=10.0.1.1,dhcpstart=10.0.1.8
-PEER_NETWORK	:= -netdev socket,id=vlan0,mcast=230.0.0.1:1234 -object filter-dump,id=dump0,netdev=vlan0,file=$(PEER).pcap -device pcnet,id=eth0,netdev=vlan0,mac=56:34:12:00:54:09 -device pcnet,id=eth1,mac=00:00:00:00:00:02
-
-ifeq ($(MMOD),sifive_u)
-NETWORK	        := -netdev socket,id=vlan0,mcast=230.0.0.1:1234 -object filter-dump,id=dump0,netdev=vlan0,file=$(APPLICATION).pcap -net nic,model=cadence_gem,id=eth0,netdev=vlan0,macaddr=56:34:12:00:54:08 #-net nic,model=cadence_gem,id=eth1,macaddr=00:00:00:00:00:01
-# add the rest of the line to enable a dhcp server -netdev user,id=1,ipv6=off,restrict=on,net=10.0.1.0/24,host=10.0.1.1,dhcpstart=10.0.1.8
-PEER_NETWORK	:= -netdev socket,id=vlan0,mcast=230.0.0.1:1234 -object filter-dump,id=dump0,netdev=vlan0,file=$(PEER).pcap -net nic,model=cadence_gem,id=eth0,netdev=vlan0,macaddr=56:34:12:00:54:09 #-net nic,model=cadence_gem,id=eth1,macaddr=00:00:00:00:00:02
-endif
+PEER_NETWORK	:= -netdev socket,id=vlan0,mcast=230.0.0.1:1234 -object filter-dump,id=dump0,netdev=vlan0,file=$(PEER).pcap -net nic,model=$(MACH_NIC),macaddr=56:34:12:00:54:09,id=eth0,netdev=vlan0
 
 ifeq ($(NODES),1)
 
 all:		strip $(IMAGE)
+
+loader.img:	$(APPLICATION)
+		$(MKBI) $@ $< $(IMAGES)
 
 else
 
@@ -75,15 +74,15 @@ flash:		strip $(FLASH)
 run:		all run1
 
 run1:		eposcfg
-ifneq ($(STIME),0)
+ifneq ($(EXPECTED_SIMULATION_TIME),0)
 ifeq ($(NODES),1)
-		timeout --foreground --kill-after=2s --signal=9 $(STIME)s $(EMULATOR)$(IMAGE) | $(TEE) $(OUTPUT)
+		timeout --foreground --kill-after=2s --signal=9 $(EXPECTED_SIMULATION_TIME)s $(EMULATOR)$(IMAGE) | $(TEE) $(OUTPUT)
 else
-		$(TERM) "timeout --foreground --kill-after=2s --signal=9 $(STIME)s $(EMULATOR)$(IMAGE) $(NETWORK) | $(TEE) $(OUTPUT) \
+		$(TERM) "timeout --foreground --kill-after=2s --signal=9 $(EXPECTED_SIMULATION_TIME)s $(EMULATOR)$(IMAGE) $(NETWORK) | $(TEE) $(OUTPUT) \
 		&& $(TCPDUMP) $(APPLICATION).pcap > $(APPLICATION).net \
 		&& read -p 'Press [Enter] key to close ...'" &
 		sleep 2
-		$(TERM) "timeout --foreground --kill-after=2s --signal=9 $(STIME)s $(EMULATOR)$(PEER_IMAGE) $(PEER_NETWORK) | $(TEE) $(PEER_OUTPUT) \
+		$(TERM) "timeout --foreground --kill-after=2s --signal=9 $(EXPECTED_SIMULATION_TIME)s $(EMULATOR)$(PEER_IMAGE) $(PEER_NETWORK) | $(TEE) $(PEER_OUTPUT) \
 		&& $(TCPDUMP) $(PEER).pcap > $(PEER).net \
 		&& read -p 'Press [Enter] key to close ...'" &
 endif
@@ -111,7 +110,7 @@ runall:		FORCE
 		$(foreach app,$(IMAGES),$(MAKE) APPLICATION=$(app) prerun_$(app) run1 posrun_$(app);)
 
 strip:		$(SYSTEM) $(APPLICATION)
-		@for file in $^; do $(STRIP) "$${file}"; done;
+		@for file in $^; do $(STRIP) "$${file}" 2> /dev/null; done;
 
 clean:		FORCE
 		$(CLEAN) $(SYSTEM) $(APPLICATION) $(IMAGE)

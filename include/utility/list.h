@@ -448,8 +448,8 @@ public:
 
     Element * search(const Object_Type * obj) {
         Element * e = _head;
-            for(; e && (e->object() != obj); e = e->next());
-            return e;
+        for(; e && (e->object() != obj); e = e->next());
+        return e;
     }
 
 protected:

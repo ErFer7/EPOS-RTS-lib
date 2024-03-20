@@ -21,6 +21,7 @@ public:
     using CPU_Common::Reg;
     using CPU_Common::Log_Addr;
     using CPU_Common::Phy_Addr;
+    using CPU_Common::Interrupt_Id;
 
     class Context
     {

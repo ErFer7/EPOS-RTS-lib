@@ -185,9 +185,9 @@ public:
 
         operator bool() { return (bus != INVALID); }
 
-        friend Debug & operator<<(Debug & db, const Locator & l) {
-            db << "[" << l.bus << ":" << (l.dev_fn >> 3) << "." << (l.dev_fn & 0x07) << "]";
-            return db;
+        friend OStream & operator<<(OStream & os, const Locator & l) {
+            os << "[" << l.bus << ":" << (l.dev_fn >> 3) << "." << (l.dev_fn & 0x07) << "]";
+            return os;
         }
 
         Reg8 bus;
@@ -199,12 +199,12 @@ public:
 
         operator bool() { return (size != 0); }
 
-        friend Debug & operator<<(Debug & db, const Region & r) {
-            db << "{" << (r.memory ? "mem" : "io") << ",phy=" << r.phy_addr;
+        friend OStream & operator<<(OStream & os, const Region & r) {
+            os << "{" << (r.memory ? "mem" : "io") << ",phy=" << r.phy_addr;
             if(r.memory)
-        	db << ",log=" << r.log_addr;
-            db << ",size=" << (void *)r.size << "}";
-            return db;
+        	os << ",log=" << r.log_addr;
+            os << ",size=" << (void *)r.size << "}";
+            return os;
         }
 
         bool memory;
@@ -216,13 +216,13 @@ public:
     struct Header {
         operator bool() { return locator; }
 
-        friend Debug & operator<<(Debug & db, const Header & h) {
-            db << h.locator
+        friend OStream & operator<<(OStream & os, const Header & h) {
+            os << h.locator
                << "={vnd_id=" << (void *)(int)h.vendor_id
                << ",dev_id=" << (void *)(int)h.device_id
                << ",cmd=" << (void *)(int)h.command
                << ",stat=" << (void *)(int)h.status << "}";
-            return db;
+            return os;
         }
 
         Locator locator;

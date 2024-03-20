@@ -20,13 +20,13 @@ public:
         MIO_TOP         = Traits<Machine>::MIO_TOP,
         BOOT_STACK      = RAM_TOP + 1 - Traits<Machine>::STACK_SIZE, // will be used as the stack's base, not the stack pointer
         FREE_BASE       = RAM_BASE,
-        FREE_TOP        = BOOT_STACK,
+        FREE_TOP        = BOOT_STACK - 1,
 
         // Memory-mapped devices
         BIOS_BASE       = 0x00001000,   // SiFive-E BIOS ROM
         CLINT_BASE      = 0x02000000,   // SiFive CLINT
         TIMER_BASE      = 0x02004000,   // CLINT Timer
-        PLIIC_BASE      = 0x0c000000,   // SiFive PLIC
+        PLIC_BASE       = 0x0c000000,   // SiFive PLIC
         AON_BASE        = 0x10000000,   // SiFive-E Always-On (AON) Domain (real-time stuff)
         PRCI_BASE       = 0x10008000,   // SiFive-E Power, Reset, Clock, Interrupt
         GPIO_BASE       = 0x10012000,   // SiFive-E GPIO

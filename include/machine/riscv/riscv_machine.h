@@ -19,6 +19,9 @@ class Machine: private Machine_Common
     friend class Init_Begin;
     friend class Init_System;
 
+private:
+    static const bool supervisor = Traits<Machine>::supervisor;
+
 public:
     Machine() {}
 

@@ -10,7 +10,7 @@ __BEGIN_SYS
 class Machine_Common;
 template<> struct Traits<Machine_Common>: public Traits<Build>
 {
-    typedef IF<MODE != LIBRARY, void, bool>::Result Sanity;
+    typedef IF<SMOD != LIBRARY, void, bool>::Result Sanity;
     static const Sanity sane = true;
 
     static const bool debugged = Traits<Build>::debugged;

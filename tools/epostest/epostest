@@ -4,13 +4,14 @@ EPOS=
 APP=$EPOS/app
 IMG=$EPOS/img
 REP=$EPOS/report
-MODES="LIBRARY"
+SMODS="LIBRARY"
 APPLICATIONS="hello philosophers_dinner producer_consumer"
 LIBRARY_TARGETS=("IA32 PC Legacy_PC" "RV32 RISCV SiFive_E" "RV32 RISCV SiFive_U" "RV64 RISCV SiFive_U" "ARMv7 Cortex LM3S811" "ARMv7 Cortex eMote3" "ARMv7 Cortex Realview_PBX" "ARMv7 Cortex Zynq" "ARMv7 Cortex Raspberry_Pi3" "ARMv8 Cortex Raspberry_Pi3")
 LIBRARY_TESTS="alarm_test segment_test active_test"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
 NORMAL='\033[0m'
 
 set -e
@@ -21,33 +22,33 @@ fi
 
 cd $EPOS
 
-for MODE in $MODES ; do
-    eval TARGETS=( \"\${${MODE}_TARGETS[@]}\" )
+for SMOD in $SMODS ; do
+    eval TARGETS=( \"\${${SMOD}_TARGETS[@]}\" )
     N_TARGETS=${#TARGETS[@]}
-    eval TESTS=\"\${${MODE}_TESTS[@]}\"
+    eval TESTS=\"\${${SMOD}_TESTS[@]}\"
     set -- $TESTS
     TODO=$#
     set -- $APPLICATIONS
     let "TODO+=$#"
 
     printf "\n********************************************************************************\n"
-    printf "\nPreparing test set for $N_TARGETS targets in mode $MODE: $APPLICATIONS $TESTS\n"
+    printf "\nPreparing test set for $N_TARGETS targets in mode $SMOD: $APPLICATIONS $TESTS\n"
     for ((i = 0; i < N_TARGETS; i++)) do
         set -- ${TARGETS[$i]}
         ARCH=$1
         MACH=$2
         MMOD=$3
-        PREFIX=${MODE,,}"-"${ARCH,,}"-"${MACH,,}"-"${MMOD,,}
+        PREFIX=${SMOD,,}"-"${ARCH,,}"-"${MACH,,}"-"${MMOD,,}
         
         printf "\n--------------------------------------------------------------------------------\n"
-        printf "Running test set for $MMOD (a $MACH on $ARCH) in mode $MODE\n\n"
+        printf "Running test set for $MMOD (a $MACH on $ARCH) in mode $SMOD\n\n"
 
         make veryclean &> /dev/null
         make linktest &> /dev/null
 
         DONE=0
         for TEST in $APPLICATIONS $TESTS ; do
-            sed -e "s/^\(.*MODE = \).*;$/\1$MODE;/" -e "s/^\(.*ARCHITECTURE = \).*;$/\1$ARCH;/" -e "s/^\(.*MACHINE = \).*;$/\1$MACH;/" $APP/$TEST/$TEST""_traits.h -e "s/^\(.*MODEL = \).*;$/\1$MMOD;/" -i $APP/$TEST/$TEST""_traits.h
+            sed -e "s/^\(.*SMOD = \).*;$/\1$SMOD;/" -e "s/^\(.*ARCHITECTURE = \).*;$/\1$ARCH;/" -e "s/^\(.*MACHINE = \).*;$/\1$MACH;/" $APP/$TEST/$TEST""_traits.h -e "s/^\(.*MODEL = \).*;$/\1$MMOD;/" -i $APP/$TEST/$TEST""_traits.h
             if [ -e "$REP/${PREFIX}-${TEST}.out" ] ; then
               let "DONE+=1"
             fi
@@ -72,8 +73,10 @@ make veryclean &> /dev/null
 printf "********************************************************************************\n"
 cd $REP
 printf "${GREEN}Passed:\n"
-grep -l "The last thread has exited!" *.out
+find . -name \*.out -not -empty -exec grep -l "The last thread has exited!" \{} \; | cut -c 3- | sed s/.out//
+printf "\n${YELLOW}Not run:\n"
+find . -name \*.out -empty -printf "%f\n" | sed s/.out//
 printf "\n${RED}Failed:\n"
-grep -L "The last thread has exited!" *.out
+find . -name \*.out -not -empty -exec grep -L "The last thread has exited!" \{} \; | cut -c 3- | sed s/.out//
 printf "${NORMAL}"
 printf "********************************************************************************\n"

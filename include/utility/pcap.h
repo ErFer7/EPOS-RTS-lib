@@ -130,10 +130,10 @@ public:
             _magic_number(0xa1b2c3d4), _version_major(2), _version_minor(4), _thiszone(time_zone),
             _sigfigs(timestamp_accuracy), _snaplen(mtu), _network(link) {}
 
-        friend OStream & operator<<(OStream & db, const Global_Header & g) {
+        friend OStream & operator<<(OStream & os, const Global_Header & g) {
             for(unsigned int i = 0; i < sizeof(Global_Header); i++)
-                db << reinterpret_cast<const char*>(&g)[i];
-            return db;
+                os << reinterpret_cast<const char*>(&g)[i];
+            return os;
         }
 
     private:
@@ -153,10 +153,10 @@ public:
         Packet_Header(Microsecond timestamp, unsigned int len)
         : _ts_sec(timestamp / 1000000), _ts_usec(timestamp % 1000000), _incl_len(len), _orig_len(len) {}
 
-        friend OStream & operator<<(OStream & db, const Packet_Header & p) {
+        friend OStream & operator<<(OStream & os, const Packet_Header & p) {
             for(unsigned int i = 0; i < sizeof(Packet_Header); i++)
-                db << reinterpret_cast<const char*>(&p)[i];
-            return db;
+                os << reinterpret_cast<const char*>(&p)[i];
+            return os;
         }
 
         unsigned int size() const { return _incl_len; }

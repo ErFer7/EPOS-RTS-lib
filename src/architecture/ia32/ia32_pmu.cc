@@ -16,13 +16,13 @@ void PMU::int_handler(Interrupt_Id i)
 //        // kout << read(FIXED) << "    canal:FIXED   cpu:" << "  overflow:" << overflow() << "   thread:" << endl;
 //
 //        // PMC Handlers
-//        if (overflow())
+//        if(overflow())
 //        {
 //           // kout << "OVERFLOW" << endl;
 //
-//            for (Channel i=0; i<CHANNELS;i++)
+//            for(Channel i=0; i<CHANNELS;i++)
 //            {
-//                if (perf_ovf_msr&(1ULL << i))
+//                if(perf_ovf_msr&(1ULL << i))
 //                {
 //                    stop(i+FIXED);
 //                    clear_overflow(i+FIXED);
@@ -40,10 +40,10 @@ void PMU::int_handler(Interrupt_Id i)
 //        APIC::enable_perf();
 //        // kout << read(FIXED) << "    canal:FIXED   cpu:"  << "  overflow:" << overflow() << "   thread:" << endl;
 //
-//        for (Reg32 i = 0; i < CHANNELS; i++)
+//        for(Reg32 i = 0; i < CHANNELS; i++)
 //        {
 //            // For each PMC: verify if it's handler is set and an overflow occurred
-//            if ((_pmc_handler[i] != 0) && ((perf_ovf_msr&(1ULL << i)) != 0))
+//            if((_pmc_handler[i] != 0) && ((perf_ovf_msr&(1ULL << i)) != 0))
 //            {
 //                // Then, call this handler
 //                _pmc_handler[i]();

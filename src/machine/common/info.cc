@@ -24,7 +24,7 @@ OStream & operator<<(OStream & os, const System_Info & si)
        << ",extras_o="     << si.bm.extras_offset << dec
        << "}"
 
-#if defined(__pc__) || defined(__sifive_u__) || defined(__visionfive2__) || defined(__cortex_a53__)
+#if defined(__pc__) || defined(__sifive_u__) || defined(__cortex_a53__)
        << "\nPhysical_Memory_Map={"
        << "sys_info="      << reinterpret_cast<void *>(si.pmm.sys_info)
 #ifdef __pc__
@@ -54,7 +54,7 @@ OStream & operator<<(OStream & os, const System_Info & si)
 #endif
 
        << "\nLoad_Map={"
-#if defined(__pc__) || defined(__sifive_u__) || defined(__visionfive2__) || defined(__cortex_a53__)
+#if defined(__pc__) || defined(__sifive_u__) || defined(__cortex_a53__)
        << "has_stp="       << si.lm.has_stp
        << ",has_ini="      << si.lm.has_ini
        << ",has_sys="      << si.lm.has_sys

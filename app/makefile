@@ -2,8 +2,6 @@
 
 include ../makedefs
 
-SUBDIRS := $(shell find * -maxdepth 0 -type d)
-
 all:		$(APPLICATION)
 
 $(APPLICATION):	FORCE

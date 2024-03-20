@@ -15,7 +15,7 @@ template<> struct Traits<Machine_Common>: public Traits<Build>
     static const bool armv7                     = (Traits<Build>::ARCHITECTURE == Traits<Build>::ARMv7);
 
 protected:
-    static const bool library                   = (Traits<Build>::MODE == Traits<Build>::LIBRARY);
+    static const bool library                   = (Traits<Build>::SMOD == Traits<Build>::LIBRARY);
 };
 
 template<> struct Traits<Machine>: public Traits<Machine_Common>
@@ -48,8 +48,8 @@ public:
 
     // Default Sizes and Quantities
     static const unsigned int MAX_THREADS       = 10;
-    static const unsigned int STACK_SIZE        = 16 * 1024;
-    static const unsigned int HEAP_SIZE         = 4 * 1024 * 1024;
+    static const unsigned int STACK_SIZE        = 256 * 1024;
+    static const unsigned int HEAP_SIZE         = 2 * 1024 * 1024;
 
     // PLL clocks
     static const unsigned int ARM_PLL_CLOCK     = 1333333333;
@@ -121,7 +121,7 @@ template<> struct Traits<Ethernet>: public Traits<Machine_Common>
     typedef LIST<Ethernet_NIC> DEVICES;
     static const unsigned int UNITS = DEVICES::Length;
 
-    static const bool enabled = (Traits<Build>::NODES > 1) && (UNITS > 0);
+    static const bool enabled = (Traits<Build>::NETWORKING != STANDALONE) && (UNITS > 0);
     static const bool promiscuous = false;
 };
 

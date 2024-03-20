@@ -11,20 +11,20 @@ class Machine_Common;
 template<> struct Traits<Machine_Common>: public Traits<Build>
 {
 protected:
-    static const bool library = (Traits<Build>::MODE == Traits<Build>::LIBRARY);
+    static const bool library = (Traits<Build>::SMOD == Traits<Build>::LIBRARY);
 };
 
 template<> struct Traits<Machine>: public Traits<Machine_Common>
 {
 public:
-
     // Value to be used for undefined addresses
     static const unsigned long NOT_USED         = -1UL;
 
-    static const bool supervisor = false;
+    // RISC-V mode for library
+    static const bool supervisor = true;                                                        // Run EPOS library in supervisor mode
 
     // CPU numbering
-    static const unsigned long CPU_OFFSET       = 1;            // We skip core zero, which is a E CPU without MMU
+    static const unsigned long CPU_OFFSET       = supervisor ? 1 : 0;                           // We skip core zero, which is a E CPU without MMU
 
     // Clocks
     static const unsigned long CLOCK            = 1000000000;                                   // CORECLK
@@ -94,14 +94,14 @@ template <> struct Traits<Timer>: public Traits<Machine_Common>
     // Meaningful values for the timer frequency range from 100 to 10000 Hz. The
     // choice must respect the scheduler time-slice, i. e., it must be higher
     // than the scheduler invocation frequency.
-    static const int FREQUENCY = 1000; // Hz
+    static const long FREQUENCY = 1000; // Hz
 };
 
 template <> struct Traits<UART>: public Traits<Machine_Common>
 {
     static const unsigned int UNITS = 2;
 
-    static const unsigned int CLOCK = Traits<Machine>::TLCLK;
+    static const unsigned long CLOCK = Traits<Machine>::TLCLK;
 
     static const unsigned int DEF_UNIT = 1;
     static const unsigned int DEF_BAUD_RATE = 115200;
@@ -114,7 +114,7 @@ template <> struct Traits<SPI>: public Traits<Machine_Common>
 {
     static const unsigned int UNITS = 3;
 
-    static const unsigned int CLOCK = Traits<Machine>::TLCLK;
+    static const unsigned long CLOCK = Traits<Machine>::TLCLK;
 
     static const unsigned int DEF_UNIT = 0;
     static const unsigned int DEF_PROTOCOL = 0;
@@ -136,26 +136,6 @@ template<> struct Traits<Serial_Display>: public Traits<Machine_Common>
 template<> struct Traits<Scratchpad>: public Traits<Machine_Common>
 {
     static const bool enabled = false;
-};
-
-
-template<> struct Traits<Ethernet>: public Traits<Machine_Common>
-{
-    typedef LIST<GEM> DEVICES;
-    static const unsigned int UNITS = DEVICES::Length;
-
-    static const bool enabled = (Traits<Build>::NODES > 1) && (UNITS > 0);
-
-    static const bool promiscuous = false;
-};
-
-template<> struct Traits<GEM>: public Traits<Ethernet>
-{
-    static const unsigned int UNITS = DEVICES::Count<GEM>::Result;
-    static const bool enabled = Traits<Ethernet>::enabled;
-
-    static const unsigned int SEND_BUFFERS = 64; // per unit
-    static const unsigned int RECEIVE_BUFFERS = 64; // per unit
 };
 
 __END_SYS

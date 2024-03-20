@@ -12,7 +12,7 @@ template<> struct Traits<CPU>: public Traits<Build>
     enum {LITTLE, BIG};
     static const unsigned int ENDIANESS         = LITTLE;
     static const unsigned int WORD_SIZE         = 64;
-    static const unsigned long CLOCK            = (MODEL == SiFive_U) ? 1000000000L : (MODEL == VisionFive2) ? 600000000L : 50000000;
+    static const unsigned long CLOCK            = (MODEL == SiFive_U) ? 1000000000L : 50000000;
     static const bool unaligned_memory_access   = false;
 };
 

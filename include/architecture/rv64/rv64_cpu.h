@@ -11,6 +11,9 @@ class CPU: protected CPU_Common
 {
     friend class Init_System; // for CPU::init()
 
+private:
+    static const bool supervisor = Traits<Machine>::supervisor;
+
 public:
     // CPU Native Data Types
     using CPU_Common::Reg8;
@@ -20,15 +23,17 @@ public:
     using CPU_Common::Reg;
     using CPU_Common::Log_Addr;
     using CPU_Common::Phy_Addr;
+    using CPU_Common::Interrupt_Id;
 
     // Status Register ([m|s]status)
     typedef Reg Status;
-    enum {
+    enum : Reg {
         UIE             = 1 <<  0,      // User Interrupts Enabled
         SIE             = 1 <<  1,      // Supervisor Interrupts Enabled
         MIE             = 1 <<  3,      // Machine Interrupts Enabled
         UPIE            = 1 <<  4,      // User Previous Interrupts Enabled
         SPIE            = 1 <<  5,      // Supervisor Previous Interrupts Enabled
+        UBE             = 1 <<  6,      // Endianness of data memory accesses in user mode (0 -> little, 1 -> big); fetches are always little-endian
         MPIE            = 1 <<  7,      // Machine Previous Interrupts Enabled
         SPP             = 1 <<  8,      // Supervisor Previous Privilege
         SPP_U           = 0 <<  8,      // Supervisor Previous Privilege = user
@@ -47,28 +52,41 @@ public:
         XS_INIT         = 1 << 15,      // Extension on
         XS_CLEAN        = 2 << 15,      // Extension registers clean
         XS_DIRTY        = 3 << 15,      // Extension registers dirty (and must be saved on context switch)
-        MPRV            = 1 << 17,      // Memory PRiVilege (when set, enables MMU also in machine mode)
+        MPRV            = 1 << 17,      // Memory PRiVilege (when set, enables MMU if MPP uses MMU)
         SUM             = 1 << 18,      // Supervisor User Memory access allowed
         MXR             = 1 << 19,      // Make eXecutable Readable
         TVM             = 1 << 20,      // Trap Virtual Memory makes SATP inaccessible in supervisor mode
         TW              = 1 << 21,      // Timeout Wait for WFI outside machine mode
         TSR             = 1 << 22,      // Trap SRet in supervisor mode
-        SD              = 1L<< 63       // Status Dirty = (FS | XS)
+        UXL             = 3UL << 32,    // ISA word length (1 -> 32, 2 -> 64, 3 -> 128) in user mode
+        SXL             = 3UL << 34,    // ISA word length (1 -> 32, 2 -> 64, 3 -> 128) in supervisor mode
+        SBE             = 1UL << 36,    // Endianness of data memory accesses in supervisor mode (0 -> little, 1 -> big); fetches are always little-endian
+        MBE             = 1UL << 37,    // Endianness of data memory accesses in machine mode (0 -> little, 1 -> big); fetches are always little-endian
+        SD              = 1UL << 63     // Status Dirty = (FS | XS)
+    };
+
+    // [M|S]TVEC modes
+    enum : Reg {
+        INT_DIRECT  = 0,
+        INT_INDEXED = 1
     };
 
     // Interrupt-Enable, Interrupt-Pending and Machine Cause Registers ([M|S]IE, [M|S]IP, and [M|S]CAUSE when interrupt bit is set)
-    enum {
+    enum : Reg {
         SSI             = 1 << 1,       // Supervisor Software Interrupt
         MSI             = 1 << 3,       // Machine Software Interrupt
         STI             = 1 << 5,       // Supervisor Timer Interrupt
         MTI             = 1 << 7,       // Machine Timer Interrupt
         SEI             = 1 << 9,       // Supervisor External Interrupt
-        MEI             = 1 << 11       // Machine External Interrupt
+        MEI             = 1 << 11,      // Machine External Interrupt
+        SI              = supervisor ? SSI : MSI,
+        TI              = supervisor ? STI : MTI,
+        EI              = supervisor ? SEI : MEI
     };
 
     // Exceptions ([m|s]cause with interrupt = 0)
     static const unsigned int EXCEPTIONS = 16;
-    enum {
+    enum : Reg {
         EXC_IALIGN       = 0,   // Instruction address misaligned
         EXC_IFAULT       = 1,   // Instruction access fault
         EXC_IILLEGAL     = 2,   // Illegal instruction
@@ -97,9 +115,7 @@ public:
     public:
         Context() {}
         // Contexts are loaded with [m|s]ret, which gets pc from [m|s]epc and updates some bits of [m|s]status, that's why _st is initialized with [M|S]PIE and [M|S]PP
-        // Kernel threads are created with usp = 0 and have SPP_S set
-        // Dummy contexts for the first execution of each thread (both kernel and user) are created with exit = 0 and SPIE cleared (no interrupts until the second context is popped)
-        Context(Log_Addr entry, Log_Addr exit): _pc(entry), _st((exit ? MPIE : 0) | MPP_M), _x1(exit) {
+        Context(Log_Addr entry, Log_Addr exit): _pc(entry), _st(supervisor ? ((exit ? SPIE : 0) | SPP_S | SUM) : ((exit ? MPIE : 0) | MPP_M)), _x1(exit) {
             if(Traits<Build>::hysterically_debugged || Traits<Thread>::trace_idle) {
                                                                         _x5 =  5;  _x6 =  6;  _x7 =  7;  _x8 =  8;  _x9 =  9;
                 _x10 = 10; _x11 = 11; _x12 = 12; _x13 = 13; _x14 = 14; _x15 = 15; _x16 = 16; _x17 = 17; _x18 = 18; _x19 = 19;
@@ -111,8 +127,8 @@ public:
         void save() volatile __attribute__ ((naked));
         void load() const volatile __attribute__ ((naked));
 
-        friend OStream & operator<<(OStream & db, const Context & c) {
-            db << hex
+        friend OStream & operator<<(OStream & os, const Context & c) {
+            os << hex
                << "{sp="   << &c
                << ",pc="   << c._pc
                << ",st="   << c._st
@@ -145,7 +161,7 @@ public:
                << ",x30="  << c._x30
                << ",x31="  << c._x31
                << "}" << dec;
-            return db;
+            return os;
         }
 
     private:
@@ -157,8 +173,8 @@ public:
         Reg _st;      // [m|s]status
     //  Reg _x0;      // zero
         Reg _x1;      // ra, ABI Link Register
-    //  Reg _x2;      // sp, ABI Stack Pointer, saved as this
-    //  Reg _x3;      // gp, ABI Global Pointer, used in EPOS as a temporary
+    //  Reg _x2;      // sp, ABI Stack Pointer, saved in EPOS as the Context's this pointer
+    //  Reg _x3;      // gp, ABI Global Pointer, used in EPOS as a temporary inside the kernel
     //  Reg _x4;      // tp, ABI Thread Pointer, used in EPOS as core id
         Reg _x5;      // t0
         Reg _x6;      // t1
@@ -212,7 +228,7 @@ public:
     static Log_Addr fr() { Reg r; ASM("mv %0, a0" :  "=r"(r)); return r; }
     static void fr(Reg r) {       ASM("mv a0, %0" : : "r"(r) :); }
 
-    static unsigned int id() { return 0; }
+    static unsigned int id() { return supervisor ? tp() : 0; }
     static unsigned int cores() { return 1; }
 
     using CPU_Common::clock;
@@ -220,9 +236,9 @@ public:
     using CPU_Common::max_clock;
     using CPU_Common::bus_clock;
 
-    static void int_enable()  { mint_enable(); }
-    static void int_disable() { mint_disable(); }
-    static bool int_enabled() { return (mstatus() & MIE); }
+    static void int_enable()  { supervisor ? sint_enable()  : mint_enable(); }
+    static void int_disable() { supervisor ? sint_disable() : mint_disable(); }
+    static bool int_enabled() { return supervisor ? (sstatus() & SIE) : (mstatus() & MIE); }
     static bool int_disabled() { return !int_enabled(); }
 
     static void halt() { ASM("wfi"); }
@@ -236,13 +252,13 @@ public:
     static T tsl(volatile T & lock) {
         register T old;
         register T one = 1;
-        if(sizeof(T) == sizeof(Reg32))
-            ASM("1: lr.w    %0, (%1)        \n"
-                "   sc.w    t3, %2, (%1)    \n"
-                "   bnez    t3, 1b          \n" : "=&r"(old) : "r"(&lock), "r"(one) : "t3", "cc", "memory");
-        else
+        if(sizeof(T) == sizeof(Reg64))
             ASM("1: lr.d    %0, (%1)        \n"
                 "   sc.d    t3, %2, (%1)    \n"
+                "   bnez    t3, 1b          \n" : "=&r"(old) : "r"(&lock), "r"(one) : "t3", "cc", "memory");
+        else
+            ASM("1: lr.w    %0, (%1)        \n"
+                "   sc.w    t3, %2, (%1)    \n"
                 "   bnez    t3, 1b          \n" : "=&r"(old) : "r"(&lock), "r"(one) : "t3", "cc", "memory");
         return old;
     }
@@ -250,15 +266,15 @@ public:
     template<typename T>
     static T finc(volatile T & value) {
         register T old;
-        if(sizeof(T) == sizeof(Reg32))
-            ASM("1: lr.w    %0, (%1)        \n"
-                "   addi    %0, %0, 1       \n"
-                "   sc.w    t3, %0, (%1)    \n"
-                "   bnez    t3, 1b          \n" : "=&r"(old) : "r"(&value) : "t3", "cc", "memory");
-        else
+        if(sizeof(T) == sizeof(Reg64))
             ASM("1: lr.d    %0, (%1)        \n"
                 "   addi    %0, %0, 1       \n"
                 "   sc.d    t3, %0, (%1)    \n"
+                "   bnez    t3, 1b          \n" : "=&r"(old) : "r"(&value) : "t3", "cc", "memory");
+        else
+            ASM("1: lr.w    %0, (%1)        \n"
+                "   addi    %0, %0, 1       \n"
+                "   sc.w    t3, %0, (%1)    \n"
                 "   bnez    t3, 1b          \n" : "=&r"(old) : "r"(&value) : "t3", "cc", "memory");
         return old - 1;
     }
@@ -266,15 +282,15 @@ public:
     template<typename T>
     static T fdec(volatile T & value) {
         register T old;
-        if(sizeof(T) == sizeof(Reg32))
-            ASM("1: lr.w    %0, (%1)        \n"
-                "   addi    %0, %0, -1      \n"
-                "   sc.w    t3, %0, (%1)    \n"
-                "   bnez    t3, 1b          \n" : "=&r"(old) : "r"(&value) : "t3", "cc", "memory");
-        else
+        if(sizeof(T) == sizeof(Reg64))
             ASM("1: lr.d    %0, (%1)        \n"
                 "   addi    %0, %0, -1      \n"
                 "   sc.d    t3, %0, (%1)    \n"
+                "   bnez    t3, 1b          \n" : "=&r"(old) : "r"(&value) : "t3", "cc", "memory");
+        else
+            ASM("1: lr.w    %0, (%1)        \n"
+                "   addi    %0, %0, -1      \n"
+                "   sc.w    t3, %0, (%1)    \n"
                 "   bnez    t3, 1b          \n" : "=&r"(old) : "r"(&value) : "t3", "cc", "memory");
         return old + 1;
     }
@@ -282,16 +298,16 @@ public:
     template <typename T>
     static T cas(volatile T & value, T compare, T replacement) {
         register T old;
-        if(sizeof(T) == sizeof(Reg32))
-            ASM("1: lr.w    %0, (%1)        \n"
-                "   bne     %0, %2, 2f      \n"
-                "   sc.w    t3, %3, (%1)    \n"
-                "   bnez    t3, 1b          \n"
-                "2:                         \n" : "=&r"(old) : "r"(&value), "r"(compare), "r"(replacement) : "t3", "cc", "memory");
-        else
+        if(sizeof(T) == sizeof(Reg64))
             ASM("1: lr.d    %0, (%1)        \n"
                 "   bne     %0, %2, 2f      \n"
                 "   sc.d    t3, %3, (%1)    \n"
+                "   bnez    t3, 1b          \n"
+                "2:                         \n" : "=&r"(old) : "r"(&value), "r"(compare), "r"(replacement) : "t3", "cc", "memory");
+        else
+            ASM("1: lr.w    %0, (%1)        \n"
+                "   bne     %0, %2, 2f      \n"
+                "   sc.w    t3, %3, (%1)    \n"
                 "   bnez    t3, 1b          \n"
                 "2:                         \n" : "=&r"(old) : "r"(&value), "r"(compare), "r"(replacement) : "t3", "cc", "memory");
         return old;
@@ -329,21 +345,26 @@ public:
 
 public:
     // RISC-V 64 specifics
-    static Reg  status()   { return mstatus(); }
-    static void status(Status st) { mstatus(st); }
+    static Reg  status()   { return supervisor ? sstatus()   : mstatus(); }
+    static void status(Status st) { supervisor ? sstatus(st) : mstatus(st); }
 
-    static Reg  ie()     { return mie(); }
-    static void ie(Reg r)       { mie(r); }
+    static Reg  ie()     { return supervisor ? sie()         : mie(); }
+    static void ie(Reg r)       { supervisor ? sie(r)        : mie(r); }
+    static void iec(Reg r)      { supervisor ? siec(r)       : miec(r); }
+    static void ies(Reg r)      { supervisor ? sies(r)       : mies(r); }
 
-    static Reg  ip()     { return mip(); }
-    static void ip(Reg r)       { mip(r); }
+    static Reg  ip()     { return supervisor ? sip()         : mip(); }
+    static void ip(Reg r)       { supervisor ? sip(r)        : mip(r); }
 
-    static Reg  cause()  { return mcause(); }
+    static Reg  cause()  { return supervisor ? scause()      : mcause(); }
 
-    static Reg  tval()   { return mtval(); }
+    static Reg  tval()   { return supervisor ? stval()       : mtval(); }
 
-    static Reg  epc()    { return mepc(); }
-    static void epc(Reg r)      { mepc(r); }
+    static Reg  epc()    { return supervisor ? sepc()        : mepc(); }
+    static void epc(Reg r)      { supervisor ? sepc(r)       : mepc(r); }
+
+    static Reg  tvec()           { return supervisor ? stvec()       : mtvec(); }
+    static void tvec(Reg m, Phy_Addr a) { supervisor ? stvec(m, a) : mtvec(m, a); }
 
     static Reg  tp() { Reg r; ASM("mv %0, x4" : "=r"(r) :); return r; }
     static void tp(Reg r) {   ASM("mv x4, %0" : : "r"(r) :); }
@@ -354,8 +375,11 @@ public:
     static Reg  a1() { Reg r; ASM("mv %0, a1" :  "=r"(r)); return r; }
     static void a1(Reg r) {   ASM("mv a1, %0" : : "r"(r) :); }
 
+    static Reg  gp() { Reg r; ASM("mv %0, x3" :  "=r"(r)); return r; }
+    static void gp(Reg r) {   ASM("mv x3, %0" : : "r"(r) :); }
+
     static void ecall() { ASM("ecall"); }
-    static void iret() { mret(); }
+    static void iret() { supervisor ? sret() : mret(); }
 
     // Machine mode
     static void mint_enable()  { ASM("csrsi mstatus, %0" : : "i"(MIE) : "cc"); }
@@ -367,9 +391,9 @@ public:
     static Reg  mscratch() { Reg r; ASM("csrr %0, mscratch" :  "=r"(r) : : ); return r; }
 
     static void mstatus(Reg r)   { ASM("csrw mstatus, %0" : : "r"(r) : "cc"); }
-    static Reg  mstatus() { Reg r; ASM("csrr %0, mstatus" :  "=r"(r) : : ); return r; }
     static void mstatusc(Reg r)  { ASM("csrc mstatus, %0" : : "r"(r) : "cc"); }
     static void mstatuss(Reg r)  { ASM("csrs mstatus, %0" : : "r"(r) : "cc"); }
+    static Reg  mstatus() { Reg r; ASM("csrr %0, mstatus" :  "=r"(r) : : ); return r; }
 
     static void mie(Reg r)   { ASM("csrw mie, %0" : : "r"(r) : "cc"); }
     static void miec(Reg r)  { ASM("csrc mie, %0" : : "r"(r) : "cc"); }
@@ -380,6 +404,9 @@ public:
     static void mipc(Reg r)  { ASM("csrc mip, %0" : : "r"(r) : "cc"); }
     static void mips(Reg r)  { ASM("csrs mip, %0" : : "r"(r) : "cc"); }
     static Reg  mip() { Reg r; ASM("csrr %0, mip" :  "=r"(r) : : ); return r; }
+
+    static void mtvec(Reg m, Phy_Addr a) { Reg p = (a & -4UL) | (m & 0x3); ASM("csrw mtvec, %0" : : "r"(p) : "cc"); }
+    static Reg  mtvec() { Reg r; ASM("csrr %0, mtvec" : "=r"(r) : : ); return r; }
 
     static Reg mcause() { Reg r; ASM("csrr %0, mcause" : "=r"(r) : : ); return r; }
     static Reg mtval()  { Reg r; ASM("csrr %0, mtval" :  "=r"(r) : : ); return r; }
@@ -406,9 +433,9 @@ public:
     static Reg  sscratch() { Reg r; ASM("csrr %0, sscratch" :  "=r"(r) : : ); return r; }
 
     static void sstatus(Reg r)   { ASM("csrw sstatus, %0" : : "r"(r) : "cc"); }
-    static Reg  sstatus() { Reg r; ASM("csrr %0, sstatus" :  "=r"(r) : : ); return r; }
     static void sstatusc(Reg r)  { ASM("csrc sstatus, %0" : : "r"(r) : "cc"); }
     static void sstatuss(Reg r)  { ASM("csrs sstatus, %0" : : "r"(r) : "cc"); }
+    static Reg  sstatus() { Reg r; ASM("csrr %0, sstatus" :  "=r"(r) : : ); return r; }
 
     static void sie(Reg r)   { ASM("csrw sie, %0" : : "r"(r) : "cc"); }
     static void siec(Reg r)  { ASM("csrc sie, %0" : : "r"(r) : "cc"); }
@@ -420,6 +447,9 @@ public:
     static void sips(Reg r)  { ASM("csrs sip, %0" : : "r"(r) : "cc"); }
     static Reg  sip() { Reg r; ASM("csrr %0, sip" :  "=r"(r) : : ); return r; }
 
+    static void stvec(Reg m, Phy_Addr a) { Reg p = (a & -4UL) | (m & 0x3); ASM("csrw stvec, %0" : : "r"(p) : "cc"); }
+    static Reg  stvec() { Reg r; ASM("csrr %0, stvec" : "=r"(r) : : ); return r; }
+
     static Reg scause() { Reg r; ASM("csrr %0, scause" : "=r"(r) : : ); return r; }
     static Reg stval()  { Reg r; ASM("csrr %0, stval" :  "=r"(r) : : ); return r; }
 
@@ -427,6 +457,9 @@ public:
     static Reg  sepc() { Reg r; ASM("csrr %0, sepc" :  "=r"(r) : : ); return r; }
 
     static void sret() { ASM("sret"); }
+
+    static void satp(Reg r) { ASM("csrw satp, %0" : : "r"(r) : "cc"); ASM("sfence.vma" : : : "memory"); }
+    static Reg  satp() { Reg r; ASM("csrr %0, satp" :  "=r"(r) : : ); return r; }
 
 private:
     template<typename Head, typename ... Tail>
@@ -447,15 +480,28 @@ inline void CPU::Context::push(bool interrupt)
 {
     ASM("       addi     sp, sp, %0             \n" : : "i"(-sizeof(Context))); // adjust SP for the pushes below
 if(interrupt) {
-    ASM("       csrr     x3,    mepc            \n"
-        "       sd       x3,    0(sp)           \n");   // push MEPC as PC on interrupts
+  if(supervisor) {
+    ASM("       csrr     x3,    sepc            \n");   // push SEPC as PC on interrupts in supervisor mode
+  } else {
+    ASM("       csrr     x3,    mepc            \n");   // push MEPC as PC on interrupts in machine mode
+  }
 } else {
-    ASM("       sd       x1,    0(sp)           \n");   // push RA as PC on context switches
+    ASM("       mv       x3,    x1              \n");   // push RA as PC on context switches
 }
-    ASM("       csrr     x3,  mstatus           \n");
+    ASM("       sd       x3,    0(sp)           \n");   // push PC
+
+//if(!interrupt && supervisor) {
+//    ASM("       li       x3,      %0            \n"
+//        "       csrs     sstatus, x3            \n": : "i"(SPP_S));   // set SPP_S inside the kernel; the push(true) on IC::entry() has already saved the correct value to eventually return to the application
+//}
+if(supervisor) {
+    ASM("       csrr     x3, sstatus            \n");
+} else {
+    ASM("       csrr     x3, mstatus            \n");
+}
     ASM("       sd       x3,    8(sp)           \n"     // push ST
-        "       sd       x1,   16(sp)           \n"     // push X1-X31
-        "       sd       x5,   24(sp)           \n"
+        "       sd       x1,   16(sp)           \n"     // push RA
+        "       sd       x5,   24(sp)           \n"     // push X5-X31
         "       sd       x6,   32(sp)           \n"
         "       sd       x7,   40(sp)           \n"
         "       sd       x8,   48(sp)           \n"
@@ -496,14 +542,18 @@ if(interrupt) {
 if(interrupt) {
     ASM("       add      x3, x3, a0             \n");   // A0 is set by exception handlers to adjust [M|S]EPC to point to the next instruction if needed
 }
+if(supervisor) {
+    ASM("       csrw     sepc, x3               \n");   // SEPC = PC
+} else {
     ASM("       csrw     mepc, x3               \n");   // MEPC = PC
-    ASM("       ld       x3,    8(sp)           \n");   // pop ST into TMP
-if(!interrupt) {                                        // MSTATUS.MPP is automatically cleared on the MRET in the ISR, so we need to recover it here
-    ASM("       li      x10, %0                 \n"     // use X10 as a second TMP, since it will be restored later
-        "       or       x3, x3, x10            \n" : : "i"(MPP_M));
 }
-    ASM("       ld       x1,   16(sp)           \n"     // pop X1-X31
-        "       ld       x5,   24(sp)           \n"
+    ASM("       ld       x3,    8(sp)           \n");   // pop ST into TMP
+if(!interrupt) {
+    ASM("       li      x10, %0                 \n"     // use X10 as a second TMP, since it will be restored later
+        "       or       x3, x3, x10            \n" : : "i"(supervisor ? SPP_S : MPP_M)); // [M|S]STATUS.[S|M]PP is automatically cleared on the [M|S]RET in the ISR, so we need to recover it here
+}
+    ASM("       ld       x1,   16(sp)           \n"     // pop RA
+        "       ld       x5,   24(sp)           \n"     // pop X5-X31
         "       ld       x6,   32(sp)           \n"
         "       ld       x7,   40(sp)           \n"
         "       ld       x8,   48(sp)           \n"
@@ -531,7 +581,11 @@ if(!interrupt) {                                        // MSTATUS.MPP is automa
         "       ld      x30,  224(sp)           \n"
         "       ld      x31,  232(sp)           \n"
         "       addi    sp, sp, %0              \n" : : "i"(sizeof(Context))); // complete the pops above by adjusting SP
+if(supervisor) {
+    ASM("       csrw    sstatus, x3             \n");   // SSTATUS = ST
+} else {
     ASM("       csrw    mstatus, x3             \n");   // MSTATUS = ST
+}
 }
 
 inline CPU::Reg64 htole64(CPU::Reg64 v) { return CPU::htole64(v); }

@@ -35,7 +35,7 @@ struct Memory_Map: public Cortex_Memory_Map
         
         VECTOR_TABLE            = Traits<Machine>::APP_CODE,
         BOOT_STACK              = RAM_TOP + 1 - Traits<Machine>::STACK_SIZE, // will be used as the stack's base, not the stack pointer; SIZE = Traits<Machine>::STACK_SIZE
-        FREE_TOP                = BOOT_STACK,
+        FREE_TOP                = BOOT_STACK - 1,
 
         // Logical Address Space
         APP_LOW                 = Traits<Machine>::APP_LOW,

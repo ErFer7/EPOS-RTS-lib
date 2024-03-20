@@ -207,7 +207,7 @@ public:
     Dummy_Predictor(): _model(TYPE) {}
     Dummy_Predictor(const Configuration & c, bool r): _model(TYPE) {}
 
-    int predict(const Time & time) const { return 0; }
+    Value predict(const Time & time) const { return 0; }
 
     template<typename Config>
     void configure(const Config & conf) {}
@@ -238,9 +238,9 @@ public:
         template<typename Config>
         Configuration(const Config & conf): relative_error(conf.relative_error), absolute_error(conf.absolute_error), time_error(conf.time_error) {}
 
-        friend Debug & operator<<(Debug & db, const Configuration & c) {
-            db << "{r=" << c.relative_error << ",a=" << c.absolute_error << ",t=" << c.time_error << "}";
-            return db;
+        friend OStream & operator<<(OStream & os, const Configuration & c) {
+            os << "{r=" << c.relative_error << ",a=" << c.absolute_error << ",t=" << c.time_error << "}";
+            return os;
         }
 
         Value relative_error;
@@ -330,9 +330,9 @@ public:
         Configuration(const Config & conf)
         : relative_error(conf.relative_error), absolute_error(conf.absolute_error), time_error(conf.time_error), window_size(conf.window_size), points(conf.points) {}
 
-        friend Debug & operator<<(Debug & db, const Configuration & c) {
-            db << "{r=" << c.relative_error << ",a=" << c.absolute_error << ",t=" << c.time_error << ",w=" << c.window_size << ",l=" << c.points << "}";
-            return db;
+        friend OStream & operator<<(OStream & os, const Configuration & c) {
+            os << "{r=" << c.relative_error << ",a=" << c.absolute_error << ",t=" << c.time_error << ",w=" << c.window_size << ",l=" << c.points << "}";
+            return os;
         }
 
         Value relative_error;

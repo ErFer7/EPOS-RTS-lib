@@ -21,7 +21,7 @@
 
 // CONSTANTS
 static const unsigned int MAX_SI_LEN = 512;
-static const char CFG_FILE[] = "etc/eposmkbi.conf";
+static const char CFG_FILE[] = "etc/epos.cfg";
 
 // TYPES
 
@@ -252,8 +252,7 @@ int main(int argc, char **argv)
 
     // Add System_Info
     unsigned int si_offset = boot_size;
-    fprintf(out, "    Adding system info");
-    fprintf(out, " to SETUP:");
+    fprintf(out, "    Adding system info to SETUP:");
     struct stat stat;
     if(fstat(fd_img, &stat) < 0)  {
         fprintf(out, " failed! (stat)\n");
@@ -288,8 +287,8 @@ int main(int argc, char **argv)
     switch(CONFIG.word_size) {
     case  8: if(!add_boot_map<char>(fd_img, &si)) return 1; break;
     case 16: if(!add_boot_map<short>(fd_img, &si)) return 1; break;
-    case 32: if(!add_boot_map<long>(fd_img, &si)) return 1; break;
-    case 64: if(!add_boot_map<long long>(fd_img, &si)) return 1; break;
+    case 32: if(!add_boot_map<int>(fd_img, &si)) return 1; break;
+    case 64: if(!add_boot_map<long int>(fd_img, &si)) return 1; break;
     default: return 1;
     }
     fprintf(out, " done.\n");
@@ -389,6 +388,17 @@ bool parse_config(FILE * cfg_file, Configuration * cfg)
     }
     strtolower(cfg->mmod, token);
 
+    // Nodes
+    if(fgets(line, 256, cfg_file) != line) {
+        fprintf(err, "Error: failed to read NODES from configuration file!\n");
+        return false;
+    }
+    token = strtok(line, "=");
+    if(strcmp(token, "NODES") || !(token = strtok(NULL, "\n"))) {
+        fprintf(err, "Error: no valid NODES in configuration!\n");
+        return false;
+    }
+
     // CPUS
     if(fgets(line, 256, cfg_file) != line) {
         fprintf(err, "Error: failed to read CPUS from configuration file!\n");
@@ -484,6 +494,13 @@ bool parse_config(FILE * cfg_file, Configuration * cfg)
         return false;
     }
     cfg->mio_top = strtoll(token, 0, 16);
+
+    // Skip up to EXPECTED_SIMULATION_TIME
+    while(fgets(line, 256, cfg_file) == line) {
+        token = strtok(line, "=");
+        if(!strcmp(token, "EXPECTED_SIMULATION_TIME") && (token = strtok(NULL, "\n")))
+            break;
+    }
 
     // Node Id
     if(fgets(line, 256, cfg_file) != line)
@@ -592,7 +609,7 @@ bool add_machine_secrets(int fd, unsigned int i_size, char * mach, char * mmod)
         put_number(fd, last_track_sec);
         put_number(fd, num_sect);
         put_number(fd, boot_id);
-    } else if (!strcmp(mach, "rcx")) { // RCX
+    } else if(!strcmp(mach, "rcx")) { // RCX
         char key_string[] = "Do you byte, when I knock?";
         const unsigned short key_offset = 128 - (strlen(key_string) + 1);
 
@@ -603,7 +620,7 @@ bool add_machine_secrets(int fd, unsigned int i_size, char * mach, char * mmod)
         }
         put_buf(fd, key_string, (strlen(key_string)+1));
     }
-    else if (!strcmp(mmod, "emote3")) { // EPOSMoteIII
+    else if(!strcmp(mmod, "emote3")) { // EPOSMoteIII
         // Customer Configuration Area (CCA)
         //char key_string[] = ":020000040027D3\r\n:0CFFD400FFFFFFF700000000000020000D\r\n:00000001FF\r\n"; // Bootloader Enabled, enter by setting pin PA7 to low
         //char key_string[] = ":020000040027D3\r\n:0CFFD400FFFFFFFF000000000000200005\r\n:00000001FF\r\n"; // Bootloader Enabled, enter by setting pin PA7 to high

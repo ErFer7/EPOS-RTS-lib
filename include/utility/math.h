@@ -127,7 +127,7 @@ T sin(T x) {
     float acc = 1;
     T fact= 1;
     T pow = x;
-    for (int i = 1; abs<T>(acc) > .000001 && i < 100; i++){
+    for(int i = 1; abs<T>(acc) > .000001 && i < 100; i++) {
         fact *= ((2 * i) * (2 * i + 1));
         pow *= -1 * x * x;
         acc = pow / fact;
@@ -264,12 +264,6 @@ inline T1 lcm(T1 a, T2 b)
 {
     T1 temp = gcd(a,b);
     return temp ? a * (b / temp) : 0;
-}
-
-template<typename T1>
-inline int floor(T1 x)
-{
-    return static_cast<T1>(static_cast<int>(x));
 }
 
 }

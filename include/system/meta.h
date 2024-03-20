@@ -228,8 +228,7 @@ public:
     struct Count
     { enum { Result = EQUAL<Head, Type>::Result + Tail::template Count<Type>::Result }; };
 
-    struct Recur: public Tail::Recur::Result
-    { typedef Head Result; };
+    struct Recur: public Head, public Tail::Recur {};
 
     enum { Polymorphic = (int(Length) != int(Count<Head>::Result)) };
 };
@@ -252,8 +251,7 @@ public:
     struct Count
     { enum { Result = 0 }; };
 
-    struct Recur
-    { class Result {}; };
+    struct Recur {};
 
     enum { Polymorphic = false };
 };

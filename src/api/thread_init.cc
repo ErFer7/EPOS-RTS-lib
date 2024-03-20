@@ -39,7 +39,7 @@ void Thread::init()
     CPU::int_disable();
 
     // Transition from CPU-based locking to thread-based locking
-    This_Thread::not_booting();
+    _not_booting = true;
 }
 
 __END_SYS

@@ -148,7 +148,7 @@ public:
             assert(power_up_edge != BOTH);
             if(power_up_edge == FALLING)
                 gpio(P_EDGE_CTRL) |= (mask << (8 * port)); // this is a bit weird: each port has an P_EDGE_CTRL, but the bits for each port are different
-            else if (power_up_edge == RISING)
+            else if(power_up_edge == RISING)
                 gpio(P_EDGE_CTRL) &= ~(mask << (8 * port));
             gpio(PI_IEN) |= (mask << (8 * port));
         }

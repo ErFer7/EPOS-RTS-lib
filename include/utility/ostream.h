@@ -137,7 +137,7 @@ public:
             (*this) << "0.0000";
             return *this;
         }
-        if (f < 0) {
+        if(f < 0) {
             (*this) << "-";
             f *= -1;
         }

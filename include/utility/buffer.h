@@ -54,13 +54,13 @@ public:
     Element * link2() { return &_link2; }
     Element * lext() { return link2(); }
 
-    friend Debug & operator<<(Debug & db, const Buffer & b) {
-        db << "{md=" << b._owner << ",lk=" << b._lock << ",sz=" << b._size << ",sd=" << b._shadow << "}";
-        return db;
+    friend OStream & operator<<(OStream & os, const Buffer & b) {
+        os << "{md=" << b._owner << ",lk=" << b._lock << ",sz=" << b._size << ",sd=" << b._shadow << "}";
+        return os;
     }
 
 private:
-    volatile long _lock;
+    volatile bool _lock;
     Owner * _owner;
     Shadow * _shadow;
     unsigned int _size;

@@ -10,7 +10,7 @@ __BEGIN_SYS
 class Machine_Common;
 template<> struct Traits<Machine_Common>: public Traits<Build>
 {
-    typedef IF<MODE != LIBRARY, void, bool>::Result Sanity;
+    typedef IF<SMOD != LIBRARY, void, bool>::Result Sanity;
     static const Sanity sane = true;
 
     static const bool debugged = Traits<Build>::debugged;
@@ -156,7 +156,7 @@ template<> struct Traits<IEEE802_15_4>: public Traits<Machine_Common>
     typedef LIST<IEEE802_15_4_NIC> DEVICES;
     static const unsigned int UNITS = DEVICES::Length;
 
-    static const bool enabled = (Traits<Build>::NODES > 1) && (UNITS > 0);
+    static const bool enabled = (Traits<Build>::NETWORKING != STANDALONE) && (UNITS > 0);
 };
 
 template<> struct Traits<IEEE802_15_4_NIC>: public Traits<IEEE802_15_4>
@@ -169,7 +169,7 @@ template<> struct Traits<IEEE802_15_4_NIC>: public Traits<IEEE802_15_4>
 
     static const bool tstp_mac = true;
     static const bool promiscuous = false;
-    static const bool enabled = (Traits<Build>::NODES > 1) && (UNITS > 0);
+    static const bool enabled = (Traits<Build>::NETWORKING != STANDALONE) && (UNITS > 0);
 };
 
 template<> struct Traits<Modem>: public Traits<Machine_Common>
@@ -178,7 +178,7 @@ template<> struct Traits<Modem>: public Traits<Machine_Common>
     typedef LIST<M95> DEVICES;
     static const unsigned int UNITS = DEVICES::Length;
 
-    static const bool enabled = (Traits<Build>::NODES > 1) && (UNITS > 0);
+    static const bool enabled = (Traits<Build>::NETWORKING != STANDALONE) && (UNITS > 0);
 };
 
 template<> struct Traits<M95>: public Traits<Machine_Common>
@@ -199,7 +199,7 @@ template<> struct Traits<M95>: public Traits<Machine_Common>
     static const char STATUS_PORT = 'C';
     static const unsigned int STATUS_PIN = 1;
 
-    static const bool enabled = (Traits<Build>::NODES > 1) && (UNITS > 0);
+    static const bool enabled = (Traits<Build>::NETWORKING != STANDALONE) && (UNITS > 0);
 
     static const bool promiscuous = false;
 };

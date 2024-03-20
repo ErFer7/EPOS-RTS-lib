@@ -20,7 +20,7 @@ class Timer: private Timer_Common, private CLINT
 
 protected:
     static const unsigned int CHANNELS = 2;
-    static const unsigned int FREQUENCY = Traits<Timer>::FREQUENCY;
+    static const Hertz FREQUENCY = Traits<Timer>::FREQUENCY;
 
     typedef IC_Common::Interrupt_Id Interrupt_Id;
 

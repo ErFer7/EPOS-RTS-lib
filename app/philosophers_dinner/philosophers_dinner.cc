@@ -20,7 +20,7 @@ int philosopher(int n, int l, int c);
 
 int main()
 {
-    //
+    table.lock();
     Display::clear();
     Display::position(0, 0);
     cout << "The Philosopher's Dinner:" << endl;
@@ -36,7 +36,6 @@ int main()
 
     cout << "Philosophers are alive and hungry!" << endl;
 
-    
     Display::position(7, 44);
     cout << '/';
     Display::position(13, 44);
@@ -48,17 +47,16 @@ int main()
     Display::position(7, 27);
     cout << '\\';
     Display::position(19, 0);
-    
 
     cout << "The dinner is served ..." << endl;
-    
+    table.unlock();
 
     for(int i = 0; i < 5; i++) {
         int ret = phil[i]->join();
-        
+        table.lock();
         Display::position(20 + i, 0);
         cout << "Philosopher " << i << " ate " << ret << " times " << endl;
-        
+        table.unlock();
     }
 
     for(int i = 0; i < 5; i++)
@@ -73,49 +71,46 @@ int main()
 
 int philosopher(int n, int l, int c)
 {
-    unsigned int first = (n < 4)? n : 0;
+    int first = (n < 4)? n : 0;
     int second = (n < 4)? n + 1 : 4;
 
     for(int i = iterations; i > 0; i--) {
 
-        
-        Display::position(l, c);
-        cout << "thinking\n";
-        
-
-        Delay thinking(10000000);
-
-        Display::position(l, c);
         table.lock();
-        cout << "\nFirst: " << first << ".\n" << endl;
+        Display::position(l, c);
+        cout << "thinking";
         table.unlock();
+
+        Delay thinking(1000000);
+
         table.lock();
-        cout << "\nSecond: " << second << ".\n" << endl;
+        Display::position(l, c);
+        cout << " hungry ";
         table.unlock();
 
         chopstick[first]->p();   // get first chopstick
         chopstick[second]->p();  // get second chopstick
 
-        
+        table.lock();
         Display::position(l, c);
-        cout << "eating\n";
-        
+        cout << " eating ";
+        table.unlock();
 
         Delay eating(500000);
 
-        
+        table.lock();
         Display::position(l, c);
-        cout << "\n  sate  \n";
-        
+        cout << "  sate  ";
+        table.unlock();
 
         chopstick[first]->v();   // release first chopstick
         chopstick[second]->v();  // release second chopstick
     }
 
-    
+    table.lock();
     Display::position(l, c);
     cout << "  done  ";
-    
+    table.unlock();
 
     return iterations;
 }

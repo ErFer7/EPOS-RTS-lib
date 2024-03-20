@@ -33,11 +33,8 @@ public:
     using Engine::loopback;
 
     char get() { while(!rxd_ok()); return rxd(); }
-#ifdef __armv7__
+
     void put(char c) { while(!txd_ok()); txd(c); }
-#else
-    void put(char c) { /* while(!txd_ok()); */ txd(c); } // FIXME: txd_ok() is broken for BCM_UART in 64-bit
-#endif
 
     int read(char * data, unsigned int max_size) {
         for(unsigned int i = 0; i < max_size; i++)

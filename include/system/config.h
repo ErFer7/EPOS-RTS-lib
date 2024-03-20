@@ -11,11 +11,13 @@
 #define ARCH xxx
 #define MACH xxx
 #define MMOD xxx
+#define NETW xxx
 #define APPL xxx
 #define __mode_xxx__
 #define __arch_xxx__
 #define __mach_xxx__
 #define __mmod_xxx__
+#define __netw_xxx__
 
 //============================================================================
 // NAMESPACES AND DEFINITIONS
@@ -53,7 +55,6 @@ namespace EPOS {
 #define __HEADER_NAME(X,Y)      __CONCATENATE(X,_##Y).h
 #define __HEADER_ARCH(X)        <architecture/ARCH/__HEADER_NAME(ARCH,X)>
 #define __HEADER_MACH(X)        <machine/MACH/__HEADER_NAME(MACH,X)>
-#define __HEADER_PLIC(X)        <machine/MACH/MMOD/__HEADER_NAME(MMOD,X)>
 #define __HEADER_MMOD(X)        <machine/MACH/MMOD/__HEADER_NAME(MMOD,X)>
 #define __HEADER_TRAN(X)        <transducer/X.h>
 #define __APPL_TRAITS_T(X)      <../app/X/X##_traits.h>
@@ -79,7 +80,6 @@ namespace EPOS {
 
 #define __MACH_H                __HEADER_MACH(machine)
 #define __IC_H                  __HEADER_MACH(ic)
-#define __PLIC_H                __HEADER_PLIC(plic)
 #define __TIMER_H               __HEADER_MACH(timer)
 
 #ifdef __legacy_pc__
@@ -94,9 +94,15 @@ namespace EPOS {
 #define __DISPLAY_H             __HEADER_MACH(display)
 #define __KEYBOARD_H            __HEADER_MACH(keyboard)
 #define __SCRATCHPAD_H          __HEADER_MACH(scratchpad)
+#define __FPGA_H                __HEADER_MACH(fpga)
+
+#ifndef __standalone__
 #define __NIC_H                 __HEADER_MACH(nic)
 #define __ethernet__
-#define __FPGA_H                __HEADER_MACH(fpga)
+#define __elp__
+#define __ipv4__
+#define __tstp__
+#endif
 
 #define __KEYPAD_H              __HEADER_TRAN(keypad)
 
@@ -110,7 +116,6 @@ namespace EPOS {
 
 #define __UART_H                __HEADER_MACH(uart)
 #define __GPIO_H                __HEADER_MACH(gpio)
-
 #endif
 
 #ifdef __emote3__
@@ -129,7 +134,14 @@ namespace EPOS {
 #define __ADC_H                 __HEADER_MACH(adc)
 #define __PWM_H                 __HEADER_MACH(pwm)
 #define __WATCHDOG_H            __HEADER_MACH(watchdog)
+
+#ifndef __standalone__
 #define __NIC_H                 __HEADER_MACH(nic)
+#define __modem__
+#define __ieee802_15_4__
+#define __elp__
+#define __tstp__
+#endif
 
 #define __ACCELEROMETER_H       __HEADER_TRAN(accelerometer)
 #define __GYROSCOPE_H           __HEADER_TRAN(gyroscope)
@@ -138,6 +150,15 @@ namespace EPOS {
 #define __PRESSURE_SENSOR_H     __HEADER_TRAN(pressure_sensor)
 #define __THERMOMETER_H         __HEADER_TRAN(thermometer)
 #define __HYGROMETER_H          __HEADER_TRAN(hygrometer)
+#endif
+
+#ifdef __fz3__
+#define __cortex_a__
+#define __cortex_a53__
+#define __TSC_H                 __HEADER_ARCH(tsc)
+#define __PMU_H                 __HEADER_ARCH(pmu)
+
+#define __UART_H                __HEADER_MACH(uart)
 #endif
 
 #ifdef __zynq__
@@ -183,19 +204,17 @@ namespace EPOS {
 #define __riscv__
 #define __TSC_H                 __HEADER_ARCH(tsc)
 #define __PMU_H                 __HEADER_ARCH(pmu)
+#define __UART_H                __HEADER_MACH(uart)
+#define __SPI_H                 __HEADER_MACH(spi)
+
+#ifndef __standalone__
 #define __NIC_H                 __HEADER_MACH(nic)
 #define __ethernet__
-#define __UART_H                __HEADER_MACH(uart)
-#define __SPI_H                 __HEADER_MACH(spi)
+#define __elp__
+#define __ipv4__
+#define __tstp__
 #endif
 
-#ifdef __visionfive2__
-#define __riscv__
-#define __TSC_H                 __HEADER_ARCH(tsc)
-#define __PMU_H                 __HEADER_ARCH(pmu)
-
-#define __UART_H                __HEADER_MACH(uart)
-#define __SPI_H                 __HEADER_MACH(spi)
 #endif
 
 #include <system/meta.h>

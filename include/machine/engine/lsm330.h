@@ -234,7 +234,7 @@ public:
 
         // Convert the two's complement value
         int gx = (static_cast<int>(x_msb) << 8) | static_cast<int>(x_lsb);
-        if (gx > 32767)
+        if(gx > 32767)
             gx -= 65536;
 
         // Data conversion:
@@ -264,7 +264,7 @@ public:
 
         // Convert the two's complement value
         int gy = (static_cast<int>(y_msb) << 8) | static_cast<int>(y_lsb);
-        if (gy > 32767)
+        if(gy > 32767)
             gy -= 65536;
 
         // Data conversion:
@@ -294,7 +294,7 @@ public:
 
         // Convert the two's complement value
         int gz = (static_cast<int>(z_msb) << 8) | static_cast<int>(z_lsb);
-        if (gz > 32767)
+        if(gz > 32767)
             gz -= 65536;
 
         // Data conversion:

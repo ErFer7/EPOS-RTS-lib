@@ -64,8 +64,22 @@ typedef unsigned char UUID[8];
 
 template <typename ... Tn> struct Dummy {
     Dummy(Tn ... an){}
-    friend Debug & operator<<(Debug & db, const Dummy & d) { return db; };
+    friend OStream & operator<<(OStream & os, const Dummy & d) { return os; };
 };
+
+typedef char  Int8;
+typedef short Int16;
+typedef IF<Traits<CPU>::WORD_SIZE == 32, long /* IPL32 */, int /* LP64 */>::Result Int32;
+typedef IF<Traits<CPU>::WORD_SIZE == 32, long long /* IPL32 */, long /* LP64 */>::Result Int64;
+typedef SWITCH<Traits<CPU>::WORD_SIZE, CASE<16, Int16, CASE<32, Int32, CASE<64, Int64>>>>::Result Int;
+typedef float Float32;
+typedef double Float64;
+
+typedef unsigned char  UInt8;
+typedef unsigned short UInt16;
+typedef IF<Traits<CPU>::WORD_SIZE == 32, unsigned long /* IPL32 */, unsigned int /* LP64 */>::Result UInt32;
+typedef IF<Traits<CPU>::WORD_SIZE == 32, unsigned long long /* IPL32 */, unsigned long /* LP64 */>::Result UInt64;
+typedef SWITCH<Traits<CPU>::WORD_SIZE, CASE<16, UInt16, CASE<32, UInt32, CASE<64, UInt64>>>>::Result UInt;
 
 static const int MAX_INT = -1U/2;
 static const long int MAX_LONG_INT = -1UL/2;

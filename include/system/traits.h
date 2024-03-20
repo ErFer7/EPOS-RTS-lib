@@ -50,7 +50,6 @@ class PMU;
 class Machine;
 class PCI;
 class IC;
-class PLIC;
 class Timer;
 class RTC;
 class UART;
@@ -174,7 +173,7 @@ template<typename Component> class Remote;
 // Configuration Tokens
 struct Traits_Tokens
 {
-    // EPOS software architecture (aka mode)
+    // EPOS software architecture (aka SMOD)
     enum {LIBRARY, BUILTIN, KERNEL};
 
     // CPU hardware architectures
@@ -184,7 +183,10 @@ struct Traits_Tokens
     enum {eMote1, eMote2, STK500, RCX, Cortex, PC, Leon, Virtex, RISCV};
 
     // Machine models
-    enum {Unique, Virt, Legacy_PC, eMote3, LM3S811, Zynq, Realview_PBX, Raspberry_Pi3, SiFive_E, SiFive_U, VisionFive2};
+    enum {Unique, Legacy_PC, eMote3, LM3S811, Zynq, Realview_PBX, Raspberry_Pi3, FZ3, SiFive_E, SiFive_U};
+
+    // Networking models
+    enum {STANDALONE = 1, PAN = 10, LAN = 100, MAN = 1000, WAN = 10000, UNROUTED = 0}; // UNROUTED means all nodes are in a single collision domain, but it doesn't assume anything about the number of nodes
 
     // Architecture endianness
     enum {LITTLE, BIG};
@@ -200,6 +202,9 @@ struct Traits_Tokens
 
     // SmartData predictors
     enum :unsigned char {NONE, LVP, DBP};
+
+    // Default aspects
+    typedef ALIST<> ASPECTS;
 };
 
 // Interrupt souces names (for all machines; overridden at Traits<IC>; 0 => not used)

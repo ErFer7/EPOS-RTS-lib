@@ -17,7 +17,7 @@ void No_MMU::init()
 
     // For machines that do not feature a real MMU, frame size = 1 byte
     // Allocations (using Grouping_List<Frame>::search_decrementing() start from the end
-    free(&_end, pages(Memory_Map::FREE_TOP - reinterpret_cast<unsigned long>(&_end)));
+    free(&_end, pages(Memory_Map::FREE_TOP + 1 - reinterpret_cast<unsigned long>(&_end)));
 }
 
 __END_SYS
