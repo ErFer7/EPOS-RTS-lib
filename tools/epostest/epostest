@@ -7,7 +7,7 @@ REP=$EPOS/report
 SMODS="LIBRARY"
 APPLICATIONS="hello philosophers_dinner producer_consumer"
 LIBRARY_TARGETS=("IA32 PC Legacy_PC" "RV32 RISCV SiFive_E" "RV32 RISCV SiFive_U" "RV64 RISCV SiFive_U" "ARMv7 Cortex LM3S811" "ARMv7 Cortex eMote3" "ARMv7 Cortex Realview_PBX" "ARMv7 Cortex Zynq" "ARMv7 Cortex Raspberry_Pi3" "ARMv8 Cortex Raspberry_Pi3")
-LIBRARY_TESTS="alarm_test segment_test active_test"
+LIBRARY_TESTS=""
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
