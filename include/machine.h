@@ -19,6 +19,9 @@
 #ifdef __FPGA_H
 #include <machine/fpga.h>
 #endif
+#ifdef __SCRATCHPAD_H
+#include <machine/scratchpad.h>
+#endif
 #ifdef __UART_H
 #include <machine/uart.h>
 #endif

@@ -2,6 +2,7 @@
 
 #include <utility/random.h>
 #include <machine.h>
+#include <memory.h>
 #include <system.h>
 #include <process.h>
 
@@ -22,7 +23,18 @@ public:
         CPU::init();
 
         db<Init>(INF) << "Initializing system's heap: " << endl;
-        System::_heap = new (&System::_preheap[0]) Heap(MMU::alloc(MMU::pages(HEAP_SIZE)), HEAP_SIZE);
+        if(Traits<System>::multiheap) {
+            System::_heap_segment = new (&System::_preheap[0]) Segment(HEAP_SIZE, Segment::Flags::SYSD);
+            char * heap;
+            if(Memory_Map::SYS_HEAP == Traits<Machine>::NOT_USED)
+                heap = Address_Space(MMU::current()).attach(System::_heap_segment);
+            else
+                heap = Address_Space(MMU::current()).attach(System::_heap_segment, Memory_Map::SYS_HEAP);
+            if(!heap)
+                db<Init>(ERR) << "Failed to initialize the system's heap!" << endl;
+            System::_heap = new (&System::_preheap[sizeof(Segment)]) Heap(heap, System::_heap_segment->size());
+        } else
+            System::_heap = new (&System::_preheap[0]) Heap(MMU::alloc(MMU::pages(HEAP_SIZE)), HEAP_SIZE);
 
         db<Init>(INF) << "Initializing the machine: " << endl;
         Machine::init();
