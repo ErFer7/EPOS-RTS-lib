@@ -1,0 +1,26 @@
+# Gitignore personalizado
+# Binários
+*/hello
+*/philosophers_dinner
+*/producer_consumer
+
+# Configurações
+*.cfg
+
+# Imagem
+img/*.img
+img/*.log
+img/*.out
+
+# Configuração do sistema
+config.h
+
+# Arquivos temporários
+*.o
+
+# Ferramentas
+eposcfg
+eposmkbi
+
+# Envios
+submission.diff
