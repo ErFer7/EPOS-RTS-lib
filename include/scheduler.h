@@ -208,6 +208,20 @@ public:
     void update();
 };
 
+class LLF: public Real_Time_Scheduler_Common
+{
+public:
+    static const bool timed = true;
+    static const bool dynamic = true;
+    static const bool preemptive = true;
+
+public:
+    LLF(int p = APERIODIC): Real_Time_Scheduler_Common(p) {}
+    LLF(const Microsecond & d, const Microsecond & p = SAME, const Microsecond & c = UNKNOWN, unsigned int cpu = ANY);
+
+    void update();
+};
+
 __END_SYS
 
 #endif
