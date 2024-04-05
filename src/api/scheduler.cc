@@ -16,13 +16,8 @@ void EDF::update() {
         _priority = Alarm::elapsed() + _deadline;
 }
 
-LLF::LLF(const Microsecond & d, const Microsecond & p, const Microsecond & c, unsigned int): Real_Time_Scheduler_Common(Alarm::ticks(d), Alarm::ticks(d), p, c) {}
-
-void LLF::update() {
-    if((_priority >= PERIODIC) && (_priority < APERIODIC))
-        // _priority = Alarm::elapsed() + _deadline;  // (deadline - time) - remaining_time
-        _priority = (_deadline - Alarm::elapsed());  // (deadline - time) - remaining_time
-}
+LLF::LLF(const Microsecond & d, const Microsecond & p, const Microsecond & c, unsigned int):
+    Real_Time_Scheduler_Common((Alarm::ticks(d) - Alarm::elapsed()) - Alarm::ticks(c), Alarm::ticks(d), p, c) {}
 
 // Since the definition of FCFS above is only known to this unit, forcing its instantiation here so it gets emitted in scheduler.o for subsequent linking with other units is necessary.
 template FCFS::FCFS<>(int p);
