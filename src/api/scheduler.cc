@@ -17,7 +17,7 @@ void EDF::update() {
 }
 
 LLF::LLF(const Microsecond & d, const Microsecond & p, const Microsecond & c, unsigned int):
-    Real_Time_Scheduler_Common((Alarm::ticks(d) - Alarm::elapsed()) - Alarm::ticks(c), Alarm::ticks(d), p, c) {}
+    Real_Time_Scheduler_Common(Alarm::ticks(d) - Alarm::elapsed() - Alarm::ticks(c), Alarm::ticks(d), p, c) {}
 
 // Since the definition of FCFS above is only known to this unit, forcing its instantiation here so it gets emitted in scheduler.o for subsequent linking with other units is necessary.
 template FCFS::FCFS<>(int p);
