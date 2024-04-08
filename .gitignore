@@ -1,19 +1,18 @@
 # Gitignore personalizado
 # Binários
-*/hello
-*/philosophers_dinner
-*/producer_consumer
+*/hello/hello
+*/philosophers_dinner/philosophers_dinner
+*/producer_consumer/producer_consumer
+*/ea_test/ea_test
 
 # Configurações
 *.cfg
 
 # Imagem
+img/ea_test
 img/*.img
 img/*.log
 img/*.out
-
-# Configuração do sistema
-config.h
 
 # Arquivos temporários
 *.o

@@ -118,6 +118,7 @@ class PEDF;
 class CEDF;
 class PRM;
 class EA_PEDF;
+class LLF;
 
 class Address_Space;
 class Segment;
