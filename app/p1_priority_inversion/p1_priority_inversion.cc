@@ -23,12 +23,16 @@ Periodic_Thread * threadM;
 Periodic_Thread * threadH;
 
 void heavyWork(char c) {
+    cout << c << " entered the heavy work " << endl;
     Microsecond elapsed = chrono.read() / 1000;
+    Microsecond last_elapsed = elapsed;
     while (elapsed < 500) {
+        if (last_elapsed + period < elapsed) {
+            // periodic cout
+            cout << c << " is working... time elapsed: " << elapsed << endl;
+            last_elapsed = elapsed;
+        }
         elapsed = chrono.read() / 1000;
-        // TODO: entender porque tá numa diferença de 1 da M pra L
-        cout << c << " is working... time elapsed: " << elapsed << endl;
-        Periodic_Thread::wait_next(); 
     }
 }
 
@@ -75,6 +79,7 @@ int main() {
 
 
     // Understand the parameters to make priorities L < M < H
+
     threadL = new Periodic_Thread(RTConf(period * 1000, 0, wcet * 1000, 0, iterations, Thread::READY, Thread::LOW), &lowPriority);
     Delay pickLockFirst(100000); // to make sure L starts first
     threadH = new Periodic_Thread(RTConf(period * 1000, 0, wcet * 1000, 0, iterations, Thread::READY, Thread::HIGH), &highPriority);
