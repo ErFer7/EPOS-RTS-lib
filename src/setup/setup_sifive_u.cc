@@ -700,7 +700,7 @@ void _assert_frequency()
 
     for(unsigned int i = 0; i < measurement_count; i++) {
         CPU::Reg mtime = CLINT::mtime();
-        CPU::Reg dummy_value;
+        CPU::Reg dummy_value;  // TODO: Ver se dá pra remover essa variável
 
         // Dummy work that doesn't do anything useful, this should take approximately the same time to execute as
         // the time it takes for the timer to trigger an interrupt
