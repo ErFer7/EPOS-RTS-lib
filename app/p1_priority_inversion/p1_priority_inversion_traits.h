@@ -127,6 +127,7 @@ template<> struct Traits<Scheduler<Thread>>: public Traits<Build>
 
 template<> struct Traits<Synchronizer>: public Traits<Build>
 {
+    static const bool enabled = Traits<System>::multithread;
 };
 
 template<> struct Traits<Alarm>: public Traits<Build>
