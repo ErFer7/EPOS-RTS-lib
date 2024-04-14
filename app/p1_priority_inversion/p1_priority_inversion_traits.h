@@ -116,7 +116,7 @@ template<> struct Traits<Thread>: public Traits<Build>
     static const bool trace_idle = hysterically_debugged;
     static const bool simulate_capacity = false;
 
-    typedef RM Criterion; // priority inversion should be more prevalent in RM and DM, but can be tested in others
+    typedef LLF Criterion; // priority inversion should be more prevalent in RM and DM, but can be tested in others
     static const unsigned int QUANTUM = 10000; // us
 };
 
@@ -127,7 +127,6 @@ template<> struct Traits<Scheduler<Thread>>: public Traits<Build>
 
 template<> struct Traits<Synchronizer>: public Traits<Build>
 {
-    static const bool enabled = Traits<System>::multithread;
 };
 
 template<> struct Traits<Alarm>: public Traits<Build>
