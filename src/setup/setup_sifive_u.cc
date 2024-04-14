@@ -16,6 +16,7 @@ extern "C" {
     void _entry() __attribute__ ((used, naked, section(".init")));
     void _int_m2s() __attribute((naked, aligned(4)));
     void _setup();
+    void _assert_frequency();
 
     // LD eliminates this variable while performing garbage collection, that's why the used attribute.
     char __boot_time_system_info[sizeof(EPOS::S::System_Info)] __attribute__ ((used)) = "<System_Info placeholder>"; // actual System_Info will be added by mkbi!
@@ -683,8 +684,46 @@ void _entry() // machine mode
     CPU::pmpcfg0(0b11111); 				// configure PMP region 0 as (L=unlocked [0], [00], A = NAPOT [11], X [1], W [1], R [1])
     CPU::pmpaddr0((1ULL << MMU::LA_BITS) - 1);          // comprising the whole memory space
 
+    if (Traits<CPU>::WORD_SIZE == 64 && Traits<Timer>::ASSERT_MAX_FREQUENCY)  // The frequency assertion was only implemented for 64-bit architectures
+        _assert_frequency();
+
     CPU::mepc(CPU::Reg(&_setup));                       // entry = _setup
     CPU::mret();                                        // enter supervisor mode at setup (mepc) with interrupts enabled (mstatus.mpie = true)
+}
+
+void _assert_frequency()
+{
+    const unsigned int measurement_count = Traits<Timer>::MAX_FREQ_ASSERTION_WORKLOAD_MEASUREMENT_COUNT;
+    const unsigned int workload_size = Traits<Timer>::MAX_FREQ_ASSERTION_WORKLOAD_SIZE;
+    
+    CPU::Reg average_time_elapsed = 0;
+
+    for(unsigned int i = 0; i < measurement_count; i++) {
+        CPU::Reg mtime = CLINT::mtime();
+        CPU::Reg dummy_value;
+
+        // Dummy work that doesn't do anything useful, this should take approximately the same time to execute as
+        // the time it takes for the timer to trigger an interrupt
+        ASM("       addi     sp, sp, -8             \n");
+        for (unsigned int j = 0; j < workload_size; j++) {
+            ASM("       ld       %0, 0(sp)              \n" : "=r"(dummy_value));
+            ASM("       addi     %0, %0, 1              \n" : "=r"(dummy_value));
+            ASM("       sd       %0, 0(sp)              \n" : "=r"(dummy_value));
+        }
+        ASM("       addi     sp, sp, 8              \n");
+
+        average_time_elapsed += CLINT::mtime() - mtime;
+    }
+
+    // TODO: Aplicar a ideia de calibrar para 1% de interrupções
+    average_time_elapsed /= measurement_count;
+
+    kout << "[ASSERTION]: " << average_time_elapsed << endl;  // TODO: Remove this line
+
+    if (average_time_elapsed >= Traits<Timer>::CLOCK / Traits<Timer>::FREQUENCY) {
+        kout << "[BLOCKED]: " << average_time_elapsed << endl;  // TODO: Write a better message
+        CPU::halt();
+    }
 }
 
 void _setup() // supervisor mode

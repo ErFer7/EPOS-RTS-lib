@@ -95,6 +95,10 @@ template <> struct Traits<Timer>: public Traits<Machine_Common>
     // choice must respect the scheduler time-slice, i. e., it must be higher
     // than the scheduler invocation frequency.
     static const long FREQUENCY = 1000; // Hz
+
+    static const bool ASSERT_MAX_FREQUENCY = true;
+    static const unsigned int MAX_FREQ_ASSERTION_WORKLOAD_MEASUREMENT_COUNT = 100;
+    static const unsigned int MAX_FREQ_ASSERTION_WORKLOAD_SIZE = 100000;
 };
 
 template <> struct Traits<UART>: public Traits<Machine_Common>
