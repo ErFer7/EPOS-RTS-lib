@@ -97,8 +97,8 @@ template <> struct Traits<Timer>: public Traits<Machine_Common>
     static const long FREQUENCY = 1000; // Hz
 
     static const bool ASSERT_MAX_FREQUENCY = true;
-    static const unsigned int MAX_FREQ_ASSERTION_WORKLOAD_MEASUREMENT_COUNT = 100;
-    static const unsigned int MAX_FREQ_ASSERTION_WORKLOAD_SIZE = 100000;
+    static const unsigned int MAX_FREQ_ASSERTION_TEST_COUNT = 100;
+    static const unsigned int MAX_FREQ_ASSERTION_TEST_LOAD = 90000;
 };
 
 template <> struct Traits<UART>: public Traits<Machine_Common>

@@ -693,35 +693,33 @@ void _entry() // machine mode
 
 void _assert_frequency()
 {
-    const unsigned int measurement_count = Traits<Timer>::MAX_FREQ_ASSERTION_WORKLOAD_MEASUREMENT_COUNT;
-    const unsigned int workload_size = Traits<Timer>::MAX_FREQ_ASSERTION_WORKLOAD_SIZE;
-    
-    CPU::Reg average_time_elapsed = 0;
+    CPU::Reg64 average_time_elapsed = 0;
 
-    for(unsigned int i = 0; i < measurement_count; i++) {
-        CPU::Reg mtime = CLINT::mtime();
-        CPU::Reg dummy_value;  // TODO: Ver se dá pra remover essa variável
+    for(unsigned int i = 0; i < Traits<Timer>::MAX_FREQ_ASSERTION_TEST_COUNT; i++) {
+        CPU::Reg64 mtime = CLINT::mtime();
 
         // Dummy work that doesn't do anything useful, this should take approximately the same time to execute as
         // the time it takes for the timer to trigger an interrupt
         ASM("       addi     sp, sp, -8             \n");
-        for (unsigned int j = 0; j < workload_size; j++) {
-            ASM("       ld       %0, 0(sp)              \n" : "=r"(dummy_value));
-            ASM("       addi     %0, %0, 1              \n" : "=r"(dummy_value));
-            ASM("       sd       %0, 0(sp)              \n" : "=r"(dummy_value));
+        for (unsigned int j = 0; j < Traits<Timer>::MAX_FREQ_ASSERTION_TEST_LOAD; j++) {
+            ASM("       ld       t0, 0(sp)              \n");
+            ASM("       addi     t0, t0, 1              \n");
+            ASM("       sd       t0, 0(sp)              \n");
         }
         ASM("       addi     sp, sp, 8              \n");
 
         average_time_elapsed += CLINT::mtime() - mtime;
     }
 
-    // TODO: Aplicar a ideia de calibrar para 1% de interrupções
-    average_time_elapsed /= measurement_count;
+    average_time_elapsed /= Traits<Timer>::MAX_FREQ_ASSERTION_TEST_COUNT;
 
-    kout << "[ASSERTION]: " << average_time_elapsed << endl;  // TODO: Remove this line
+    kout << average_time_elapsed << endl;
 
     if (average_time_elapsed >= Traits<Timer>::CLOCK / Traits<Timer>::FREQUENCY) {
-        kout << "[BLOCKED]: " << average_time_elapsed << endl;  // TODO: Write a better message
+        kout << "[FREQUENCY ASSERTION]: The initialization was blocked. The current frequency is unsafe, set a " <<
+                "lower frequency on your traits file or disable the frequency assertion to continue.\n\n" <<
+                "Current frequency: " << Traits<Timer>::FREQUENCY << " Hz, Frequency assertion test elapsed time: " <<
+                average_time_elapsed << " us" << endl;
         CPU::halt();
     }
 }
