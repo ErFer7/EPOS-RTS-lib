@@ -16,7 +16,7 @@ extern "C" {
     void _entry() __attribute__ ((used, naked, section(".init")));
     void _int_m2s() __attribute((naked, aligned(4)));
     void _setup();
-    void _assert_frequency();
+    void _assert_maximum_frequency();
 
     // LD eliminates this variable while performing garbage collection, that's why the used attribute.
     char __boot_time_system_info[sizeof(EPOS::S::System_Info)] __attribute__ ((used)) = "<System_Info placeholder>"; // actual System_Info will be added by mkbi!
@@ -684,22 +684,23 @@ void _entry() // machine mode
     CPU::pmpcfg0(0b11111); 				// configure PMP region 0 as (L=unlocked [0], [00], A = NAPOT [11], X [1], W [1], R [1])
     CPU::pmpaddr0((1ULL << MMU::LA_BITS) - 1);          // comprising the whole memory space
 
-    if (Traits<CPU>::WORD_SIZE == 64 && Traits<Timer>::ASSERT_MAX_FREQUENCY)  // The frequency assertion was only implemented for 64-bit architectures
-        _assert_frequency();
+    if (Traits<CPU>::WORD_SIZE == 64 && Traits<Timer>::ASSERT_MAXIMUM_FREQUENCY)  // The frequency assertion was only implemented for 64-bit architectures
+        _assert_maximum_frequency();
 
     CPU::mepc(CPU::Reg(&_setup));                       // entry = _setup
     CPU::mret();                                        // enter supervisor mode at setup (mepc) with interrupts enabled (mstatus.mpie = true)
 }
 
-void _assert_frequency()
+// This function asserts the maximum frequency that the system can run at. It does so by measuring multiple times
+// the time it takes to execute a dummy work and comparing it to the time it takes for the timer to trigger an
+// interrupt. The system will not boot if the time measured is too slow for the selected frequency.
+void _assert_maximum_frequency()
 {
     CPU::Reg64 average_time_elapsed = 0;
 
     for(unsigned int i = 0; i < Traits<Timer>::MAX_FREQ_ASSERTION_TEST_COUNT; i++) {
         CPU::Reg64 mtime = CLINT::mtime();
 
-        // Dummy work that doesn't do anything useful, this should take approximately the same time to execute as
-        // the time it takes for the timer to trigger an interrupt
         ASM("       addi     sp, sp, -8             \n");
         for (unsigned int j = 0; j < Traits<Timer>::MAX_FREQ_ASSERTION_TEST_LOAD; j++) {
             ASM("       ld       t0, 0(sp)              \n");
@@ -720,7 +721,7 @@ void _assert_frequency()
                 "lower frequency on your traits file or disable the frequency assertion to continue.\n\n" <<
                 "Current frequency: " << Traits<Timer>::FREQUENCY << " Hz, Frequency assertion test elapsed time: " <<
                 average_time_elapsed << " us" << endl;
-        CPU::halt();
+        CPU::halt();  // This might not be the best way to handle this while running on real hardware
     }
 }
 
