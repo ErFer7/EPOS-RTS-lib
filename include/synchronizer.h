@@ -24,8 +24,8 @@ protected:
     long fdec(volatile long & number) { return CPU::fdec(number); }
 
     // Thread operations
-    void begin_atomic() { Thread::lock(); }
-    void end_atomic() { Thread::unlock(); }
+    void begin_atomic(bool acquire = false) { acquire ? Thread::lock_acquire() : Thread::lock(); }
+    void end_atomic(bool release = false ) { release ? Thread::unlock_release() : Thread::unlock(); }
 
     void sleep() { Thread::sleep(&_queue); }
     void wakeup() { Thread::wakeup(&_queue); }

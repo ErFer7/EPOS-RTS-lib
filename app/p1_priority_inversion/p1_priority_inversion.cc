@@ -42,11 +42,12 @@ void criticalSectionCode(char c, Thread* this_thread) {
 
     Microsecond elapsed = chrono.read() / 1000;
     cout << "Thread " << c << " got the lock, " << elapsed << " time has passed" << endl;
-
+    cout << " new priority: " << this_thread->priority() << endl;
     heavyWork(c);    
 
     cout << "Thread " << c << " will release the lock and finish" << endl;
     criticalSection.unlock();
+    cout << " new priority: " << this_thread->priority() << endl;
 }
 
 int lowPriority() { 

@@ -97,11 +97,15 @@ protected:
     Criterion & criterion() { return const_cast<Criterion &>(_link.rank()); }
     Queue::Element * link() { return &_link; }
 
+    void save_current_priority() { _old_priority = _link.rank(); }
+
     static Thread * volatile running() { return _scheduler.chosen(); }
 
     static void lock() { CPU::int_disable(); }
     static void unlock() { CPU::int_enable(); }
     static bool locked() { return CPU::int_disabled(); }
+    static void lock_acquire();
+    static void unlock_release();
 
     static void sleep(Queue * q);
     static void wakeup(Queue * q);
@@ -124,6 +128,7 @@ protected:
     Queue * _waiting;
     Thread * volatile _joining;
     Queue::Element _link;
+    Criterion _old_priority; 
 
     static bool _not_booting;
     static volatile unsigned int _thread_count;

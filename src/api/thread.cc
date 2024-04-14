@@ -379,4 +379,24 @@ int Thread::idle()
     return 0;
 }
 
+void Thread::lock_acquire() {
+    lock();
+    Thread * t = running();
+    // tratando ISR como a maior prioridade possível, talvez não seja e inserir no enum
+    if (t->priority() != Thread::ISR) {
+        t->save_current_priority();
+        t->_link.rank(Thread::ISR); // Faz sentido fazer o reschedule?
+    }
+}
+
+void Thread::unlock_release() {
+    // Restaurar prioridade antiga
+
+    Thread * t = running();
+    if (t->_old_priority) {
+        t->_link.rank(t->_old_priority);
+    }
+    unlock();
+}
+
 __END_SYS
