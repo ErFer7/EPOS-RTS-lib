@@ -9,10 +9,9 @@ using namespace EPOS;
 
 
 // Por enquanto manter todos iguais, menos activation e criterion;
-const unsigned int iterations = 50;
+const unsigned int iterations = 50; // Isso importa, do jeito que eu fiz o teste?
 const unsigned int period = 50; // ms
-const unsigned int wcet = 20; //ms
-const unsigned int wait_time = 50; // ms NÃO FUNCIONOU?
+const unsigned int wcet = 20; // ms -> Influencia em algo?
 
 
 OStream cout;
@@ -23,21 +22,24 @@ Periodic_Thread * threadL;
 Periodic_Thread * threadM;
 Periodic_Thread * threadH;
 
-// find high processing function, estimate its time (should be variable) and put the threads to execute.
-void heavyWork() {
-    Delay working(1500000); // should print if i'm back to work, to make sure priority inversion
-    // maybe similar to teachers test? what does wait_next does?
+void heavyWork(char c) {
+    Microsecond elapsed = chrono.read() / 1000;
+    while (elapsed < 500) {
+        elapsed = chrono.read() / 1000;
+        // TODO: entender porque tá numa diferença de 1 da M pra L
+        cout << c << " is working... time elapsed: " << elapsed << endl;
+        Periodic_Thread::wait_next(); 
+    }
 }
 
 void criticalSectionCode(char c, Thread* this_thread) {
-    cout << "Thread " << c << " tries to take lock" << endl;
-    cout << "[p(" << c << ") = " << this_thread->priority() << "]" << endl;
+    cout << "Thread " << c << " tries to take lock, [p(" << c << ") = " << this_thread->priority() << "]" << endl;
     criticalSection.lock();
 
     Microsecond elapsed = chrono.read() / 1000;
     cout << "Thread " << c << " got the lock, " << elapsed << " time has passed" << endl;
 
-    heavyWork();    
+    heavyWork(c);    
 
     cout << "Thread " << c << " will release the lock and finish" << endl;
     criticalSection.unlock();
@@ -49,9 +51,8 @@ int lowPriority() {
 }
 
 int mediumPriority() {
-    cout << "Thread M started" << endl;
-    cout << "[p(M) = " << threadM->priority() << "]" << endl;
-    heavyWork();
+    cout << "Thread M started [p(M) = " << threadM->priority() << "]" <<endl;
+    heavyWork('M');
 
     Microsecond elapsed = chrono.read() / 1000;
     cout << "Thread M finished " << elapsed << " has passed" << endl;
@@ -75,9 +76,9 @@ int main() {
 
     // Understand the parameters to make priorities L < M < H
     threadL = new Periodic_Thread(RTConf(period * 1000, 0, wcet * 1000, 0, iterations, Thread::READY, Thread::LOW), &lowPriority);
-    Delay pickLockFirst(100000); // to make sure L starts first, wait time on parameters did not work????
-    threadH = new Periodic_Thread(RTConf(period * 1000, 0, wcet * 1000, wait_time * 1000, iterations, Thread::READY, Thread::HIGH), &highPriority);
-    threadM = new Periodic_Thread(RTConf(period * 1000, 0, wcet * 1000, wait_time * 1000, iterations, Thread:: READY, Thread::NORMAL - 1), &mediumPriority);
+    Delay pickLockFirst(100000); // to make sure L starts first
+    threadH = new Periodic_Thread(RTConf(period * 1000, 0, wcet * 1000, 0, iterations, Thread::READY, Thread::HIGH), &highPriority);
+    threadM = new Periodic_Thread(RTConf(period * 1000, 0, wcet * 1000, 0 , iterations, Thread:: READY, Thread::NORMAL - 1), &mediumPriority);
     // Normal - 1 pq acho que se for == NORMAL ele faz o cálculo pelo Criterion -> LLF()
 
     chrono.start();
