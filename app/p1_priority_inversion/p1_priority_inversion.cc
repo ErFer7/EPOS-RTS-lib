@@ -26,6 +26,7 @@ void heavyWork(char c, Periodic_Thread *t) {
     cout << c << " entered the heavy work " << endl;
     Microsecond elapsed = chrono.read() / 1000;
     Microsecond last_elapsed = elapsed;
+
     while (elapsed < 500) {
         if (last_elapsed + wcet < elapsed) {
             // periodic cout
@@ -78,11 +79,8 @@ int main() {
     // Thread M should preempt L and delay the lock release from H
     // So Thread M has "higher priority" than H without being in the critical section, that should not happen
 
-
-    // Understand the parameters to make priorities L < M < H
-
     chrono.start();
-    threadL = new Periodic_Thread(RTConf(period * 1000, 0, wcet * 1000, 0, iterations, Thread::READY, Thread::LOW), &lowPriority);
+    threadL = new Periodic_Thread(RTConf(550 * 1000, 0, wcet * 1000, 0, iterations, Thread::READY, Thread::LOW), &lowPriority);
     cout << "voltou pra main " << endl;
     Delay pickLockFirst(100000); // to make sure L starts first
     threadH = new Periodic_Thread(RTConf(period * 1000, 0, wcet * 1000, 0, iterations, Thread::READY, Thread::HIGH), &highPriority);
