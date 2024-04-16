@@ -129,6 +129,7 @@ protected:
     Thread * volatile _joining;
     Queue::Element _link;
     Criterion _old_priority; 
+    int cs_counter = 0;
 
     static bool _not_booting;
     static volatile unsigned int _thread_count;

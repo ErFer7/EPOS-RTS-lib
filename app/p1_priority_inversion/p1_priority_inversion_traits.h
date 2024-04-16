@@ -19,7 +19,7 @@ template<> struct Traits<Build>: public Traits_Tokens
 
     // Default flags
     static const bool enabled = true;
-    static const bool debugged = true;
+    static const bool debugged = false;
     static const bool hysterically_debugged = false;
 };
 
@@ -30,7 +30,7 @@ template<> struct Traits<Debug>: public Traits<Build>
     static const bool error   = true;
     static const bool warning = true;
     static const bool info    = false;
-    static const bool trace   = false;
+    static const bool trace   = true;
 };
 
 template<> struct Traits<Lists>: public Traits<Build>
@@ -112,6 +112,7 @@ template<> struct Traits<System>: public Traits<Build>
 
 template<> struct Traits<Thread>: public Traits<Build>
 {
+    static const bool debugged = true;
     static const bool enabled = Traits<System>::multithread;
     static const bool trace_idle = hysterically_debugged;
     static const bool simulate_capacity = false;
@@ -128,6 +129,7 @@ template<> struct Traits<Scheduler<Thread>>: public Traits<Build>
 template<> struct Traits<Synchronizer>: public Traits<Build>
 {
     static const bool enabled = Traits<System>::multithread;
+    static const bool debugged = true;
 };
 
 template<> struct Traits<Alarm>: public Traits<Build>

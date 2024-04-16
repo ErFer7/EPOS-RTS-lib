@@ -10,7 +10,7 @@ bool Thread::_not_booting;
 volatile unsigned int Thread::_thread_count;
 Scheduler_Timer * Thread::_timer;
 Scheduler<Thread> Thread::_scheduler;
-
+OStream cout;
 
 void Thread::constructor_prologue(unsigned int stack_size)
 {
@@ -301,6 +301,8 @@ void Thread::reschedule()
 
     assert(locked()); // locking handled by caller
 
+    cout << " chamou o reschedule " <<  endl;
+
     Thread * prev = running();
     Thread * next = _scheduler.choose();
 
@@ -385,17 +387,22 @@ void Thread::lock_acquire() {
     // tratando ISR como a maior prioridade possível, talvez não seja e inserir no enum
     if (t->priority() != Thread::ISR) {
         t->save_current_priority();
-        t->_link.rank(Thread::ISR); // Faz sentido fazer o reschedule?
+        t->priority(Thread::ISR);
+        // t->_link.rank(Thread::ISR); // Faz sentido fazer o reschedule?
     }
+    t->cs_counter++;
 }
 
 void Thread::unlock_release() {
     // Restaurar prioridade antiga
 
     Thread * t = running();
-    if (t->_old_priority) {
-        t->_link.rank(t->_old_priority);
+    if (t->_old_priority && t->cs_counter == 1) {
+        t->priority(t->_old_priority);
+        // t->_link.rank(t->_old_priority);
+        cout << "restaurou a prioridade antiga da " << t << endl;
     }
+    t->cs_counter--;
     unlock();
 }
 

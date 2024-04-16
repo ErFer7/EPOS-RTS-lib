@@ -22,28 +22,28 @@ Periodic_Thread * threadL;
 Periodic_Thread * threadM;
 Periodic_Thread * threadH;
 
-void heavyWork(char c) {
+void heavyWork(char c, Periodic_Thread *t) {
     cout << c << " entered the heavy work " << endl;
     Microsecond elapsed = chrono.read() / 1000;
     Microsecond last_elapsed = elapsed;
     while (elapsed < 500) {
-        if (last_elapsed + period < elapsed) {
+        if (last_elapsed + wcet < elapsed) {
             // periodic cout
-            cout << c << " is working... time elapsed: " << elapsed << endl;
+            cout << c << " is working... time elapsed: " << elapsed << " priority: " << t->priority() << endl;;
             last_elapsed = elapsed;
         }
         elapsed = chrono.read() / 1000;
     }
 }
 
-void criticalSectionCode(char c, Thread* this_thread) {
+void criticalSectionCode(char c, Periodic_Thread* this_thread) {
     cout << "Thread " << c << " tries to take lock, [p(" << c << ") = " << this_thread->priority() << "]" << endl;
     criticalSection.lock();
 
     Microsecond elapsed = chrono.read() / 1000;
     cout << "Thread " << c << " got the lock, " << elapsed << " time has passed" << endl;
     cout << " new priority: " << this_thread->priority() << endl;
-    heavyWork(c);    
+    heavyWork(c, this_thread);    
 
     cout << "Thread " << c << " will release the lock and finish" << endl;
     criticalSection.unlock();
@@ -57,7 +57,7 @@ int lowPriority() {
 
 int mediumPriority() {
     cout << "Thread M started [p(M) = " << threadM->priority() << "]" <<endl;
-    heavyWork('M');
+    heavyWork('M', threadM);
 
     Microsecond elapsed = chrono.read() / 1000;
     cout << "Thread M finished " << elapsed << " has passed" << endl;
@@ -81,13 +81,14 @@ int main() {
 
     // Understand the parameters to make priorities L < M < H
 
+    chrono.start();
     threadL = new Periodic_Thread(RTConf(period * 1000, 0, wcet * 1000, 0, iterations, Thread::READY, Thread::LOW), &lowPriority);
+    cout << "voltou pra main " << endl;
     Delay pickLockFirst(100000); // to make sure L starts first
     threadH = new Periodic_Thread(RTConf(period * 1000, 0, wcet * 1000, 0, iterations, Thread::READY, Thread::HIGH), &highPriority);
     threadM = new Periodic_Thread(RTConf(period * 1000, 0, wcet * 1000, 0 , iterations, Thread:: READY, Thread::NORMAL - 1), &mediumPriority);
     // Normal - 1 pq acho que se for == NORMAL ele faz o cálculo pelo Criterion -> LLF()
-
-    chrono.start();
+    cout << "Thread L: " << threadL << " Thread M: " << threadM <<  endl;
 
     threadL->join();
     threadH->join();
