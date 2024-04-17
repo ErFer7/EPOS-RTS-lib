@@ -2,8 +2,8 @@
 EPOS profiler.
 
 This script will run EPOS with several different frequencies and check what's the highest frequency that the system can
-without errors. The frequency will be increased if no errors are detected and decreased otherwise, this change is done
-by a modified "binary search" algorithm.
+run without errors. The frequency will be increased if no errors are detected and decreased otherwise, this change is
+done by a modified "binary search" algorithm.
 
 Example:
     Frequency 10000 Hz -> Errors detected
@@ -25,11 +25,12 @@ Requirements: Python 3.10.x or higher.
 from os.path import join
 from subprocess import run, CalledProcessError, DEVNULL
 from collections import defaultdict
+from re import search, sub
 
 # Settings ----------------------------------------------------------------
 APPLICATION = 'ea_test'         # Application to be tested
 FREQUENCY_STEP = 50             # Resolution step for the frequency
-MEASUREMENTS = 3                # Number of measurements for every frequency
+MEASUREMENTS = 5                # Number of measurements for every frequency
 FREQUENCY_RANGE = (100, 10000)  # Smallest and highest frequencies possible
 # -------------------------------------------------------------------------
 
@@ -50,23 +51,24 @@ higher_bound = FREQUENCY_RANGE[1]
 lower_bound = FREQUENCY_RANGE[0]
 current_frequency = higher_bound
 highest_unsafe_working_frequency = higher_bound
+traits_file_path = join('include', 'machine', 'riscv', 'sifive_u', 'sifive_u_traits.h')
 
 while True:
     print(f'>>> Profiling frequency: {current_frequency} Hz')
     print('>>> Opening sifive_u_traits.h')
-    with open(join('include', 'machine', 'riscv', 'sifive_u', 'sifive_u_traits.h'), 'r+', encoding='utf-8') as traits_file:
-        lines = traits_file.readlines()
 
-        for i, line in enumerate(lines):
-            if line.startswith('    static const long FREQUENCY'):
-                original_frequency = int(line.split()[5][:-1])
-                lines[i] = f'    static const long FREQUENCY = {current_frequency}; // Hz\n'
-                break
+    content = ''
+    with open(traits_file_path, 'r', encoding='utf-8') as traits_file:
+        content = traits_file.read()
 
-        traits_file.seek(0)
-        traits_file.writelines(lines)
-        traits_file.truncate()
-        print('>>> Frequency set on sifive_u_traits.h')
+    original_frequency = int(search(r'(?<=static const long FREQUENCY = )\d+', content).group())
+    print(f'>>> Original frequency: {original_frequency} Hz')
+    content = sub(r'(?<=static const long FREQUENCY = )\d+', str(current_frequency), content)
+
+    with open(traits_file_path, 'w', encoding='utf-8') as traits_file:
+        traits_file.write(content)
+
+    print('>>> Frequency set on sifive_u_traits.h')
 
     try:
         errors = 0
@@ -138,18 +140,15 @@ while True:
         break
 
 print('>>> Opening sifive_u_traits.h')
-with open(join('include', 'machine', 'riscv', 'sifive_u', 'sifive_u_traits.h'), 'r+', encoding='utf-8') as traits_file:
-    lines = traits_file.readlines()
+content = ''
+with open(traits_file_path, 'r', encoding='utf-8') as traits_file:
+    content = traits_file.read()
 
-    for i, line in enumerate(lines):
-        if line.startswith('    static const long FREQUENCY'):
-            lines[i] = f'    static const long FREQUENCY = {original_frequency}; // Hz\n'
-            break
+content = sub(r'(?<=static const long FREQUENCY = )\d+', str(original_frequency), content)
 
-    traits_file.seek(0)
-    traits_file.writelines(lines)
-    traits_file.truncate()
-    print('>>> Original frequency set on sifive_u_traits.h')
+with open(traits_file_path, 'w', encoding='utf-8') as traits_file:
+    traits_file.write(content)
+print('>>> Original frequency set on sifive_u_traits.h')
 
 print('\n>>> Results')
 print(f'>>> Highest unsafe working frequency: {highest_unsafe_working_frequency} Hz')
