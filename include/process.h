@@ -128,7 +128,7 @@ protected:
     Queue * _waiting;
     Thread * volatile _joining;
     Queue::Element _link;
-    Criterion _old_priority; 
+    Criterion _old_priority;
     int cs_counter = 0;
 
     static bool _not_booting;

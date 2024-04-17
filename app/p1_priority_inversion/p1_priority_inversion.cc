@@ -33,7 +33,7 @@ void heavy_work(char c, Periodic_Thread *t) {
         }
 
         elapsed = chrono.read() / 1000;
-        time = elapsed - first_elapsed; 
+        time = elapsed - first_elapsed;
     }
 }
 
@@ -42,7 +42,7 @@ void critical_section_code(char c, Periodic_Thread* this_thread) {
     critical_section.lock();
 
     cout << "Thread " << c << " got the lock" << endl;
-    heavy_work(c, this_thread);    
+    heavy_work(c, this_thread);
 
     cout << "Thread " << c << " will release the lock and finish the job" << endl;
     critical_section.unlock();
@@ -56,7 +56,7 @@ void medium_thread_code() {
     cout << "Thread M finished the job " << elapsed << " has passed" << endl;
 }
 
-int low_priority() { 
+int low_priority() {
     do {
         critical_section_code('L', thread_l);
     } while(Periodic_Thread::wait_next());
@@ -70,7 +70,7 @@ int medium_priority() {
     return 'M';
 }
 
-int high_priority() { 
+int high_priority() {
     do {
         critical_section_code('H', thread_h);
     } while(Periodic_Thread::wait_next());
@@ -86,7 +86,7 @@ int main() {
     // Thread M should preempt L and delay the lock release from H
     // So Thread M has "higher priority" than H without being in the critical section, that should not happen
 
-    // passing priorities, so i can control it for this problem (not doing LLF calculus 
+    // passing priorities, so i can control it for this problem (not doing LLF calculus)
     chrono.start();
     thread_l = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::LOW), &low_priority);
     Delay pick_lock_first(100000); // to make sure L starts first

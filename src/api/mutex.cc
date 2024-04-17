@@ -33,7 +33,7 @@ void Mutex::unlock()
     db<Synchronizer>(TRC) << "Mutex::unlock(this=" << this << ")" << endl;
 
     begin_atomic();
-    priority_ceiling_check_unlock(); 
+    priority_ceiling_check_unlock();
     if(_queue.empty())
         _locked = false;
     else

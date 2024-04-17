@@ -395,7 +395,7 @@ void Thread::check_release_ceiling() {
     Thread * t = running();
     if (t->cs_counter == 1) {
         t->_link.rank(t->_old_priority); // instead of priority() to avoid reschedule
-    } 
+    }
     t->cs_counter--;
 }
 
