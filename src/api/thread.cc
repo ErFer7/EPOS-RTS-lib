@@ -301,8 +301,6 @@ void Thread::reschedule()
 
     assert(locked()); // locking handled by caller
 
-    cout << " chamou o reschedule " <<  endl;
-
     Thread * prev = running();
     Thread * next = _scheduler.choose();
 
@@ -381,29 +379,29 @@ int Thread::idle()
     return 0;
 }
 
-void Thread::lock_acquire() {
-    lock();
+void Thread::check_acquire_ceiling() {
+    assert(locked());
+
     Thread * t = running();
-    // tratando ISR como a maior prioridade possível, talvez não seja e inserir no enum
     if (t->priority() != Thread::ISR) {
         t->save_current_priority();
-        t->priority(Thread::ISR);
-        // t->_link.rank(Thread::ISR); // Faz sentido fazer o reschedule?
+        t->_link.rank(Thread::ISR); // instead of priority() to avoid reschedule
+        cout << "subiu prioridade da " << t << endl;
     }
     t->cs_counter++;
 }
 
-void Thread::unlock_release() {
-    // Restaurar prioridade antiga
+void Thread::check_release_ceiling() {
+    assert(locked());
 
     Thread * t = running();
-    if (t->_old_priority && t->cs_counter == 1) {
-        t->priority(t->_old_priority);
-        // t->_link.rank(t->_old_priority);
+    if (t->cs_counter == 1) {
+        t->_link.rank(t->_old_priority); // instead of priority() to avoid reschedule
         cout << "restaurou a prioridade antiga da " << t << endl;
+    } else {
+        cout << t->cs_counter << " não restaurou prioridade antiga da " << t << " antiga e cond: " << t->_old_priority << endl;
     }
     t->cs_counter--;
-    unlock();
 }
 
 __END_SYS

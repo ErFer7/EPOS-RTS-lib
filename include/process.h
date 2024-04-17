@@ -104,8 +104,8 @@ protected:
     static void lock() { CPU::int_disable(); }
     static void unlock() { CPU::int_enable(); }
     static bool locked() { return CPU::int_disabled(); }
-    static void lock_acquire();
-    static void unlock_release();
+    static void check_acquire_ceiling();
+    static void check_release_ceiling();
 
     static void sleep(Queue * q);
     static void wakeup(Queue * q);
