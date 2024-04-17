@@ -11,7 +11,6 @@ volatile unsigned int Thread::_thread_count;
 Scheduler_Timer * Thread::_timer;
 Scheduler<Thread> Thread::_scheduler;
 
-
 void Thread::constructor_prologue(unsigned int stack_size)
 {
     lock();
@@ -377,6 +376,27 @@ int Thread::idle()
     for(;;);
 
     return 0;
+}
+
+void Thread::check_acquire_ceiling() {
+    assert(locked());
+
+    Thread * t = running();
+    if (t->priority() != Thread::ISR) {
+        t->save_current_priority();
+        t->_link.rank(Thread::ISR); // instead of priority() to avoid reschedule
+    }
+    t->cs_counter++;
+}
+
+void Thread::check_release_ceiling() {
+    assert(locked());
+
+    Thread * t = running();
+    if (t->cs_counter == 1) {
+        t->_link.rank(t->_old_priority); // instead of priority() to avoid reschedule
+    } 
+    t->cs_counter--;
 }
 
 __END_SYS

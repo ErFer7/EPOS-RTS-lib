@@ -26,6 +26,8 @@ protected:
     // Thread operations
     void begin_atomic() { Thread::lock(); }
     void end_atomic() { Thread::unlock(); }
+    void priority_ceiling_check_lock() { Thread::check_acquire_ceiling(); }
+    void priority_ceiling_check_unlock() { Thread::check_release_ceiling(); }
 
     void sleep() { Thread::sleep(&_queue); }
     void wakeup() { Thread::wakeup(&_queue); }
