@@ -1,17 +1,37 @@
 '''
-Profiler para o EPOS.
+EPOS profiler.
 
-Requisitos: Python 3.10.x ou mais alto.
+This script will run EPOS with several different frequencies and check what's the highest frequency that the system can
+without errors. The frequency will be increased if no errors are detected and decreased otherwise, this change is done
+by a modified "binary search" algorithm.
+
+Example:
+    Frequency 10000 Hz -> Errors detected
+    Frequency 5050 Hz  -> Errors detected
+    Frequency 2575 Hz  -> Errors detected
+    Frequency 1337 Hz  -> No errors detected
+    Frequency 1956 Hz  -> Errors detected
+    ...
+    Frequency 1897 Hz  -> Errors detected
+    Frequency 1847 Hz  -> Errors detected (If the difference between the upper bound and the lower bound is less than
+                                           the frequency step and errors still occour, the values will be decremented
+                                           by the frequency step)
+    ...
+    Frequency 1847 Hz  -> No errors detected
+
+Requirements: Python 3.10.x or higher.
 '''
 
 from os.path import join
 from subprocess import run, CalledProcessError, DEVNULL
 from collections import defaultdict
 
-APPLICATION = 'ea_test'
-FREQUENCY_STEP = 50  # Passo de 50 Hz
-MEASUREMENTS = 3  # Número de medições por frequência
-FREQUENCY_RANGE = (100, 10000)  # Hz
+# Settings ----------------------------------------------------------------
+APPLICATION = 'ea_test'         # Application to be tested
+FREQUENCY_STEP = 50             # Resolution step for the frequency
+MEASUREMENTS = 3                # Number of measurements for every frequency
+FREQUENCY_RANGE = (100, 10000)  # Smallest and highest frequencies possible
+# -------------------------------------------------------------------------
 
 MTIMER_INTERRUPT = 'desc=m_timer'
 STIMER_INTERRUPT = 'desc=s_timer'
