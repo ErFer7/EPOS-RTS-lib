@@ -217,7 +217,8 @@ public:
 
 public:
     LLF(int p = APERIODIC): Real_Time_Scheduler_Common(p) {}
-    LLF(const Microsecond & d, const Microsecond & p = SAME, const Microsecond & c = UNKNOWN, unsigned int cpu = ANY);
+    LLF(const Microsecond & d, const Microsecond & p = SAME, const Microsecond & c = UNKNOWN, unsigned int cpu = ANY):
+        Real_Time_Scheduler_Common(d - c, d, p, c) {}
 };
 
 __END_SYS
