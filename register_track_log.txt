@@ -1,0 +1,64 @@
+// Rastreamento dos regsitradores
+
+Thread 2.1 hit Breakpoint 1, 0x0000000087fff000 in ?? ()
+
+// Início do int_m2s
+$1 = (void *) 0x87ffde38  // SP
+$2 = 0                    // SEPC
+$3 = 2147501500           // MEPC
+
+// Após salvar o contexto do int_m2s
+$4 = (void *) 0x88000004  // SP
+$5 = 0                    // SEPC
+$6 = 2147501500           // MEPC
+
+// Após restaurar o contexto do int_m2s
+$7 = (void *) 0x87ffde38  // SP
+$8 = 0                    // SEPC
+$9 = 2147501500           // MEPC
+
+Thread 2.1 hit Breakpoint 2, EPOS::S::IC::entry () at riscv_ic.cc:19
+
+// Antes de salvar o contexto do entry
+$10 = (void *) 0x87ffde38  // SP
+$11 = 2147501500           // SEPC
+$12 = 2147501500           // MEPC
+
+EPOS::S::CPU::Context::push (interrupt=true) at /home/erfer/Documents/UFSC/INE5424/Code/EPOS-RTS-lib/include/architecture/rv64/rv64_cpu.h:484
+
+// Após salvar o contexto do entry
+$13 = (void *) 0x87ffdd48  // SP
+$14 = 2147501500           // SEPC
+$15 = 2147503214           // MEPC
+
+EPOS::S::IC::entry () at riscv_ic.cc:24
+Thread 2.1 hit Breakpoint 3, EPOS::S::IC::dispatch () at riscv_ic.cc:35
+
+// Antes de salvar o contexto do dispatch
+$16 = (void *) 0x87ffdd48  // SP
+$17 = 2147501500           // SEPC
+$18 = 2147503214           // MEPC
+
+EPOS::S::CPU::scause () at /home/erfer/Documents/UFSC/INE5424/Code/EPOS-RTS-lib/include/architecture/rv64/rv64_cpu.h:453
+
+// Após salvar o contexto do dispatch
+$19 = (void *) 0x87ffdd38  // SP
+$20 = 2147501500           // SEPC
+$21 = 2147503214           // MEPC
+
+Thread 2.1 hit Breakpoint 4, EPOS::S::CPU::sint_disable () at /home/erfer/Documents/UFSC/INE5424/Code/EPOS-RTS-lib/include/architecture/rv64/rv64_cpu.h:430
+
+// Retornando ao entry
+$22 = (void *) 0x87ffdc38  // SP
+$23 = 2147495766           // SEPC
+$24 = 2147503128           // MEPC
+
+EPOS::S::CPU::Context::pop (interrupt=true) at /home/erfer/Documents/UFSC/INE5424/Code/EPOS-RTS-lib/include/architecture/rv64/rv64_cpu.h:541
+EPOS::S::CPU::Context::pop (interrupt=true) at /home/erfer/Documents/UFSC/INE5424/Code/EPOS-RTS-lib/include/architecture/rv64/rv64_cpu.h:585
+
+// Após restaurar o contexto do entry
+$25 = (void *) 0x87ffdd28  // SP
+$26 = 2147495766           // SEPC
+$27 = 2147503296           // MEPC
+
+EPOS::S::CPU::sret () at /home/erfer/Documents/UFSC/INE5424/Code/EPOS-RTS-lib/include/architecture/rv64/rv64_cpu.h:459
