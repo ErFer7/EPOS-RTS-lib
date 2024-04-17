@@ -95,12 +95,6 @@ template <> struct Traits<Timer>: public Traits<Machine_Common>
     // choice must respect the scheduler time-slice, i. e., it must be higher
     // than the scheduler invocation frequency.
     static const long FREQUENCY = 1000; // Hz
-
-    static const bool ASSERT_MAXIMUM_FREQUENCY = true;
-    static const unsigned int MAX_FREQ_ASSERTION_TEST_COUNT = 100;   // Amount of measurements of time to be taken to assert the maximum frequency
-    // This test load was calibrated to achieve a low assertion failure rate across most machines. Our tests showed that this method fails only
-    // ~2% of the time.
-    static const unsigned int MAX_FREQ_ASSERTION_TEST_LOAD = 90000;
 };
 
 template <> struct Traits<UART>: public Traits<Machine_Common>

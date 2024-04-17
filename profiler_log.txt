@@ -1,0 +1,226 @@
+>>> EPOS profiler
+>>> Profiling frequency: 10000 Hz
+>>> Opening sifive_u_traits.h
+>>> Frequency set on sifive_u_traits.h
+>>> Running measurement 1/3
+>>> Running "make clean"
+>>> Running "make veryclean"
+>>> Running "make APPLICATION=ea_test run"
+>>> Opening log file
+>>> Error detected: desc=s_timer -> desc=m_timer
+>>> Running measurement 2/3
+>>> Running "make clean"
+>>> Running "make veryclean"
+>>> Running "make APPLICATION=ea_test run"
+>>> Opening log file
+>>> Error detected: desc=s_timer -> desc=m_timer
+>>> Running measurement 3/3
+>>> Running "make clean"
+>>> Running "make veryclean"
+>>> Running "make APPLICATION=ea_test run"
+>>> Opening log file
+>>> Error detected: desc=s_timer -> desc=m_timer
+>>> Frequency 10000 tested, 3/3 timing errors detected
+>>> Profiling frequency: 5050 Hz
+>>> Opening sifive_u_traits.h
+>>> Frequency set on sifive_u_traits.h
+>>> Running measurement 1/3
+>>> Running "make clean"
+>>> Running "make veryclean"
+>>> Running "make APPLICATION=ea_test run"
+>>> Opening log file
+>>> Running measurement 2/3
+>>> Running "make clean"
+>>> Running "make veryclean"
+>>> Running "make APPLICATION=ea_test run"
+>>> Opening log file
+>>> Running measurement 3/3
+>>> Running "make clean"
+>>> Running "make veryclean"
+>>> Running "make APPLICATION=ea_test run"
+>>> Opening log file
+>>> Error detected: desc=s_timer -> desc=m_timer
+>>> Frequency 5050 tested, 1/3 timing errors detected
+>>> Profiling frequency: 2575 Hz
+>>> Opening sifive_u_traits.h
+>>> Frequency set on sifive_u_traits.h
+>>> Running measurement 1/3
+>>> Running "make clean"
+>>> Running "make veryclean"
+>>> Running "make APPLICATION=ea_test run"
+>>> Opening log file
+>>> Running measurement 2/3
+>>> Running "make clean"
+>>> Running "make veryclean"
+>>> Running "make APPLICATION=ea_test run"
+>>> Opening log file
+>>> Error detected: desc=s_timer -> desc=m_timer
+>>> Running measurement 3/3
+>>> Running "make clean"
+>>> Running "make veryclean"
+>>> Running "make APPLICATION=ea_test run"
+>>> Opening log file
+>>> Frequency 2575 tested, 1/3 timing errors detected
+>>> Profiling frequency: 1337 Hz
+>>> Opening sifive_u_traits.h
+>>> Frequency set on sifive_u_traits.h
+>>> Running measurement 1/3
+>>> Running "make clean"
+>>> Running "make veryclean"
+>>> Running "make APPLICATION=ea_test run"
+>>> Opening log file
+>>> Running measurement 2/3
+>>> Running "make clean"
+>>> Running "make veryclean"
+>>> Running "make APPLICATION=ea_test run"
+>>> Opening log file
+>>> Running measurement 3/3
+>>> Running "make clean"
+>>> Running "make veryclean"
+>>> Running "make APPLICATION=ea_test run"
+>>> Opening log file
+>>> Frequency 1337 tested, 0/3 timing errors detected
+>>> Profiling frequency: 1956 Hz
+>>> Opening sifive_u_traits.h
+>>> Frequency set on sifive_u_traits.h
+>>> Running measurement 1/3
+>>> Running "make clean"
+>>> Running "make veryclean"
+>>> Running "make APPLICATION=ea_test run"
+>>> Opening log file
+>>> Running measurement 2/3
+>>> Running "make clean"
+>>> Running "make veryclean"
+>>> Running "make APPLICATION=ea_test run"
+>>> Opening log file
+>>> Error detected: desc=s_timer -> desc=m_timer
+>>> Running measurement 3/3
+>>> Running "make clean"
+>>> Running "make veryclean"
+>>> Running "make APPLICATION=ea_test run"
+>>> Opening log file
+>>> Error detected: desc=s_timer -> desc=m_timer
+>>> Frequency 1956 tested, 2/3 timing errors detected
+>>> Profiling frequency: 1646 Hz
+>>> Opening sifive_u_traits.h
+>>> Frequency set on sifive_u_traits.h
+>>> Running measurement 1/3
+>>> Running "make clean"
+>>> Running "make veryclean"
+>>> Running "make APPLICATION=ea_test run"
+>>> Opening log file
+>>> Running measurement 2/3
+>>> Running "make clean"
+>>> Running "make veryclean"
+>>> Running "make APPLICATION=ea_test run"
+>>> Opening log file
+>>> Running measurement 3/3
+>>> Running "make clean"
+>>> Running "make veryclean"
+>>> Running "make APPLICATION=ea_test run"
+>>> Opening log file
+>>> Frequency 1646 tested, 0/3 timing errors detected
+>>> Profiling frequency: 1801 Hz
+>>> Opening sifive_u_traits.h
+>>> Frequency set on sifive_u_traits.h
+>>> Running measurement 1/3
+>>> Running "make clean"
+>>> Running "make veryclean"
+>>> Running "make APPLICATION=ea_test run"
+>>> Opening log file
+>>> Running measurement 2/3
+>>> Running "make clean"
+>>> Running "make veryclean"
+>>> Running "make APPLICATION=ea_test run"
+>>> Opening log file
+>>> Running measurement 3/3
+>>> Running "make clean"
+>>> Running "make veryclean"
+>>> Running "make APPLICATION=ea_test run"
+>>> Opening log file
+>>> Frequency 1801 tested, 0/3 timing errors detected
+>>> Profiling frequency: 1878 Hz
+>>> Opening sifive_u_traits.h
+>>> Frequency set on sifive_u_traits.h
+>>> Running measurement 1/3
+>>> Running "make clean"
+>>> Running "make veryclean"
+>>> Running "make APPLICATION=ea_test run"
+>>> Opening log file
+>>> Running measurement 2/3
+>>> Running "make clean"
+>>> Running "make veryclean"
+>>> Running "make APPLICATION=ea_test run"
+>>> Opening log file
+>>> Running measurement 3/3
+>>> Running "make clean"
+>>> Running "make veryclean"
+>>> Running "make APPLICATION=ea_test run"
+>>> Opening log file
+>>> Frequency 1878 tested, 0/3 timing errors detected
+>>> Profiling frequency: 1917 Hz
+>>> Opening sifive_u_traits.h
+>>> Frequency set on sifive_u_traits.h
+>>> Running measurement 1/3
+>>> Running "make clean"
+>>> Running "make veryclean"
+>>> Running "make APPLICATION=ea_test run"
+>>> Opening log file
+>>> Running measurement 2/3
+>>> Running "make clean"
+>>> Running "make veryclean"
+>>> Running "make APPLICATION=ea_test run"
+>>> Opening log file
+>>> Running measurement 3/3
+>>> Running "make clean"
+>>> Running "make veryclean"
+>>> Running "make APPLICATION=ea_test run"
+>>> Opening log file
+>>> Error detected: desc=s_timer -> desc=m_timer
+>>> Frequency 1917 tested, 1/3 timing errors detected
+>>> Profiling frequency: 1897 Hz
+>>> Opening sifive_u_traits.h
+>>> Frequency set on sifive_u_traits.h
+>>> Running measurement 1/3
+>>> Running "make clean"
+>>> Running "make veryclean"
+>>> Running "make APPLICATION=ea_test run"
+>>> Opening log file
+>>> Error detected: desc=supervisor_ecall -> desc=fault_load
+>>> Running measurement 2/3
+>>> Running "make clean"
+>>> Running "make veryclean"
+>>> Running "make APPLICATION=ea_test run"
+>>> Opening log file
+>>> Running measurement 3/3
+>>> Running "make clean"
+>>> Running "make veryclean"
+>>> Running "make APPLICATION=ea_test run"
+>>> Opening log file
+>>> Frequency 1897 tested, 1/3 timing errors detected
+>>> Profiling frequency: 1847 Hz
+>>> Opening sifive_u_traits.h
+>>> Frequency set on sifive_u_traits.h
+>>> Running measurement 1/3
+>>> Running "make clean"
+>>> Running "make veryclean"
+>>> Running "make APPLICATION=ea_test run"
+>>> Opening log file
+>>> Running measurement 2/3
+>>> Running "make clean"
+>>> Running "make veryclean"
+>>> Running "make APPLICATION=ea_test run"
+>>> Opening log file
+>>> Running measurement 3/3
+>>> Running "make clean"
+>>> Running "make veryclean"
+>>> Running "make APPLICATION=ea_test run"
+>>> Opening log file
+>>> Frequency 1847 tested, 0/3 timing errors detected
+>>> Opening sifive_u_traits.h
+>>> Original frequency set on sifive_u_traits.h
+
+>>> Results
+>>> Highest unsafe working frequency: 1897 Hz
+>>> Highest safe working frequency 1847 Hz
+>>> Recommended frequency: 1800
