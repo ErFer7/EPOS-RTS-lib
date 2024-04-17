@@ -7,21 +7,19 @@
 
 using namespace EPOS;
 
-
-const unsigned int iterations = 2; // for the test to run fast
-const unsigned int period = 550; // ms
-
+const unsigned int iterations = 2; // for the test to run faster
+const unsigned int period = 500; // ms
 
 OStream cout;
 Chronometer chrono;
-Mutex criticalSection;
+Mutex critical_section;
 
-Periodic_Thread * threadL;
-Periodic_Thread * threadM;
-Periodic_Thread * threadH;
+Periodic_Thread * thread_l;
+Periodic_Thread * thread_m;
+Periodic_Thread * thread_h;
 
-void heavyWork(char c, Periodic_Thread *t) {
-    cout << c << " entered the heavy work " << endl;
+void heavy_work(char c, Periodic_Thread *t) {
+    cout << c << " entered the heavy work" << endl;
 
     Microsecond elapsed = chrono.read() / 1000;
     int time = 0;
@@ -39,42 +37,42 @@ void heavyWork(char c, Periodic_Thread *t) {
     }
 }
 
-void criticalSectionCode(char c, Periodic_Thread* this_thread) {
+void critical_section_code(char c, Periodic_Thread* this_thread) {
     cout << "Thread " << c << " tries to take lock, [p(" << c << ") = " << this_thread->priority() << "]" << endl;
-    criticalSection.lock();
+    critical_section.lock();
 
     cout << "Thread " << c << " got the lock" << endl;
-    heavyWork(c, this_thread);    
+    heavy_work(c, this_thread);    
 
     cout << "Thread " << c << " will release the lock and finish the job" << endl;
-    criticalSection.unlock();
+    critical_section.unlock();
 }
 
-void mediumThreadCode() {
-    cout << "Thread M started [p(M) = " << threadM->priority() << "]" <<endl;
-    heavyWork('M', threadM);
+void medium_thread_code() {
+    cout << "Thread M started [p(M) = " << thread_m->priority() << "]" <<endl;
+    heavy_work('M', thread_m);
 
     Microsecond elapsed = chrono.read() / 1000;
     cout << "Thread M finished the job " << elapsed << " has passed" << endl;
 }
 
-int lowPriority() { 
+int low_priority() { 
     do {
-        criticalSectionCode('L', threadL);
+        critical_section_code('L', thread_l);
     } while(Periodic_Thread::wait_next());
     return 'L';
 }
 
-int mediumPriority() {
+int medium_priority() {
     do {
-        mediumThreadCode();
+        medium_thread_code();
     } while(Periodic_Thread::wait_next());
     return 'M';
 }
 
-int highPriority() { 
+int high_priority() { 
     do {
-        criticalSectionCode('H', threadH);
+        critical_section_code('H', thread_h);
     } while(Periodic_Thread::wait_next());
     return 'H';
 }
@@ -83,26 +81,24 @@ int main() {
     cout << "Priority Inversion Test" << endl;
 
     // INITIAL STATE:
-    // Thread L should start, acquire the lock and start heavy work.
-    // Thread H can't start work because is waiting for lock
+    // Thread L should start, acquire the lock and start the heavy work.
+    // Thread H can't start the work because is waiting for lock
     // Thread M should preempt L and delay the lock release from H
     // So Thread M has "higher priority" than H without being in the critical section, that should not happen
 
-    // passing priorities, so i can control it for this problem (not doing LLF calculus anymore)
+    // passing priorities, so i can control it for this problem (not doing LLF calculus 
     chrono.start();
-    threadL = new Periodic_Thread(RTConf(period * 1000, 0, Periodic_Thread::UNKNOWN, 0, iterations, Thread::READY, Thread::LOW), &lowPriority);
-    cout << "voltou pra main " << endl;
-    Delay pickLockFirst(100000); // to make sure L starts first
-    threadH = new Periodic_Thread(RTConf(period * 1000, 0, Periodic_Thread::UNKNOWN, 0, iterations, Thread::READY, Thread::HIGH), &highPriority);
+    thread_l = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::LOW), &low_priority);
+    Delay pick_lock_first(100000); // to make sure L starts first
+    thread_h = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::HIGH), &high_priority);
     // Normal - 1 because if it's == NORMAL the calculus is made by Criterion -> LLF()
-    threadM = new Periodic_Thread(RTConf(period * 1000, 0, Periodic_Thread::UNKNOWN, 0 , iterations, Thread:: READY, Thread::NORMAL - 1), &mediumPriority);
-    cout << "Thread L: " << threadL << " Thread M: " << threadM <<  endl;
+    thread_m = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0 , iterations, Thread:: READY, Thread::NORMAL - 1), &medium_priority);
 
-    int status_l = threadL->join();
-    int status_h = threadH->join();
-    int status_m = threadM->join();
+    int status_l = thread_l->join();
+    int status_h = thread_h->join();
+    int status_m = thread_m->join();
 
-    cout << " Threads finalizaram, s[L] = " << status_l << " s[H] = " << status_h  << " s[M]= "<< status_m << endl;
+    cout << " Threads finished, s[L] = " << char(status_l) << " s[H] = " << char(status_h)  << " s[M]= "<< char(status_m) << endl;
 
     chrono.stop();
 

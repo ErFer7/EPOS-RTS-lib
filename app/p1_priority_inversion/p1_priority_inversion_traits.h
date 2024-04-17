@@ -19,7 +19,7 @@ template<> struct Traits<Build>: public Traits_Tokens
 
     // Default flags
     static const bool enabled = true;
-    static const bool debugged = false;
+    static const bool debugged = true;
     static const bool hysterically_debugged = false;
 };
 
@@ -30,7 +30,7 @@ template<> struct Traits<Debug>: public Traits<Build>
     static const bool error   = true;
     static const bool warning = true;
     static const bool info    = false;
-    static const bool trace   = true;
+    static const bool trace   = false;
 };
 
 template<> struct Traits<Lists>: public Traits<Build>
@@ -117,7 +117,7 @@ template<> struct Traits<Thread>: public Traits<Build>
     static const bool trace_idle = hysterically_debugged;
     static const bool simulate_capacity = false;
 
-    typedef LLF Criterion; // priority inversion should be more prevalent in RM and DM, but can be tested in others
+    typedef LLF Criterion;
     static const unsigned int QUANTUM = 10000; // us
 };
 

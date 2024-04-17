@@ -10,7 +10,6 @@ bool Thread::_not_booting;
 volatile unsigned int Thread::_thread_count;
 Scheduler_Timer * Thread::_timer;
 Scheduler<Thread> Thread::_scheduler;
-OStream cout;
 
 void Thread::constructor_prologue(unsigned int stack_size)
 {
@@ -386,7 +385,6 @@ void Thread::check_acquire_ceiling() {
     if (t->priority() != Thread::ISR) {
         t->save_current_priority();
         t->_link.rank(Thread::ISR); // instead of priority() to avoid reschedule
-        cout << "subiu prioridade da " << t << endl;
     }
     t->cs_counter++;
 }
@@ -397,10 +395,7 @@ void Thread::check_release_ceiling() {
     Thread * t = running();
     if (t->cs_counter == 1) {
         t->_link.rank(t->_old_priority); // instead of priority() to avoid reschedule
-        cout << "restaurou a prioridade antiga da " << t << endl;
-    } else {
-        cout << t->cs_counter << " não restaurou prioridade antiga da " << t << " antiga e cond: " << t->_old_priority << endl;
-    }
+    } 
     t->cs_counter--;
 }
 
