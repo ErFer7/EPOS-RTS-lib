@@ -378,25 +378,16 @@ int Thread::idle()
     return 0;
 }
 
-void Thread::check_acquire_ceiling() {
+void Thread::priority_inheritance_synchronizer(Priority_Inheritance_Synchronizer * priority_inheritance_synchronizer) {
     assert(locked());
 
-    Thread * t = running();
-    if (t->priority() != Thread::ISR) {
-        t->save_current_priority();
-        t->_link.rank(Thread::ISR); // instead of priority() to avoid reschedule
-    }
-    t->cs_counter++;
+    _priority_inheritance_synchronizer = priority_inheritance_synchronizer;
 }
 
-void Thread::check_release_ceiling() {
+Priority_Inheritance_Synchronizer * Thread::priority_inheritance_synchronizer() {
     assert(locked());
 
-    Thread * t = running();
-    if (t->cs_counter == 1) {
-        t->_link.rank(t->_old_priority); // instead of priority() to avoid reschedule
-    }
-    t->cs_counter--;
+    return _priority_inheritance_synchronizer;
 }
 
 __END_SYS

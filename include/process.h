@@ -19,6 +19,7 @@ class Thread
     friend class Init_System;           // for init() on CPU != 0
     friend class Scheduler<Thread>;     // for link()
     friend class Synchronizer_Common;   // for lock() and sleep()
+    friend class Priority_Inheritance_Synchronizer;  // TODO: Check if this is necessary
     friend class Alarm;                 // for lock()
     friend class System;                // for init()
     friend class IC;                    // for link() for priority ceiling
@@ -97,15 +98,13 @@ protected:
     Criterion & criterion() { return const_cast<Criterion &>(_link.rank()); }
     Queue::Element * link() { return &_link; }
 
-    void save_current_priority() { _old_priority = _link.rank(); }
-
     static Thread * volatile running() { return _scheduler.chosen(); }
 
     static void lock() { CPU::int_disable(); }
     static void unlock() { CPU::int_enable(); }
     static bool locked() { return CPU::int_disabled(); }
-    static void check_acquire_ceiling();
-    static void check_release_ceiling();
+    void priority_inheritance_synchronizer(Priority_Inheritance_Synchronizer * priority_inheritance_synchronizer);
+    Priority_Inheritance_Synchronizer * priority_inheritance_synchronizer();
 
     static void sleep(Queue * q);
     static void wakeup(Queue * q);
@@ -128,8 +127,7 @@ protected:
     Queue * _waiting;
     Thread * volatile _joining;
     Queue::Element _link;
-    Criterion _old_priority;
-    int cs_counter = 0;
+    Priority_Inheritance_Synchronizer * _priority_inheritance_synchronizer = nullptr;  // TODO: Move the initialization to the constructor
 
     static bool _not_booting;
     static volatile unsigned int _thread_count;

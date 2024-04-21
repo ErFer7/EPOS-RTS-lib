@@ -124,6 +124,7 @@ class Address_Space;
 class Segment;
 
 class Synchronizer;
+class Priority_Inheritance_Synchronizer;
 class Mutex;
 class Semaphore;
 class Condition;
