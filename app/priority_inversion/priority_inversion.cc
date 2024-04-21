@@ -7,7 +7,7 @@
 
 using namespace EPOS;
 
-const unsigned int iterations = 2; // for the test to run faster
+const unsigned int iterations = 2;
 const unsigned int period = 500; // ms
 
 OStream cout;

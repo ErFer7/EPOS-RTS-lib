@@ -68,7 +68,7 @@ protected:
     }
 
     void exit_critical_section(bool unlocking = true) {
-        if (unlocking && Thread::self() != _critical_section_thread)
+        if (!_critical_section_thread && unlocking && Thread::self() != _critical_section_thread)
             return;
 
         if (_prev_priority_inheritance_synchronizer)
@@ -98,7 +98,7 @@ private:
         if (!_queue.empty()) {
             Criterion highest_priority = _queue.head()->object()->priority();
 
-            if (_critical_section_priority < highest_priority) {
+            if (_critical_section_priority > highest_priority) {
                 _critical_section_priority = highest_priority;
                 _critical_section_thread->priority(_critical_section_priority);
             }
