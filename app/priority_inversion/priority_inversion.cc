@@ -88,7 +88,7 @@ int main() {
 
     // passing priorities, so i can control it for this problem (not doing LLF calculus)
     chrono.start();
-    thread_l = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, 4, Thread::READY, Thread::LOW), &low_priority);
+    thread_l = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::LOW), &low_priority);
     Delay pick_lock_first(100000); // to make sure L starts first
     thread_h = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::HIGH), &high_priority);
     // Normal - 1 because if it's == NORMAL the calculus is made by Criterion -> LLF()

@@ -22,7 +22,7 @@ void Semaphore::p()
 
     begin_atomic();
     if(fdec(_value) < 1)
-        Synchronizer_Common::sleep();
+        sleep();
     end_atomic();
 }
 
@@ -33,7 +33,7 @@ void Semaphore::v()
 
     begin_atomic();
     if(finc(_value) < 0)
-        Synchronizer_Common::wakeup();
+        wakeup();
     end_atomic();
 }
 

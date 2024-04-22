@@ -29,8 +29,8 @@ protected:
 
     // For the team: Virtual here specifies that the function can be overriden by a subclass (such as Priority_Inheritance_Synchronizer)
     virtual void sleep() { Thread::sleep(&_queue); }
-    virtual void wakeup() { Thread::wakeup(&_queue); }
-    virtual void wakeup_all() { Thread::wakeup_all(&_queue); }
+    void wakeup() { Thread::wakeup(&_queue); }
+    void wakeup_all() { Thread::wakeup_all(&_queue); }
 
 protected:
     Queue _queue;
@@ -48,9 +48,7 @@ public:
     Criterion critical_section_priority() { return _critical_section_priority; }
 
 protected:
-    Priority_Inheritance_Synchronizer():
-        _critical_section_thread(nullptr),
-        _link(this) {}
+    Priority_Inheritance_Synchronizer(): _critical_section_thread(nullptr), _link(this) {}
     ~Priority_Inheritance_Synchronizer() {}
 
     void enter_critical_section() {
@@ -83,7 +81,6 @@ protected:
         Synchronizer_Common::sleep();
     }
 
-    // Maybe we will need a special method just for the wakeup_all()
 private:
     void solve_priority() {
         Thread * blocked = Thread::self();
@@ -118,7 +115,7 @@ private:
 };
 
 
-class Semaphore: protected Priority_Inheritance_Synchronizer
+class Semaphore: protected Synchronizer_Common
 {
 public:
     Semaphore(long v = 1);

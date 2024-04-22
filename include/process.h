@@ -19,7 +19,7 @@ class Thread
     friend class Init_System;           // for init() on CPU != 0
     friend class Scheduler<Thread>;     // for link()
     friend class Synchronizer_Common;   // for lock() and sleep()
-    friend class Priority_Inheritance_Synchronizer;  // TODO: Check if this is necessary
+    friend class Priority_Inheritance_Synchronizer;
     friend class Alarm;                 // for lock()
     friend class System;                // for init()
     friend class IC;                    // for link() for priority ceiling
