@@ -27,7 +27,6 @@ protected:
     void begin_atomic() { Thread::lock(); }
     void end_atomic() { Thread::unlock(); }
 
-    // For the team: Virtual here specifies that the function can be overriden by a subclass (such as Priority_Inheritance_Synchronizer)
     virtual void sleep() { Thread::sleep(&_queue); }
     void wakeup() { Thread::wakeup(&_queue); }
     void wakeup_all() { Thread::wakeup_all(&_queue); }
