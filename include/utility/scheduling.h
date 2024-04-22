@@ -103,13 +103,6 @@ public:
 
         return obj;
     }
-
-    void update_priority(T * obj) {
-        db<Scheduler>(TRC) << "Scheduler[chosen=" << chosen() << "]::update_priority(" << obj << ")" << endl;
-
-        this->remove(obj);
-        this->insert(obj);
-    }
 };
 
 __END_UTIL

@@ -42,76 +42,65 @@ class Priority_Inheritance_Synchronizer: protected Synchronizer_Common
 {
 protected:
     typedef Thread::Criterion Criterion;
+    typedef Thread::PIS_List::Element Element;
+
 public:
     Criterion critical_section_priority() { return _critical_section_priority; }
+
 protected:
-    // TODO: Check if this is ok
     Priority_Inheritance_Synchronizer():
         _critical_section_thread(nullptr),
-        _prev_priority_inheritance_synchronizer(nullptr) {}
+        _link(this) {}
     ~Priority_Inheritance_Synchronizer() {}
 
     void enter_critical_section() {
-        if (_critical_section_thread) {
-            if (Thread::self() == _critical_section_thread)  // If the same thread is calling p() twice or more
-                return;
-
-            exit_critical_section(false);
-        }
-
         _critical_section_thread = Thread::self();
-        _prev_priority_inheritance_synchronizer = _critical_section_thread->priority_inheritance_synchronizer();
-        _critical_section_thread->priority_inheritance_synchronizer(this);
+        Thread::PIS_List * pis_list = _critical_section_thread->priority_inheritance_synchronizers();
 
-        _critical_section_priority = Criterion(_critical_section_thread->priority());  // TODO: Check if this is ok
-        _original_priority = _critical_section_priority;
+        if (pis_list->empty())
+            _critical_section_thread->save_original_priority();
+
+        pis_list->insert(&_link);
+        _critical_section_priority = Criterion(_critical_section_thread->priority());
     }
 
-    void exit_critical_section(bool unlocking = true) {
-        if (!_critical_section_thread && unlocking && Thread::self() != _critical_section_thread)
-            return;
+    void exit_critical_section() {
+        // TODO: Handle the special case where the semaphore can be unlocked by other thread that isn't the running thread
 
-        if (_prev_priority_inheritance_synchronizer)
-            _critical_section_thread->priority(_prev_priority_inheritance_synchronizer->critical_section_priority());
+        Thread::PIS_List * pis_list = _critical_section_thread->priority_inheritance_synchronizers();
+        pis_list->remove(&_link);
+
+        if (pis_list->empty())
+            _critical_section_thread->non_locked_priority(_critical_section_thread->original_priority());
         else
-            _critical_section_thread->priority(_original_priority);
+            _critical_section_thread->non_locked_priority(pis_list->tail()->object()->critical_section_priority());
 
-        _critical_section_thread->priority_inheritance_synchronizer(_prev_priority_inheritance_synchronizer);
         _critical_section_thread = nullptr;
     }
 
     void sleep() {
+        solve_priority();
         Synchronizer_Common::sleep();
-        solve_priority();
-    }
-
-    void wakeup() {
-        Synchronizer_Common::wakeup();
-        enter_critical_section();
-        solve_priority();
     }
 
     // Maybe we will need a special method just for the wakeup_all()
 private:
     void solve_priority() {
-        // Since the queue is ordered by priority, the highest priority thread will be the first one
-        if (!_queue.empty()) {
-            Criterion highest_priority = _queue.head()->object()->priority();
+        Thread * blocked = Thread::self();
+        Criterion blocked_priority = blocked->priority();
 
-            if (_critical_section_priority > highest_priority) {
-                _critical_section_priority = highest_priority;
-                _critical_section_thread->priority(_critical_section_priority);
-            }
+        if (blocked_priority < _critical_section_priority) {
+            _critical_section_priority = blocked_priority;
+            _critical_section_thread->non_locked_priority(_critical_section_priority);
         }
     }
 
 private:
     Thread * _critical_section_thread;
+    Element _link;
 
 private:
     Criterion _critical_section_priority;
-    Criterion _original_priority;
-    Priority_Inheritance_Synchronizer * _prev_priority_inheritance_synchronizer;
 };
 
 

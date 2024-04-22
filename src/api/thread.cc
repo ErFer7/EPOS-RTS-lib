@@ -99,13 +99,27 @@ void Thread::priority(const Criterion & c)
     _link.rank(Criterion(c));
 
     if(_state != RUNNING) {
-        _scheduler.update_priority(this);
+        _scheduler.remove(this);
+        _scheduler.insert(this);
     }
 
     if(preemptive)
         reschedule();
     else
         unlock();
+}
+
+
+void Thread::non_locked_priority(const Criterion & c)
+{
+    db<Thread>(TRC) << "Thread::non_locked_priority(this=" << this << ",prio=" << c << ")" << endl;
+
+    _link.rank(Criterion(c));
+
+    if(_state != RUNNING) {
+        _scheduler.remove(this);
+        _scheduler.insert(this);
+    }
 }
 
 
@@ -376,18 +390,6 @@ int Thread::idle()
     for(;;);
 
     return 0;
-}
-
-void Thread::priority_inheritance_synchronizer(Priority_Inheritance_Synchronizer * priority_inheritance_synchronizer) {
-    assert(locked());
-
-    _priority_inheritance_synchronizer = priority_inheritance_synchronizer;
-}
-
-Priority_Inheritance_Synchronizer * Thread::priority_inheritance_synchronizer() {
-    assert(locked());
-
-    return _priority_inheritance_synchronizer;
 }
 
 __END_SYS

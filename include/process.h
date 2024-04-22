@@ -58,6 +58,9 @@ public:
     // Thread Queue
     typedef Ordered_Queue<Thread, Criterion, Scheduler<Thread>::Element> Queue;
 
+    // Thread Priority Inheritance Synchronizer list
+    typedef List<Priority_Inheritance_Synchronizer> PIS_List;
+
     // Thread Configuration
     struct Configuration {
         Configuration(const State & s = READY, const Criterion & c = NORMAL, unsigned int ss = STACK_SIZE)
@@ -81,6 +84,7 @@ public:
 
     const volatile Criterion & priority() const { return _link.rank(); }
     void priority(const Criterion & p);
+    void non_locked_priority(const Criterion & p);
 
     int join();
     void pass();
@@ -103,8 +107,10 @@ protected:
     static void lock() { CPU::int_disable(); }
     static void unlock() { CPU::int_enable(); }
     static bool locked() { return CPU::int_disabled(); }
-    void priority_inheritance_synchronizer(Priority_Inheritance_Synchronizer * priority_inheritance_synchronizer);
-    Priority_Inheritance_Synchronizer * priority_inheritance_synchronizer();
+
+    void save_original_priority() { _original_priority = _link.rank(); }
+    const Criterion & original_priority() const { return _original_priority; }
+    PIS_List * priority_inheritance_synchronizers() { return &_priority_inheritance_synchronizers; }
 
     static void sleep(Queue * q);
     static void wakeup(Queue * q);
@@ -127,7 +133,8 @@ protected:
     Queue * _waiting;
     Thread * volatile _joining;
     Queue::Element _link;
-    Priority_Inheritance_Synchronizer * _priority_inheritance_synchronizer = nullptr;  // TODO: Move the initialization to the constructor
+    PIS_List _priority_inheritance_synchronizers;
+    Criterion _original_priority;
 
     static bool _not_booting;
     static volatile unsigned int _thread_count;

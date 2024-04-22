@@ -22,9 +22,7 @@ void Semaphore::p()
 
     begin_atomic();
     if(fdec(_value) < 1)
-        sleep();
-    else
-        enter_critical_section();
+        Synchronizer_Common::sleep();
     end_atomic();
 }
 
@@ -34,12 +32,8 @@ void Semaphore::v()
     db<Synchronizer>(TRC) << "Semaphore::v(this=" << this << ",value=" << _value << ")" << endl;
 
     begin_atomic();
-    exit_critical_section();
-    if(finc(_value) < 0) {
-        wakeup();
-    } else {
-        exit_critical_section();
-    }
+    if(finc(_value) < 0)
+        Synchronizer_Common::wakeup();
     end_atomic();
 }
 
