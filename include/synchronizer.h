@@ -43,12 +43,11 @@ protected:
     typedef Thread::Criterion Criterion;
     typedef Thread::PIS_List::Element Element;
 
-public:
-    Criterion critical_section_priority() { return _critical_section_priority; }
-
 protected:
     Priority_Inheritance_Synchronizer(): _critical_section_thread(nullptr), _link(this) {}
     ~Priority_Inheritance_Synchronizer() {}
+
+    Criterion critical_section_priority() { return _critical_section_priority; }
 
     void enter_critical_section() {
         _critical_section_thread = Thread::self();
@@ -76,12 +75,6 @@ protected:
     }
 
     void sleep() {
-        solve_priority();
-        Synchronizer_Common::sleep();
-    }
-
-private:
-    void solve_priority() {
         Thread * blocked = Thread::self();
         Criterion blocked_priority = blocked->priority();
 
@@ -89,13 +82,13 @@ private:
             _critical_section_priority = blocked_priority;
             _critical_section_thread->non_locked_priority(_critical_section_priority);
         }
+
+        Synchronizer_Common::sleep();
     }
 
 private:
     Thread * _critical_section_thread;
     Element _link;
-
-private:
     Criterion _critical_section_priority;
 };
 
