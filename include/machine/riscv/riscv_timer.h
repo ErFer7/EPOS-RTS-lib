@@ -17,6 +17,7 @@ class Timer: private Timer_Common, private CLINT
     friend Machine;
     friend IC;
     friend class Init_System;
+    friend class Frequency_Profiler;
 
 protected:
     static const unsigned int CHANNELS = 2;

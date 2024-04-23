@@ -134,6 +134,7 @@ class Clock;
 class Chronometer;
 class Alarm;
 class Delay;
+class Frequency_Profiler;
 
 template<typename T> class Clerk;
 class Monitor;
