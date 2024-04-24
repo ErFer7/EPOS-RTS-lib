@@ -53,7 +53,7 @@ void Frequency_Profiler::analyse_profiled_data() {
         unsigned long recommended_frequency = (Traits<Frequency_Profiler>::INTERRUPTION_TIME_RATIO_THRESHOLD * execution_time * frequency) / diff_time_sum;
 
         db<Frequency_Profiler>(WRN) << "Frequency_Profiler:analyse_profiled_data: The current frequency of "
-        << Traits<Timer>::FREQUENCY << " Hz is to high and it can cause errors during execution. "
+        << Traits<Timer>::FREQUENCY << " Hz is too high and it can cause errors during execution. "
         << "The recommended frequency for your machine is: " << recommended_frequency << " Hz." << endl;
     } else {
         db<Frequency_Profiler>(INF) << "Frequency_Profiler:analyse_profiled_data: The current frequency results "

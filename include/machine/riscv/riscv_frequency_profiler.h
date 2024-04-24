@@ -28,7 +28,7 @@ protected:
             return;
 
         if (_profiler->_timing_error) {
-            db<Frequency_Profiler>(ERR) << "Frequency_Profiler:measure_initial_time: Timing error!" << endl;
+            db<Frequency_Profiler>(ERR) << "Frequency_Profiler:measure_initial_time: Timing error! The Frequency is too high" << endl;
             Machine::panic();
         }
 

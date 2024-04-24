@@ -530,7 +530,6 @@ struct Traits {
     static const bool monitored = false;
     static const bool debugged = true;
     static const bool hysterically_debugged = false;
-    static const bool priority_ceiling = false; // TODO: Do i need to put it here?
 
     typedef ALIST<> ASPECTS;
 };

@@ -82,7 +82,7 @@ protected:
         if (blocked_priority < _critical_section_priority) {
             Criterion new_priority;
 
-            if (Traits<Synchronizer>::priority_ceiling) 
+            if (Traits<Priority_Inversion_Solver_Synchronizer>::priority_ceiling) 
                 new_priority = Thread::ISR;
              else 
                 new_priority = blocked_priority;
