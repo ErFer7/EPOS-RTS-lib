@@ -29,10 +29,13 @@ Periodic_Thread * thread_h_second_test;
 
 // Third Test
 
-Mutex critical_section_third_test;
-Periodic_Thread * thread_third__test;
+Semaphore * critical_section_third_test_first_semaphore;
+Semaphore * critical_section_third_test_second_semaphore;
+Periodic_Thread * thread_l_third_test;
 Periodic_Thread * thread_m_third_test;
 Periodic_Thread * thread_h_third_test;
+
+// Job
 
 void heavy_work(char c, Periodic_Thread *t) {
 
@@ -86,6 +89,40 @@ void align_heavy_work(char c, Periodic_Thread *t) {
 
 }
 
+void heavy_work_with_sem(char c, Periodic_Thread *t) {
+
+    cout << "Thread " << c << " entered the heavy work" << endl;
+
+    Microsecond elapsed = chrono.read() / 1000;
+    int time = 0;
+    int first_elapsed = elapsed;
+    int last_cout = 0;
+
+    critical_section_third_test_second_semaphore->p();
+
+    cout << c << " got the semaphore and entered align heavy work" << endl;
+
+    while (time < 500) {
+        if (last_cout + 50 < time) {
+            cout << c << " is working... time elapsed: " << elapsed << " priority: " << t->priority() << endl;;
+            last_cout = time;
+        }
+
+        elapsed = chrono.read() / 1000;
+        time = elapsed - first_elapsed;
+
+    }
+
+    cout << "Thread " << c << " will release the semaphore and finish the align heavy work" << endl;
+
+    critical_section_third_test_second_semaphore->v();
+
+    Delay test_preempt(1000000);
+
+}
+
+// Tasks
+
 void first_task(char c, Periodic_Thread* this_thread) {
     cout << "Thread " << c << " tries to take lock, [p(" << c << ") = " << this_thread->priority() << "]" << endl;
     critical_section_first_test.lock();
@@ -108,14 +145,18 @@ void second_task(char c, Periodic_Thread* this_thread) {
     critical_section_second_test_first_mutex.unlock();
 }
 
+void third_task(char c, Periodic_Thread* this_thread) {
+    cout << "Thread " << c << " tries to take semaphore, [p(" << c << ") = " << this_thread->priority() << "]" << endl;
+    critical_section_third_test_first_semaphore->p();
 
-void medium_thread_code() {
-    cout << "Thread M started [p(M) = " << thread_m_first_test->priority() << "]" <<endl;
-    heavy_work('M', thread_m_first_test);
+    cout << "Thread " << c << " got the semaphore" << endl;
+    heavy_work_with_sem(c, this_thread);
 
-    Microsecond elapsed = chrono.read() / 1000;
-    cout << "Thread M finished the job " << elapsed << " has passed" << endl;
+    cout << "Thread " << c << " will release the semaphore and finish the heavy work" << endl;
+    critical_section_third_test_first_semaphore->v();
 }
+
+// Assignments by priority
 
 int low_priority_first() {
     do {
@@ -126,7 +167,7 @@ int low_priority_first() {
 
 int medium_priority_first() {
     do {
-        medium_thread_code();
+        first_task('M', thread_m_first_test);
     } while(Periodic_Thread::wait_next());
     return 'M';
 }
@@ -137,6 +178,8 @@ int high_priority_first() {
     } while(Periodic_Thread::wait_next());
     return 'H';
 }
+
+// ---
 
 int low_priority_second() {
     do {
@@ -155,6 +198,29 @@ int medium_priority_second() {
 int high_priority_second() {
     do {
         second_task('H', thread_h_second_test);
+    } while(Periodic_Thread::wait_next());
+    return 'H';
+}
+
+// ---
+
+int low_priority_third() {
+    do {
+        third_task('L', thread_l_third_test);
+    } while(Periodic_Thread::wait_next());
+    return 'L';
+}
+
+int medium_priority_third() {
+    do {
+        third_task('M', thread_m_third_test);
+    } while(Periodic_Thread::wait_next());
+    return 'M';
+}
+
+int high_priority_third() {
+    do {
+        third_task('H', thread_h_third_test);
     } while(Periodic_Thread::wait_next());
     return 'H';
 }
@@ -183,6 +249,8 @@ int main() {
 
     chrono.start();
 
+    // Threads
+
     thread_l_first_test = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::LOW), &low_priority_first);
     Delay pick_lock_first(100000);
 
@@ -204,12 +272,12 @@ int main() {
 
     1. Thread L take a lock, but inside the critical zone there's another (or several others) lock(s), which L takes as well;
     2. Thread L's priority is raised by one of the algorithms (PCP or Inheritance);
-    3. Thread L releases a lock and its priority is returns to the original value;
+    3. Thread L releases a lock and its priority returns to the original value;
     4. A Thread with higher priority preempts L.
 
     How to pass the test:
 
-    - If the priority of a Thread raises temporarily inside a critical zone, it just returns to the original value when this Thread exit the zone.
+    - If the priority of a Thread raises temporarily inside a critical zone, it returns to the original value only when this Thread exit the zone.
 
     */
 
@@ -231,16 +299,49 @@ int main() {
 
     /* 
 
-    Third test: Align Semaphores
+    Third test: Align Binary Semaphores
 
-    How the problem with Align Semaphores occurs:
+    ** Priority inversion in the case of non-binary semaphores is a really complex issue **
+
+    How the problem with Align Binary Semaphores occurs:
+
+    1. Thread L takes a semaphore, but inside the critical zone there's another (or several others) semaphore(s), which L takes as well;
+    2. Thread L's priority is raised by one of the algorithms (PCP or Inheritance);
+    3. Thread L releases a semaphore and its priority returns to the original value;
+    4. A Thread with higher priority preempts L.
 
     How to pass the test:
 
+    - If the priority of a Thread raises temporarily inside a critical zone, it returns to the original value only when this Thread exit the zone.
+
     */
 
-    // TO-DO ...
+    cout << "Priority Inversion Test - Align Binary Semaphores" << endl;
 
+    // Semaphores
+
+    critical_section_third_test_first_semaphore = new Semaphore;
+    critical_section_third_test_second_semaphore = new Semaphore;
+
+    // Threads
+
+    thread_l_third_test = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::LOW), &low_priority_third);
+    Delay pick_lock_third(100000);
+
+    thread_h_third_test = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::HIGH), &high_priority_third);
+    thread_m_third_test = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0 , iterations, Thread:: READY, Thread::NORMAL - 1), &medium_priority_third);
+
+    int status_l_third = thread_l_third_test->join();
+    int status_h_third = thread_h_third_test->join();
+    int status_m_third = thread_m_third_test->join();
+
+    cout << " Threads finished, s[L] = " << char(status_l_third) << " s[H] = " << char(status_h_third)  << " s[M]= "<< char(status_m_third) << endl;
+
+
+    // Finishing tests...
+
+    delete critical_section_third_test_first_semaphore;
+    delete critical_section_third_test_second_semaphore;
 
     chrono.stop();
 
