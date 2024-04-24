@@ -130,6 +130,7 @@ template<> struct Traits<Synchronizer>: public Traits<Build>
 {
     static const bool enabled = Traits<System>::multithread;
     static const bool debugged = true;
+    static const bool priority_ceiling = false;
 };
 
 template<> struct Traits<Alarm>: public Traits<Build>

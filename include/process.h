@@ -19,7 +19,7 @@ class Thread
     friend class Init_System;           // for init() on CPU != 0
     friend class Scheduler<Thread>;     // for link()
     friend class Synchronizer_Common;   // for lock() and sleep()
-    friend class Priority_Inheritance_Synchronizer;
+    friend class Priority_Inversion_Solver_Synchronizer;
     friend class Alarm;                 // for lock()
     friend class System;                // for init()
     friend class IC;                    // for link() for priority ceiling
@@ -58,8 +58,8 @@ public:
     // Thread Queue
     typedef Ordered_Queue<Thread, Criterion, Scheduler<Thread>::Element> Queue;
 
-    // Thread Priority Inheritance Synchronizer list
-    typedef List<Priority_Inheritance_Synchronizer> PIS_List;
+    // Thread Priority_Inversion_Solver_Synchronizer list
+    typedef List<Priority_Inversion_Solver_Synchronizer> PIS_List;
 
     // Thread Configuration
     struct Configuration {
@@ -110,7 +110,7 @@ protected:
 
     void save_original_priority() { _original_priority = _link.rank(); }
     const Criterion & original_priority() const { return _original_priority; }
-    PIS_List * priority_inheritance_synchronizers() { return &_priority_inheritance_synchronizers; }
+    PIS_List * synchronizers_in_use() { return &_synchronizers_in_use; }
 
     static void sleep(Queue * q);
     static void wakeup(Queue * q);
@@ -133,7 +133,7 @@ protected:
     Queue * _waiting;
     Thread * volatile _joining;
     Queue::Element _link;
-    PIS_List _priority_inheritance_synchronizers;
+    PIS_List _synchronizers_in_use;
     Criterion _original_priority;
 
     static bool _not_booting;

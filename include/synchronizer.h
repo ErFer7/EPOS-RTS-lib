@@ -37,21 +37,22 @@ protected:
 
 
 // TODO: Move the implementation to a source file
-class Priority_Inheritance_Synchronizer: protected Synchronizer_Common
+class Priority_Inversion_Solver_Synchronizer: protected Synchronizer_Common
 {
 protected:
     typedef Thread::Criterion Criterion;
     typedef Thread::PIS_List::Element Element;
 
 protected:
-    Priority_Inheritance_Synchronizer(): _critical_section_thread(nullptr), _link(this) {}
-    ~Priority_Inheritance_Synchronizer() {}
+    Priority_Inversion_Solver_Synchronizer(): _critical_section_thread(nullptr), _link(this) {}
+    ~Priority_Inversion_Solver_Synchronizer() {}
 
     Criterion critical_section_priority() { return _critical_section_priority; }
+    void critical_section_priority(Criterion p) { _critical_section_priority = p; }
 
     void enter_critical_section() {
         _critical_section_thread = Thread::self();
-        Thread::PIS_List * pis_list = _critical_section_thread->priority_inheritance_synchronizers();
+        Thread::PIS_List * pis_list = _critical_section_thread->synchronizers_in_use();
 
         if (pis_list->empty())
             _critical_section_thread->save_original_priority();
@@ -63,7 +64,7 @@ protected:
     void exit_critical_section() {
         // TODO: Handle the special case where the semaphore can be unlocked by other thread that isn't the running thread
 
-        Thread::PIS_List * pis_list = _critical_section_thread->priority_inheritance_synchronizers();
+        Thread::PIS_List * pis_list = _critical_section_thread->synchronizers_in_use();
         pis_list->remove(&_link);
 
         if (pis_list->empty())
@@ -79,7 +80,26 @@ protected:
         Criterion blocked_priority = blocked->priority();
 
         if (blocked_priority < _critical_section_priority) {
-            _critical_section_priority = blocked_priority;
+            Criterion new_priority;
+
+            if (Traits<Synchronizer>::priority_ceiling) 
+                new_priority = Thread::ISR;
+             else 
+                new_priority = blocked_priority;
+
+            _critical_section_priority = new_priority;
+
+            // Atualização dos locks aninhados (pra quando pegar da tail der certo)
+            // Eu sempre atualizo? Eu atualizo só se for maior, existe caso que não seja?
+            // É possível existir condição de corrida pelos recursos serem independentes?
+            // Avaliar caso de semáforos... links compartilhados?
+            Element * e = _link.prev();
+            while (e) {
+                Priority_Inversion_Solver_Synchronizer * resource = e->object();
+                resource->critical_section_priority(new_priority);
+                e = _link.prev();
+            }
+
             _critical_section_thread->non_locked_priority(_critical_section_priority);
         }
 
@@ -93,7 +113,7 @@ private:
 };
 
 
-class Mutex: protected Priority_Inheritance_Synchronizer
+class Mutex: protected Priority_Inversion_Solver_Synchronizer
 {
 public:
     Mutex();
