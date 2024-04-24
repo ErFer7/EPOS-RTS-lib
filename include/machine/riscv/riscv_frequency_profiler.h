@@ -1,64 +1,62 @@
-#define __frequency_profiler__
+// EPOS RISC-V Frequency Profiler Declarations
 
-#include <architecture.h>
-#include <system.h>
+#ifndef __riscv_frequency_profiler_h
+#define __riscv_frequency_profiler_h
+
+#include <architecture/cpu.h>
 #include <machine/machine.h>
 #include <machine/timer.h>
+#include <machine/frequency_profiler.h>
 
 __BEGIN_SYS
 
 static OStream kout;
 
-class Frequency_Profiler
+class Frequency_Profiler : protected Frequency_Profiler_Common
 {
+    friend class IC;
+
 public:
-    Frequency_Profiler() {
-        _initial_time = 0;
-        _diff_time_sum = 0;
-        _measurements = 0;
-        _profiler = this;
-    }
+    Frequency_Profiler();
 
-    ~Frequency_Profiler() {}
+    static void profile();
+    static void analyse_profiled_data();
 
-    static void measure_initial_time() {
+protected:
+    inline static void measure_initial_time() {
         if (!_profiler)
             return;
 
-        _profiler->_initial_time = Timer::mtime();
-    }
-
-    static void measure_final_time() {
-        if (!_profiler)
-            return;
-
-        _profiler->_diff_time_sum += Timer::mtime() - _profiler->_initial_time;
-        _profiler->_measurements++;
-    }
-
-    void profile() {
-        CPU::int_enable();
-        for (int i = 0; i < 10000000; i++);
-        CPU::int_disabled();
-
-        float average_diff_time = static_cast<float>(_diff_time_sum) / static_cast<float>(_measurements);
-        float interruption_time_portion = (average_diff_time / static_cast<float>((Traits<Timer>::CLOCK / Traits<Timer>::FREQUENCY))) * 100.0f;
-
-        if (interruption_time_portion >= 5.0f) {
-            kout << "Error" << endl;
-        } else if (interruption_time_portion >= 2.0f) {
-            kout << "Warning" << endl;
-        } else {
-            kout << "Info" << endl;
+        if (_profiler->_timing_error) {
+            db<Frequency_Profiler>(ERR) << "Frequency_Profiler:measure_initial_time: Timing error!" << endl;
+            Machine::panic();
         }
+
+        if (_profiler->_profiling)
+            _profiler->_initial_time = Timer::mtime();
+
+        _profiler->_timing_error = true;
     }
 
-    static Frequency_Profiler * instance() { return _profiler; }
+    inline static void measure_final_time() {
+        if (!_profiler)
+            return;
+
+        if (_profiler->_profiling)
+            _profiler->_diff_time_sum += Timer::mtime() - _profiler->_initial_time;
+
+        _profiler->_timing_error = false;
+    }
+
 private:
-    unsigned long _initial_time;
-    unsigned long _diff_time_sum;
-    unsigned long _measurements;
+    CPU::Reg64 _diff_time_sum;
+    CPU::Reg64 _initial_time;
+    CPU::Reg64 _execution_time;
+    bool _timing_error;
+    bool _profiling;
     static Frequency_Profiler * _profiler;
 };
 
 __END_SYS
+
+#endif

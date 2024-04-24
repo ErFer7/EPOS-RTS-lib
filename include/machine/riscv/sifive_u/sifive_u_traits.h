@@ -97,6 +97,16 @@ template <> struct Traits<Timer>: public Traits<Machine_Common>
     static const long FREQUENCY = 1000; // Hz
 };
 
+template <> struct Traits<Frequency_Profiler>: public Traits<Machine_Common>
+{
+    static const bool enabled = hysterically_debugged;
+
+    static const bool profiled = true;
+    static const unsigned long PROFILING_TIME = 1000000;
+    static const unsigned long PROFILING_WAIT_LOAD = 100;
+    static constexpr float INTERRUPTION_TIME_RATIO_THRESHOLD = 0.02f;
+};
+
 template <> struct Traits<UART>: public Traits<Machine_Common>
 {
     static const unsigned int UNITS = 2;

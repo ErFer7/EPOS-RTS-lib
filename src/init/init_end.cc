@@ -3,7 +3,6 @@
 #include <architecture.h>
 #include <system.h>
 #include <process.h>
-#include <machine/riscv/riscv_frequency_profiler.h>
 
 __BEGIN_SYS
 
@@ -24,9 +23,6 @@ public:
 
         if(Memory_Map::BOOT_STACK != Memory_Map::NOT_USED)
             MMU::free(Memory_Map::BOOT_STACK, MMU::pages(Traits<Machine>::STACK_SIZE));
-
-        Frequency_Profiler frequency_Profiler;
-        frequency_Profiler.profile();
 
         db<Init>(INF) << "INIT ends here!" << endl;
 

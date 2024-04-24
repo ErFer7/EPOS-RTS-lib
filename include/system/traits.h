@@ -81,6 +81,9 @@ class GEM;
 class IEEE802_15_4_NIC;
 class Ethernet_NIC;
 
+// Machine Specific Profiler
+class Frequency_Profiler;
+
 // Transducer Mediators (i.e. sensors and actuators)
 class Transducers;
 class Dummy_Transducer;
@@ -134,7 +137,6 @@ class Clock;
 class Chronometer;
 class Alarm;
 class Delay;
-class Frequency_Profiler;
 
 template<typename T> class Clerk;
 class Monitor;

@@ -5,7 +5,7 @@
 #include <machine/ic.h>
 #include <machine/timer.h>
 #include <process.h>
-#include <machine/riscv/riscv_frequency_profiler.h>
+#include <machine/frequency_profiler.h>
 
 extern "C" { static void print_context(bool push); }
 
@@ -19,6 +19,9 @@ void IC::entry()
     // Save context into the stack
     CPU::Context::push(true);
 
+    if(Traits<Frequency_Profiler>::profiled)
+        Frequency_Profiler::measure_initial_time();
+
     if(Traits<IC>::hysterically_debugged)
         print_context(true);
 
@@ -27,6 +30,9 @@ void IC::entry()
     if(Traits<IC>::hysterically_debugged)
         print_context(false);
 
+    if(Traits<Frequency_Profiler>::profiled)
+        Frequency_Profiler::measure_final_time();
+
     // Restore context from the stack
     CPU::Context::pop(true);
     CPU::iret();
@@ -34,7 +40,6 @@ void IC::entry()
 
 void IC::dispatch()
 {
-    Frequency_Profiler::measure_initial_time();
     Interrupt_Id id = int_id();
 
     if((id != INT_SYS_TIMER) || Traits<IC>::hysterically_debugged)
@@ -49,7 +54,6 @@ void IC::dispatch()
 
     _int_vector[id](id);
 
-    Frequency_Profiler::measure_final_time();
     if(id >= EXCS)
         CPU::fr(0); // tell CPU::Context::pop(true) not to increment PC since it is automatically incremented for hardware interrupts
 }

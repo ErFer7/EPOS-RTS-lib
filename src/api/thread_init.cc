@@ -4,6 +4,7 @@
 #include <machine/ic.h>
 #include <system.h>
 #include <process.h>
+#include <machine/frequency_profiler.h>
 
 __BEGIN_SYS
 
@@ -35,8 +36,14 @@ void Thread::init()
     if(Criterion::timed)
         _timer = new (SYSTEM) Scheduler_Timer(QUANTUM, time_slicer);
 
+    if (Traits<Frequency_Profiler>::profiled)
+        Frequency_Profiler::profile();
+
     // No more interrupts until we reach init_end
     CPU::int_disable();
+
+    if (Traits<Frequency_Profiler>::profiled)
+        Frequency_Profiler::analyse_profiled_data();
 
     // Transition from CPU-based locking to thread-based locking
     _not_booting = true;
