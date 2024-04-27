@@ -670,9 +670,6 @@ void _entry() // machine mode
     CPU::mstatusc(CPU::MIE);                            // disable interrupts (they will be reenabled at Init_End)
 
     if (Traits<Machine>::supervisor) {
-        // It's important to remember that by using the machine mode, the CPU::id() will always return 0. This means
-        // that mtimecmp will return the value mapped for CPU 0. This should probably be considered for a multicore
-        // implementation
         CPU::tp(CPU::mhartid() - 1);                        // tp will be CPU::id() for supervisor mode; we won't count core 0, which is an heterogeneous E51
     }
 
@@ -681,33 +678,33 @@ void _entry() // machine mode
     Machine::clear_bss();
 
     if (Traits<Machine>::supervisor) {
-        // If we are using the machine mode, we won't need to setup int_m2s() and also won't need to delegate interruptions
+        // If we are using the machine mode, we won't need to setup int_m2s() and also won't need to delegate
+        // interruptions. The interruptions will also not be enabled here, since they will be enabled after
+        // the interruption handler is set up.
+
         CPU::mtvec(CPU::INT_DIRECT, Memory_Map::INT_M2S);   // setup a machine mode interrupt handler to forward timer interrupts (which cannot be delegated via mideleg)
         CPU::mideleg(CPU::SSI | CPU::STI | CPU::SEI);       // delegate supervisor interrupts to supervisor mode
         CPU::medeleg(0xf1ff);                               // delegate all exceptions to supervisor mode but ecalls
-
-        // TODO: Comment
         CPU::mie(CPU::MSI | CPU::MTI | CPU::MEI);           // enable interrupt generation by at machine level before going into supervisor mode
         CLINT::mtimecmp(-1ULL);                             // configure MTIMECMP so it won't trigger a timer interrupt before we can setup_m2s()
-
-        // TODO: Comment
         CPU::mstatus(CPU::MPP_S | CPU::MPIE | CPU::MXR);    // prepare jump into supervisor mode at MRET with interrupts enabled at machine level
         CPU::mstatusc(CPU::SIE);                            // disable interrupts (they will be reenabled at Init_End)
         CPU::sstatuss(CPU::SUM);                            // allows User Memory access in supervisor mode
     } else {
-        // TODO: Comment
-        CPU::mstatus(CPU::MPP_M);
+        CPU::mstatus(CPU::MPP_M | CPU::MXR);  // Stays in machine mode (CPU::MPIE is not set this time because we didn't enable interruptions)
     }
 
     CPU::pmpcfg0(0b11111); 				// configure PMP region 0 as (L=unlocked [0], [00], A = NAPOT [11], X [1], W [1], R [1])
     CPU::pmpaddr0((1ULL << MMU::LA_BITS) - 1);          // comprising the whole memory space
 
     CPU::mepc(CPU::Reg(&_setup));                       // entry = _setup
-    // TODO: Comment
-    CPU::mret();                                        // enter supervisor mode at setup (mepc) with interrupts enabled (mstatus.mpie = true)
+
+    // If the supervisor mode is enabled, it will enter supervisor mode at setup (mepc) with interrupts enabled (mstatus.mpie = true).
+    // otherwise, it will stay in machine mode and will run the setup with interrupts disabled.
+    CPU::mret();
 }
 
-void _setup() // supervisor mode
+void _setup()
 {
     kerr << endl;
     kout << endl;

@@ -21,6 +21,8 @@ Frequency_Profiler::Frequency_Profiler() {
 }
 
 void Frequency_Profiler::profile() {
+    assert(CPU::int_enabled());
+
     if (!_profiler)
         return;
 
@@ -39,6 +41,8 @@ void Frequency_Profiler::profile() {
 }
 
 void Frequency_Profiler::analyse_profiled_data() {
+    assert(CPU::int_disabled());
+
     if (!_profiler)
         return;
 
@@ -55,6 +59,8 @@ void Frequency_Profiler::analyse_profiled_data() {
         db<Frequency_Profiler>(WRN) << "Frequency_Profiler:analyse_profiled_data: The current frequency of "
         << Traits<Timer>::FREQUENCY << " Hz is too high and it can cause errors during execution. "
         << "The recommended frequency for your machine is: " << recommended_frequency << " Hz." << endl;
+    } else if (interruption_time_ratio == 0.0f) {
+        db<Frequency_Profiler>(WRN) << "Frequency_Profiler:analyse_profiled_data: No interruptions detected!" << endl;
     } else {
         db<Frequency_Profiler>(INF) << "Frequency_Profiler:analyse_profiled_data: The current frequency results "
         << "in an interruption time ratio of " << interruption_time_ratio * 100.0f << "%." << endl;
