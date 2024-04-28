@@ -57,7 +57,7 @@ void heavy_work(char c, Periodic_Thread *t) {
     }
 }
 
-void align_heavy_work(char c, Periodic_Thread *t) {
+void nested_heavy_work(char c, Periodic_Thread *t) {
 
     cout << "Thread " << c << " entered the heavy work" << endl;
 
@@ -68,7 +68,7 @@ void align_heavy_work(char c, Periodic_Thread *t) {
 
     critical_section_second_test_second_mutex.lock();
 
-    cout << c << " got the lock and entered align heavy work" << endl;
+    cout << c << " got the lock and entered nested heavy work" << endl;
 
     while (time < 500) {
         if (last_cout + 50 < time) {
@@ -81,7 +81,7 @@ void align_heavy_work(char c, Periodic_Thread *t) {
 
     }
 
-    cout << "Thread " << c << " will release the lock and finish the align heavy work" << endl;
+    cout << "Thread " << c << " will release the lock and finish the nested heavy work" << endl;
 
     critical_section_second_test_second_mutex.unlock();
 
@@ -100,7 +100,7 @@ void heavy_work_with_sem(char c, Periodic_Thread *t) {
 
     critical_section_third_test_second_semaphore->p();
 
-    cout << c << " got the semaphore and entered align heavy work" << endl;
+    cout << c << " got the semaphore and entered nested heavy work" << endl;
 
     while (time < 500) {
         if (last_cout + 50 < time) {
@@ -113,7 +113,7 @@ void heavy_work_with_sem(char c, Periodic_Thread *t) {
 
     }
 
-    cout << "Thread " << c << " will release the semaphore and finish the align heavy work" << endl;
+    cout << "Thread " << c << " will release the semaphore and finish the nested heavy work" << endl;
 
     critical_section_third_test_second_semaphore->v();
 
@@ -139,7 +139,7 @@ void second_task(char c, Periodic_Thread* this_thread) {
     critical_section_second_test_first_mutex.lock();
 
     cout << "Thread " << c << " got the lock" << endl;
-    align_heavy_work(c, this_thread);
+    nested_heavy_work(c, this_thread);
 
     cout << "Thread " << c << " will release the lock and finish the heavy work" << endl;
     critical_section_second_test_first_mutex.unlock();
@@ -255,7 +255,7 @@ int main() {
     Delay pick_lock_first(100000);
 
     thread_h_first_test = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::HIGH), &high_priority_first);
-    // Normal - 1 because if it's == NORMAL the calculus is made by Criterion -> LLF()
+    // Normal - 1 because if it's == NORMAL the calculation is made by Criterion -> LLF()
     thread_m_first_test = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0 , iterations, Thread:: READY, Thread::NORMAL - 1), &medium_priority_first);
 
     int status_l_first = thread_l_first_test->join();
@@ -263,12 +263,13 @@ int main() {
     int status_m_first = thread_m_first_test->join();
 
     cout << " Threads finished, s[L] = " << char(status_l_first) << " s[H] = " << char(status_h_first)  << " s[M]= "<< char(status_m_first) << endl;
+    cout << "\n\n\n";
 
     /*
 
-    Second test: Align Mutexes
+    Second test: Nested Mutexes
 
-    How the problem with Align Mutexes occurs:
+    How the problem with nested Mutexes occurs:
 
     1. Thread L take a lock, but inside the critical zone there's another (or several others) lock(s), which L takes as well;
     2. Thread L's priority is raised by one of the algorithms (PCP or Inheritance);
@@ -281,7 +282,7 @@ int main() {
 
     */
 
-    cout << "Priority Inversion Test - Align Mutexes" << endl;
+    cout << "Priority Inversion Test - Nested Mutexes" << endl;
 
     // Threads
 
@@ -296,14 +297,15 @@ int main() {
     int status_m_second = thread_m_second_test->join();
 
     cout << " Threads finished, s[L] = " << char(status_l_second) << " s[H] = " << char(status_h_second)  << " s[M]= "<< char(status_m_second) << endl;
+    cout << "\n\n\n";
 
     /* 
 
-    Third test: Align Binary Semaphores
+    Third test: Nested Binary Semaphores
 
     ** Priority inversion in the case of non-binary semaphores is a really complex issue **
 
-    How the problem with Align Binary Semaphores occurs:
+    How the problem with nested Binary Semaphores occurs:
 
     1. Thread L takes a semaphore, but inside the critical zone there's another (or several others) semaphore(s), which L takes as well;
     2. Thread L's priority is raised by one of the algorithms (PCP or Inheritance);
@@ -316,7 +318,7 @@ int main() {
 
     */
 
-    cout << "Priority Inversion Test - Align Binary Semaphores" << endl;
+    cout << "Priority Inversion Test - Nested Binary Semaphores" << endl;
 
     // Semaphores
 
@@ -336,7 +338,7 @@ int main() {
     int status_m_third = thread_m_third_test->join();
 
     cout << " Threads finished, s[L] = " << char(status_l_third) << " s[H] = " << char(status_h_third)  << " s[M]= "<< char(status_m_third) << endl;
-
+    cout << "\n\n\n";
 
     // Finishing tests...
 

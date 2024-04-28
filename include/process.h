@@ -19,7 +19,7 @@ class Thread
     friend class Init_System;           // for init() on CPU != 0
     friend class Scheduler<Thread>;     // for link()
     friend class Synchronizer_Common;   // for lock() and sleep()
-    friend class Priority_Inversion_Solver_Synchronizer;
+    friend class Priority_Inversion_Solver;
     friend class Alarm;                 // for lock()
     friend class System;                // for init()
     friend class IC;                    // for link() for priority ceiling
@@ -58,8 +58,8 @@ public:
     // Thread Queue
     typedef Ordered_Queue<Thread, Criterion, Scheduler<Thread>::Element> Queue;
 
-    // Thread Priority_Inversion_Solver_Synchronizer list
-    typedef List<Priority_Inversion_Solver_Synchronizer> PIS_List;
+    // Thread Priority_Inversion_Solver list
+    typedef List<Priority_Inversion_Solver> PIS_List;
 
     // Thread Configuration
     struct Configuration {

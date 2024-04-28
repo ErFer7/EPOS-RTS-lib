@@ -127,7 +127,7 @@ class Address_Space;
 class Segment;
 
 class Synchronizer;
-class Priority_Inversion_Solver_Synchronizer;
+class Priority_Inversion_Solver;
 class Mutex;
 class Semaphore;
 class Condition;

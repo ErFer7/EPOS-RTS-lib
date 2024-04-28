@@ -105,7 +105,7 @@ template <> struct Traits<Frequency_Profiler>: public Traits<Machine_Common>
     static constexpr float INTERRUPTION_TIME_RATIO_THRESHOLD = 0.02f;
 };
 
-template <> struct Traits<Priority_Inversion_Solver_Synchronizer>: public Traits<Machine_Common>
+template <> struct Traits<Priority_Inversion_Solver>: public Traits<Machine_Common>
 {
     static const bool priority_ceiling = false;
 };
