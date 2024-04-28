@@ -4,9 +4,7 @@
 
 __BEGIN_SYS
 
-static OStream kout;
-
-Semaphore::Semaphore(long v) : _value(v)
+Semaphore::Semaphore(long v, bool solve_priority_inversion) : _value(v), _solve_priority_inversion(solve_priority_inversion)
 {
     db<Synchronizer>(TRC) << "Semaphore(value=" << _value << ") => " << this << endl;
 }
@@ -24,11 +22,12 @@ void Semaphore::p()
 
     begin_atomic();
     if(fdec(_value) < 1) {
-        _pis.blocked();
+        if (_solve_priority_inversion)
+            _pis.blocked();
         sleep();
     }
 
-    if (_value == 0)
+    if (_solve_priority_inversion && _value == 0)
         _pis.enter_critical_section();
     end_atomic();
 }
@@ -40,8 +39,9 @@ void Semaphore::v()
 
     begin_atomic();
     if(finc(_value) < 0) {
-        _pis.exit_critical_section();
         wakeup();
+        if (_solve_priority_inversion)
+            _pis.exit_critical_section();
     }
     end_atomic();
 }

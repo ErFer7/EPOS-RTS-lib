@@ -691,7 +691,7 @@ void _entry() // machine mode
         CPU::mstatusc(CPU::SIE);                            // disable interrupts (they will be reenabled at Init_End)
         CPU::sstatuss(CPU::SUM);                            // allows User Memory access in supervisor mode
     } else {
-        CPU::mstatus(CPU::MPP_M | CPU::MXR);  // Stays in machine mode (CPU::MPIE is not set this time because we didn't enable interruptions)
+        CPU::mstatus(CPU::MPP_M);  // Stays in machine mode (CPU::MPIE is not set this time because we didn't enable interruptions)
     }
 
     CPU::pmpcfg0(0b11111); 				// configure PMP region 0 as (L=unlocked [0], [00], A = NAPOT [11], X [1], W [1], R [1])

@@ -3,6 +3,7 @@
 #include <machine.h>
 #include <system.h>
 #include <process.h>
+#include <priority_inversion_solver.h>
 
 __BEGIN_SYS
 
@@ -19,6 +20,7 @@ void Thread::constructor_prologue(unsigned int stack_size)
     _scheduler.insert(this);
 
     _stack = new (SYSTEM) char[stack_size];
+    _synchronizers_in_use = new PIS_List();
 }
 
 
@@ -86,6 +88,7 @@ Thread::~Thread()
 
     unlock();
 
+    delete _synchronizers_in_use;
     delete _stack;
 }
 

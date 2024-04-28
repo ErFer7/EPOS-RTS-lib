@@ -16,21 +16,24 @@ class Priority_Inversion_Solver
 
 public:
     typedef List<Priority_Inversion_Solver> PIS_List;
-
-protected:
-    typedef Thread::Criterion Criterion;
     typedef PIS_List::Element Element;
 
 protected:
+    typedef Thread::Criterion Criterion;
+
+protected:
     Priority_Inversion_Solver(): _critical_section_thread(nullptr), _link(this) {}
-    ~Priority_Inversion_Solver() {}
+    ~Priority_Inversion_Solver() { exit_critical_section(); }
 
     Criterion critical_section_priority() { return _critical_section_priority; }
     void critical_section_priority(Criterion p) { _critical_section_priority = p; }
 
     void enter_critical_section() {
-        if (_critical_section_thread)  // TODO: Ver
-            _critical_section_thread->synchronizers_in_use()->remove(&_link);
+        if (Thread::self()->priority() == Thread::MAIN || Thread::self()->priority() == Thread::IDLE)
+            return;
+
+        if (_critical_section_thread == Thread::self())  // TODO: Ver
+            _critical_section_thread->synchronizers_in_use()->remove(this);
 
         _critical_section_thread = Thread::self();
         PIS_List * pis_list = _critical_section_thread->synchronizers_in_use();
@@ -43,11 +46,11 @@ protected:
     }
 
     void exit_critical_section() {
-        if (!_critical_section_thread)
+        if (!_critical_section_thread || Thread::self()->priority() == Thread::MAIN || Thread::self()->priority() == Thread::IDLE)
             return;
 
         PIS_List * pis_list = _critical_section_thread->synchronizers_in_use();
-        pis_list->remove(&_link);
+        pis_list->remove(this);
 
         if (pis_list->empty())
             _critical_section_thread->non_locked_priority(_critical_section_thread->original_priority());
@@ -58,7 +61,7 @@ protected:
     }
 
     void blocked() {
-        if (!_critical_section_thread)
+        if (!_critical_section_thread || Thread::self()->priority() == Thread::MAIN || Thread::self()->priority() == Thread::IDLE)
             return;
 
         Thread * blocked = Thread::self();
