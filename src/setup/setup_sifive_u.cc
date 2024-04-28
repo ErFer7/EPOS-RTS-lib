@@ -119,7 +119,7 @@ Setup::Setup()
     // Print basic facts about this EPOS instance
     say_hi();
 
-    // TODO: Comment
+    // Memory paging is implemented only for the supervisor mode
     if (Traits<Machine>::supervisor) {
         // Configure a flat memory model for the single task in the system
         setup_flat_paging();
