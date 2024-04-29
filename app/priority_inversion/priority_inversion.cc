@@ -13,7 +13,6 @@ OStream cout;
 Chronometer chrono;
 Periodic_Thread * threads[3];
 
-// Generic test arguments
 struct Test_Args
 {
     int test;
@@ -23,7 +22,36 @@ struct Test_Args
     int thread_index; 
 };
 
-// Job
+void work(char c, Periodic_Thread *thread);
+void simple_lock(char c, Periodic_Thread *thread, Mutex *mutex);
+void nested_lock(char c, Periodic_Thread *thread, Mutex *mutex, Mutex *nested_mutex);
+void doubly_nested_lock(char c, Periodic_Thread *thread, Mutex *mutex, Mutex *nested_mutex, Mutex *doubly_nested_mutex);
+void doubly_nested_non_well_formed_lock(char c, Periodic_Thread * thread, Mutex * mutex, Mutex *nested_mutex, Mutex *doubly_nested_mutex);
+
+int test_task(Test_Args *args);
+
+void test_simple_case();
+void test_low_and_high_case();
+void test_classical_case();
+void test_nested_case();
+void test_doubly_nested_case();
+void test_doubly_nested_non_well_formed_case();
+
+int main() {
+    chrono.start();
+
+    test_simple_case();
+    test_low_and_high_case();
+    test_classical_case();
+    test_nested_case();
+    test_doubly_nested_case();
+    test_doubly_nested_non_well_formed_case();
+
+    chrono.stop();
+
+    return 0;
+}
+
 void work(char c, Periodic_Thread *thread) {
     cout << "Thread [" << c << "] " << "got the job" << endl;
 
@@ -44,125 +72,82 @@ void work(char c, Periodic_Thread *thread) {
 }
 
 void simple_lock(char c, Periodic_Thread * thread, Mutex * mutex) {
-    cout << "Thread [" << c << "] will try to the take lock, priority: " << thread->priority() << endl;
+    cout << "Thread [" << c << "] will try to take the lock, priority: " << thread->priority() << endl;
     mutex->lock();
-
     cout << "Thread [" << c << "] got the lock, priority: " << thread->priority() << endl;
+
     work(c, thread);
 
     cout << "Thread [" << c << "] will release the lock, priority: " << thread->priority() << endl;
     mutex->unlock();
+    cout << "Thread [" << c << "] released the lock, priority: " << thread->priority() << endl;
 }
 
-// void nested_heavy_work(char c, Periodic_Thread *t) {
+void nested_lock(char c, Periodic_Thread * thread, Mutex * mutex, Mutex *nested_mutex) {
+    cout << "Thread [" << c << "] will try to take the lock, priority: " << thread->priority() << endl;
+    mutex->lock();
+    cout << "Thread [" << c << "] got the lock, priority: " << thread->priority() << endl;
+    cout << "Thread [" << c << "] will try to take the nested lock, priority: " << thread->priority() << endl;
+    nested_mutex->lock();
+    cout << "Thread [" << c << "] got the nested lock, priority: " << thread->priority() << endl;
 
-//     cout << "Thread " << c << " entered the heavy work" << endl;
+    work(c, thread);
 
-//     Microsecond elapsed = chrono.read() / 1000;
-//     int time = 0;
-//     int first_elapsed = elapsed;
-//     int last_cout = 0;
+    cout << "Thread [" << c << "] will release the nested lock, priority: " << thread->priority() << endl;
+    nested_mutex->unlock();
+    cout << "Thread [" << c << "] released the nested lock, priority: " << thread->priority() << endl;
+    cout << "Thread [" << c << "] will release the lock, priority: " << thread->priority() << endl;
+    mutex->unlock();
+    cout << "Thread [" << c << "] released the lock, priority: " << thread->priority() << endl;
+}
 
-//     critical_section_second_test_second_mutex.lock();
+void doubly_nested_lock(char c, Periodic_Thread * thread, Mutex * mutex, Mutex *nested_mutex, Mutex *doubly_nested_mutex) {
+    cout << "Thread [" << c << "] will try to take the lock, priority: " << thread->priority() << endl;
+    mutex->lock();
+    cout << "Thread [" << c << "] got the lock, priority: " << thread->priority() << endl;
+    cout << "Thread [" << c << "] will try to take the nested lock, priority: " << thread->priority() << endl;
+    nested_mutex->lock();
+    cout << "Thread [" << c << "] got the nested lock, priority: " << thread->priority() << endl;
+    cout << "Thread [" << c << "] will try to take the doubly nested lock, priority: " << thread->priority() << endl;
+    doubly_nested_mutex->lock();
+    cout << "Thread [" << c << "] got the doubly nested lock, priority: " << thread->priority() << endl;
 
-//     cout << c << " got the lock and entered nested heavy work" << endl;
+    work(c, thread);
 
-//     while (time < 500) {
-//         if (last_cout + 50 < time) {
-//             cout << c << " is working... time elapsed: " << elapsed << " priority: " << t->priority() << endl;;
-//             last_cout = time;
-//         }
+    cout << "Thread [" << c << "] will release the doubly nested lock, priority: " << thread->priority() << endl;
+    doubly_nested_mutex->unlock();
+    cout << "Thread [" << c << "] released the doubly nested lock, priority: " << thread->priority() << endl;
+    cout << "Thread [" << c << "] will release the nested lock, priority: " << thread->priority() << endl;
+    nested_mutex->unlock();
+    cout << "Thread [" << c << "] released the nested lock, priority: " << thread->priority() << endl;
+    cout << "Thread [" << c << "] will release the lock, priority: " << thread->priority() << endl;
+    mutex->unlock();
+    cout << "Thread [" << c << "] released the lock, priority: " << thread->priority() << endl;
+}
 
-//         elapsed = chrono.read() / 1000;
-//         time = elapsed - first_elapsed;
+void doubly_nested_non_well_formed_lock(char c, Periodic_Thread * thread, Mutex * mutex, Mutex *nested_mutex, Mutex *doubly_nested_mutex) {
+    cout << "Thread [" << c << "] will try to take the lock, priority: " << thread->priority() << endl;
+    mutex->lock();
+    cout << "Thread [" << c << "] got the lock, priority: " << thread->priority() << endl;
+    cout << "Thread [" << c << "] will try to take the nested lock, priority: " << thread->priority() << endl;
+    nested_mutex->lock();
+    cout << "Thread [" << c << "] got the nested lock, priority: " << thread->priority() << endl;
+    cout << "Thread [" << c << "] will try to take the doubly nested lock, priority: " << thread->priority() << endl;
+    doubly_nested_mutex->lock();
+    cout << "Thread [" << c << "] got the doubly nested lock, priority: " << thread->priority() << endl;
 
-//     }
+    work(c, thread);
 
-//     cout << "Thread " << c << " will release the lock and finish the nested heavy work" << endl;
-
-//     critical_section_second_test_second_mutex.unlock();
-
-//     Delay test_preempt(1000000);
-
-// }
-
-// void heavy_work_with_sem(char c, Periodic_Thread *t) {
-
-//     cout << "Thread " << c << " entered the heavy work" << endl;
-
-//     Microsecond elapsed = chrono.read() / 1000;
-//     int time = 0;
-//     int first_elapsed = elapsed;
-//     int last_cout = 0;
-
-//     critical_section_third_test_second_semaphore->p();
-
-//     cout << c << " got the semaphore and entered nested heavy work" << endl;
-
-//     while (time < 500) {
-//         if (last_cout + 50 < time) {
-//             cout << c << " is working... time elapsed: " << elapsed << " priority: " << t->priority() << endl;;
-//             last_cout = time;
-//         }
-
-//         elapsed = chrono.read() / 1000;
-//         time = elapsed - first_elapsed;
-
-//     }
-
-//     cout << "Thread " << c << " will release the semaphore and finish the nested heavy work" << endl;
-
-//     critical_section_third_test_second_semaphore->v();
-
-//     Delay test_preempt(1000000);
-
-// }
-
-// // ---
-
-// int low_priority_second() {
-//     do {
-//         second_task('L', thread_l_second_test);
-//     } while(Periodic_Thread::wait_next());
-//     return 'L';
-// }
-
-// int medium_priority_second() {
-//     do {
-//         second_task('M', thread_m_second_test);
-//     } while(Periodic_Thread::wait_next());
-//     return 'M';
-// }
-
-// int high_priority_second() {
-//     do {
-//         second_task('H', thread_h_second_test);
-//     } while(Periodic_Thread::wait_next());
-//     return 'H';
-// }
-
-// // ---
-
-// int low_priority_third() {
-//     do {
-//         third_task('L', thread_l_third_test);
-//     } while(Periodic_Thread::wait_next());
-//     return 'L';
-// }
-
-// int medium_priority_third() {
-//     do {
-//         third_task('M', thread_m_third_test);
-//     } while(Periodic_Thread::wait_next());
-//     return 'M';
-// }
-
-// int high_priority_third() {
-//     do {
-//         third_task('H', thread_h_third_test);
-//     } while(Periodic_Thread::wait_next());
-//     return 'H';
-// }
+    cout << "Thread [" << c << "] will release the nested lock, priority: " << thread->priority() << endl;
+    nested_mutex->unlock();
+    cout << "Thread [" << c << "] released the nested lock, priority: " << thread->priority() << endl;
+    cout << "Thread [" << c << "] will release the lock, priority: " << thread->priority() << endl;
+    mutex->unlock();
+    cout << "Thread [" << c << "] released the lock, priority: " << thread->priority() << endl;
+    cout << "Thread [" << c << "] will release the doubly nested lock, priority: " << thread->priority() << endl;
+    doubly_nested_mutex->unlock();
+    cout << "Thread [" << c << "] released the doubly nested lock, priority: " << thread->priority() << endl;
+}
 
 int test_task(Test_Args *args) {
     do {
@@ -178,6 +163,24 @@ int test_task(Test_Args *args) {
             else
                 work(args->c, threads[args->thread_index]);
             break;
+        case 3:
+            if (args->c == 'L' || args->c == 'H')
+                nested_lock(args->c, threads[args->thread_index], args->mutex[0], args->mutex[1]);
+            else
+                work(args->c, threads[args->thread_index]);
+            break;
+        case 4:
+            if (args->c == 'L' || args->c == 'H')
+                doubly_nested_lock(args->c, threads[args->thread_index], args->mutex[0], args->mutex[1], args->mutex[2]);
+            else
+                work(args->c, threads[args->thread_index]);
+            break;
+        case 5:
+            if (args->c == 'L' || args->c == 'H')
+                doubly_nested_non_well_formed_lock(args->c, threads[args->thread_index], args->mutex[0], args->mutex[1], args->mutex[2]);
+            else
+                work(args->c, threads[args->thread_index]);
+            break;
         default:
             return '?';
         }
@@ -190,10 +193,12 @@ void test_simple_case() {
     cout << "Test case 0: 1 thread [normal] and 1 mutex." << endl;
     cout << "Expected: The thread should finish its job without any issues." << endl;
 
+    const int test = 0;
+
     Mutex mutex;
 
     Test_Args args;
-    args.test = 0;
+    args.test = test;
     args.c = 'M';
     args.mutex[0] = &mutex;
     args.thread_index = 0;
@@ -212,21 +217,23 @@ void test_low_and_high_case() {
     cout << "Test case 1: 2 threads [low and high] and 1 mutex." << endl;
     cout << "Expected: The low priority thread should inherit the priority of the high priority thread." << endl;
 
+    const int test = 1;
+
     Mutex mutex;
 
     Test_Args args_l;
-    args_l.test = 1;
+    args_l.test = test;
     args_l.c = 'L';
     args_l.mutex[0] = &mutex;
     args_l.thread_index = 0;
 
     Test_Args args_h;
-    args_h.test = 1;
+    args_h.test = test;
     args_h.c = 'H';
     args_h.mutex[0] = &mutex;
     args_h.thread_index = 1;
 
-    threads[0] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::LOW), &test_task, &args_l);
+    threads[0] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations + 1, Thread::READY, Thread::LOW), &test_task, &args_l);
     Delay pick_lock_first(100000);
     threads[1] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::HIGH), &test_task, &args_h);
 
@@ -240,153 +247,190 @@ void test_low_and_high_case() {
     cout << "\n\n\n";
 }
 
-// /* 
-// First test: Classic  
+void test_classical_case() {
+    cout << "Test case 2: 3 threads [low, medium and high] and 1 mutex." << endl;
+    cout << "Expected: The low priority thread should inherit the priority of the high priority thread. The medium"
+         << "thread should not cause priority inversions." << endl;
 
-// How the inversion priority occurs:
+    const int test = 2;
 
-// 1. Thread L should start, acquire the lock and start the heavy work;
-// 2. Thread H can't start the work because is waiting for lock;
-// 3. Thread M should preempt L and delay the lock release from H;
-// 4. So Thread M has "higher priority" than H without being in the critical section.
+    Mutex mutex;
 
-// How to pass the test:
+    Test_Args args_l;
+    args_l.test = test;
+    args_l.c = 'L';
+    args_l.mutex[0] = &mutex;
+    args_l.thread_index = 0;
 
-// 1. Thread L starts and finish the heavy work and it's not preempted;
-// 2. Thread H waits until L releases the lock, then acquire it;
-// 3. Thread M waits until H releases the lock.
+    Test_Args args_m;
+    args_m.test = test;
+    args_m.c = 'M';
+    args_m.thread_index = 2;
 
-// */
-// void test_classical_case() {
-//     cout << "Test case 2: 3 threads [low, medium and high] and 1 mutex." << endl;
-//     cout << "Expected: The low priority thread should inherit the priority of the high priority thread. The medium"
-//          << "thread should not cause priority inversions." << endl;
+    Test_Args args_h;
+    args_h.test = test;
+    args_h.c = 'H';
+    args_h.mutex[0] = &mutex;
+    args_h.thread_index = 1;
 
-//     Mutex mutex;
+    threads[0] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations + 2, Thread::READY, Thread::LOW), &test_task, &args_l);
+    Delay pick_lock_first(100000);
+    threads[1] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::HIGH), &test_task, &args_h);
+    threads[2] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::NORMAL - 1), &test_task, &args_m);
 
-//     Test_Args args_l;
-//     args_l.test = 2;
-//     args_l.c = 'L';
-//     args_l.mutex[0] = &mutex;
-//     args_l.thread_index = 0;
+    int status_l = threads[0]->join();
+    int status_m = threads[2]->join();
+    int status_h = threads[1]->join();
 
-//     Test_Args args_m;
-//     args_m.test = 2;
-//     args_m.c = 'M';
-//     args_m.mutex[0] = &mutex;
-//     args_m.thread_index = 1;
+    delete threads[0];
+    delete threads[1];
+    delete threads[2];
 
-//     Test_Args args_h;
-//     args_h.test = 2;
-//     args_h.c = 'H';
-//     args_h.mutex[0] = &mutex;
-//     args_h.thread_index = 2;
+    cout << "Threads finished with the status: [L] = " << char(status_l) << ", [M] = " << char(status_m) << ", [H] = " << char(status_h) << endl;
+    cout << "\n\n\n";
+}
 
-//     threads[0] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::LOW), &test_task, args_l);
-//     Delay pick_lock_first(100000);
-//     threads[1] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::HIGH), &test_task, args_h);
-//     threads[2] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::NORMAL - 1), &test_task, args_m);
+void test_nested_case() {
+    cout << "Test case 3: 3 threads [low, medium and high] and 2 mutexes." << endl;
+    cout << "Expected: The low priority thread should inherit the priority of the high priority thread. The medium"
+         << "thread should not cause priority inversions. The priority must be handled correctly across nested mutexes" << endl;
 
-//     int status_l = threads[0]->join();
-//     int status_m = threads[1]->join();
-//     int status_h = threads[2]->join();
+    const int test = 3;
 
-//     delete threads[0];
-//     delete threads[1];
-//     delete threads[2];
+    Mutex mutex;
+    Mutex nested_mutex;
 
-//     cout << "Threads finished with the status: [L] = [" << char(status_l) << "], [M] = " << char(status_m) << ", [H] = " << char(status_h) << endl;
-//     cout << "\n\n\n";
-// }
+    Test_Args args_l;
+    args_l.test = test;
+    args_l.c = 'L';
+    args_l.mutex[0] = &mutex;
+    args_l.mutex[1] = &nested_mutex;
+    args_l.thread_index = 0;
 
-int main() {
-    chrono.start();
+    Test_Args args_m;
+    args_m.test = test;
+    args_m.c = 'M';
+    args_m.thread_index = 2;
 
-    test_simple_case();
-    test_low_and_high_case();
-    // test_classical_case();
+    Test_Args args_h;
+    args_h.test = test;
+    args_h.c = 'H';
+    args_h.mutex[0] = &mutex;
+    args_h.mutex[1] = &nested_mutex;
+    args_h.thread_index = 1;
 
-    /*
+    threads[0] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations + 3, Thread::READY, Thread::LOW), &test_task, &args_l);
+    Delay pick_lock_first(100000);
+    threads[1] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::HIGH), &test_task, &args_h);
+    threads[2] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::NORMAL - 1), &test_task, &args_m);
 
-    Second test: Nested Mutexes
+    int status_l = threads[0]->join();
+    int status_m = threads[2]->join();
+    int status_h = threads[1]->join();
 
-    How the problem with nested Mutexes occurs:
+    delete threads[0];
+    delete threads[1];
+    delete threads[2];
 
-    1. Thread L take a lock, but inside the critical zone there's another (or several others) lock(s), which L takes as well;
-    2. Thread L's priority is raised by one of the algorithms (PCP or Inheritance);
-    3. Thread L releases a lock and its priority returns to the original value;
-    4. A Thread with higher priority preempts L.
+    cout << "Threads finished with the status: [L] = " << char(status_l) << ", [M] = " << char(status_m) << ", [H] = " << char(status_h) << endl;
+    cout << "\n\n\n";
+}
 
-    How to pass the test:
+void test_doubly_nested_case() {
+    cout << "Test case 4: 3 threads [low, medium and high] and 3 mutexes." << endl;
+    cout << "Expected: The low priority thread should inherit the priority of the high priority thread. The medium"
+         << "thread should not cause priority inversions. The priority must be handled correctly across nested mutexes" << endl;
 
-    - If the priority of a Thread raises temporarily inside a critical zone, it returns to the original value only when this Thread exit the zone.
+    const int test = 4;
 
-    */
+    Mutex mutex;
+    Mutex nested_mutex;
+    Mutex doubly_nested_mutex;
 
-    // cout << "Priority Inversion Test - Nested Mutexes" << endl;
+    Test_Args args_l;
+    args_l.test = test;
+    args_l.c = 'L';
+    args_l.mutex[0] = &mutex;
+    args_l.mutex[1] = &nested_mutex;
+    args_l.mutex[2] = &doubly_nested_mutex;
+    args_l.thread_index = 0;
 
-    // // Threads
+    Test_Args args_m;
+    args_m.test = test;
+    args_m.c = 'M';
+    args_m.thread_index = 2;
 
-    // thread_l_second_test = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::LOW), &low_priority_second);
-    // Delay pick_lock_second(100000);
+    Test_Args args_h;
+    args_h.test = test;
+    args_h.c = 'H';
+    args_h.mutex[0] = &mutex;
+    args_h.mutex[1] = &nested_mutex;
+    args_h.mutex[2] = &doubly_nested_mutex;
+    args_h.thread_index = 1;
 
-    // thread_h_second_test = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::HIGH), &high_priority_second);
-    // thread_m_second_test = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0 , iterations, Thread:: READY, Thread::NORMAL - 1), &medium_priority_second);
+    threads[0] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations + 3, Thread::READY, Thread::LOW), &test_task, &args_l);
+    Delay pick_lock_first(100000);
+    threads[1] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::HIGH), &test_task, &args_h);
+    threads[2] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::NORMAL - 1), &test_task, &args_m);
 
-    // int status_l_second = thread_l_second_test->join();
-    // int status_h_second = thread_h_second_test->join();
-    // int status_m_second = thread_m_second_test->join();
+    int status_l = threads[0]->join();
+    int status_m = threads[2]->join();
+    int status_h = threads[1]->join();
 
-    // cout << " Threads finished, s[L] = " << char(status_l_second) << " s[H] = " << char(status_h_second)  << " s[M]= "<< char(status_m_second) << endl;
-    // cout << "\n\n\n";
+    delete threads[0];
+    delete threads[1];
+    delete threads[2];
 
-    /* 
+    cout << "Threads finished with the status: [L] = " << char(status_l) << ", [M] = " << char(status_m) << ", [H] = " << char(status_h) << endl;
+    cout << "\n\n\n";
+}
 
-    Third test: Nested Binary Semaphores
+void test_doubly_nested_non_well_formed_case() {
+    cout << "Test case 5: 3 threads [low, medium and high] and 3 mutexes." << endl;
+    cout << "Expected: The low priority thread should inherit the priority of the high priority thread. The medium"
+         << "thread should not cause priority inversions. The priority must be handled correctly across nested mutexes."
+         << "The order of unlocking is not well formed (La Lb Lc -> Ub Ua Uc)" << endl;
 
-    ** Priority inversion in the case of non-binary semaphores is a really complex issue **
+    const int test = 5;
 
-    How the problem with nested Binary Semaphores occurs:
+    Mutex mutex;
+    Mutex nested_mutex;
+    Mutex doubly_nested_mutex;
 
-    1. Thread L takes a semaphore, but inside the critical zone there's another (or several others) semaphore(s), which L takes as well;
-    2. Thread L's priority is raised by one of the algorithms (PCP or Inheritance);
-    3. Thread L releases a semaphore and its priority returns to the original value;
-    4. A Thread with higher priority preempts L.
+    Test_Args args_l;
+    args_l.test = test;
+    args_l.c = 'L';
+    args_l.mutex[0] = &mutex;
+    args_l.mutex[1] = &nested_mutex;
+    args_l.mutex[2] = &doubly_nested_mutex;
+    args_l.thread_index = 0;
 
-    How to pass the test:
+    Test_Args args_m;
+    args_m.test = test;
+    args_m.c = 'M';
+    args_m.thread_index = 2;
 
-    - If the priority of a Thread raises temporarily inside a critical zone, it returns to the original value only when this Thread exit the zone.
+    Test_Args args_h;
+    args_h.test = test;
+    args_h.c = 'H';
+    args_h.mutex[0] = &mutex;
+    args_h.mutex[1] = &nested_mutex;
+    args_h.mutex[2] = &doubly_nested_mutex;
+    args_h.thread_index = 1;
 
-    */
+    threads[0] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations + 3, Thread::READY, Thread::LOW), &test_task, &args_l);
+    Delay pick_lock_first(100000);
+    threads[1] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::HIGH), &test_task, &args_h);
+    threads[2] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::NORMAL - 1), &test_task, &args_m);
 
-    // cout << "Priority Inversion Test - Nested Binary Semaphores" << endl;
+    int status_l = threads[0]->join();
+    int status_m = threads[2]->join();
+    int status_h = threads[1]->join();
 
-    // // Semaphores
+    delete threads[0];
+    delete threads[1];
+    delete threads[2];
 
-    // critical_section_third_test_first_semaphore = new Semaphore;
-    // critical_section_third_test_second_semaphore = new Semaphore;
-
-    // // Threads
-
-    // thread_l_third_test = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::LOW), &low_priority_third);
-    // Delay pick_lock_third(100000);
-
-    // thread_h_third_test = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::HIGH), &high_priority_third);
-    // thread_m_third_test = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0 , iterations, Thread:: READY, Thread::NORMAL - 1), &medium_priority_third);
-
-    // int status_l_third = thread_l_third_test->join();
-    // int status_h_third = thread_h_third_test->join();
-    // int status_m_third = thread_m_third_test->join();
-
-    // cout << " Threads finished, s[L] = " << char(status_l_third) << " s[H] = " << char(status_h_third)  << " s[M]= "<< char(status_m_third) << endl;
-    // cout << "\n\n\n";
-
-    // // Finishing tests...
-
-    // delete critical_section_third_test_first_semaphore;
-    // delete critical_section_third_test_second_semaphore;
-
-    chrono.stop();
-
-    return 0;
+    cout << "Threads finished with the status: [L] = " << char(status_l) << ", [M] = " << char(status_m) << ", [H] = " << char(status_h) << endl;
+    cout << "\n\n\n";
 }

@@ -32,7 +32,7 @@ protected:
         if (Thread::self()->priority() == Thread::MAIN || Thread::self()->priority() == Thread::IDLE)
             return;
 
-        if (_critical_section_thread == Thread::self())  // TODO: Ver
+        if (_critical_section_thread)
             _critical_section_thread->synchronizers_in_use()->remove(this);
 
         _critical_section_thread = Thread::self();
@@ -42,7 +42,7 @@ protected:
             _critical_section_thread->save_original_priority();
 
         pis_list->insert(&_link);
-        _critical_section_priority = Criterion(_critical_section_thread->priority());
+        _critical_section_priority = _critical_section_thread->original_priority();
     }
 
     void exit_critical_section() {
@@ -54,10 +54,21 @@ protected:
 
         if (pis_list->empty())
             _critical_section_thread->non_locked_priority(_critical_section_thread->original_priority());
-        else
-            _critical_section_thread->non_locked_priority(pis_list->tail()->object()->critical_section_priority());
+        else {
+            Criterion max_priority = Thread::IDLE;
+
+            for (Element * e = pis_list->head(); e; e = e->next()) {
+                Criterion priority = e->object()->critical_section_priority();
+
+                if (priority < max_priority)
+                    max_priority = priority;
+            }
+
+            _critical_section_thread->non_locked_priority(max_priority);
+        }
 
         _critical_section_thread = nullptr;
+        _critical_section_priority = Thread::IDLE;
     }
 
     void blocked() {
@@ -67,7 +78,7 @@ protected:
         Thread * blocked = Thread::self();
         Criterion blocked_priority = blocked->priority();
 
-        if (blocked_priority < _critical_section_priority) {
+        if (blocked_priority < _critical_section_thread->priority()) {
             Criterion new_priority;
 
             if (Traits<Priority_Inversion_Solver>::priority_ceiling) 
@@ -76,14 +87,6 @@ protected:
                 new_priority = blocked_priority;
 
             _critical_section_priority = new_priority;
-
-            Element * e = _link.next();
-            while (e) {
-                Priority_Inversion_Solver * resource = e->object();
-                resource->critical_section_priority(new_priority);
-                e = e->next();
-            }
-
             _critical_section_thread->non_locked_priority(_critical_section_priority);
         }
     }
