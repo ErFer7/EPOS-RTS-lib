@@ -19,6 +19,7 @@ class Thread
     friend class Init_System;           // for init() on CPU != 0
     friend class Scheduler<Thread>;     // for link()
     friend class Synchronizer_Common;   // for lock() and sleep()
+    friend class Priority_Inversion_Solver;
     friend class Alarm;                 // for lock()
     friend class System;                // for init()
     friend class IC;                    // for link() for priority ceiling
@@ -57,6 +58,9 @@ public:
     // Thread Queue
     typedef Ordered_Queue<Thread, Criterion, Scheduler<Thread>::Element> Queue;
 
+    // Thread Priority_Inversion_Solver list
+    typedef List<Priority_Inversion_Solver> PIS_List;
+
     // Thread Configuration
     struct Configuration {
         Configuration(const State & s = READY, const Criterion & c = NORMAL, unsigned int ss = STACK_SIZE)
@@ -80,6 +84,7 @@ public:
 
     const volatile Criterion & priority() const { return _link.rank(); }
     void priority(const Criterion & p);
+    void non_locked_priority(const Criterion & p);
 
     int join();
     void pass();
@@ -97,15 +102,15 @@ protected:
     Criterion & criterion() { return const_cast<Criterion &>(_link.rank()); }
     Queue::Element * link() { return &_link; }
 
-    void save_current_priority() { _old_priority = _link.rank(); }
-
     static Thread * volatile running() { return _scheduler.chosen(); }
 
     static void lock() { CPU::int_disable(); }
     static void unlock() { CPU::int_enable(); }
     static bool locked() { return CPU::int_disabled(); }
-    static void check_acquire_ceiling();
-    static void check_release_ceiling();
+
+    void save_original_priority() { _original_priority = _link.rank(); }
+    const Criterion & original_priority() const { return _original_priority; }
+    PIS_List * synchronizers_in_use() { return _synchronizers_in_use; }
 
     static void sleep(Queue * q);
     static void wakeup(Queue * q);
@@ -128,8 +133,8 @@ protected:
     Queue * _waiting;
     Thread * volatile _joining;
     Queue::Element _link;
-    Criterion _old_priority;
-    int cs_counter = 0;
+    PIS_List * _synchronizers_in_use;
+    Criterion _original_priority;
 
     static bool _not_booting;
     static volatile unsigned int _thread_count;
