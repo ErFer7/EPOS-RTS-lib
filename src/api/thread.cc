@@ -2,8 +2,8 @@
 
 #include <machine.h>
 #include <system.h>
-#include <process.h>
 #include <priority_inversion_solver.h>
+#include <process.h>
 
 __BEGIN_SYS
 

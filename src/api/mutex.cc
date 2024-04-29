@@ -39,11 +39,11 @@ void Mutex::unlock()
     begin_atomic();
     if (_solve_priority_inversion)
         _pis.exit_critical_section();
-    if(_queue.empty()) {
+
+    if(_queue.empty())
         _locked = false;
-    } else {
+    else
         wakeup();
-    }
     end_atomic();
 }
 

@@ -1,7 +1,7 @@
 // EPOS Priority Inversion Test Program
 
-#include <time.h>
 #include <process.h>
+#include <time.h>
 #include <real-time.h>
 #include <synchronizer.h>
 

@@ -18,12 +18,16 @@ class Frequency_Profiler : protected Frequency_Profiler_Common
 
 public:
     Frequency_Profiler();
+    ~Frequency_Profiler();
 
     static void profile();
     static void analyse_profiled_data();
 
 protected:
     inline static void measure_initial_time() {
+        db<Frequency_Profiler>(TRC) << "measure_initial_time(profiler=" << _profiler << ")" << endl;
+        db<Frequency_Profiler>(INF) << "sp=[" << CPU::sp() << "], epc=[" << CPU::epc() << "]" << endl;
+
         if (!_profiler)
             return;
 
@@ -39,6 +43,9 @@ protected:
     }
 
     inline static void measure_final_time() {
+        db<Frequency_Profiler>(TRC) << "measure_final_time(profiler=" << _profiler << ")" << endl;
+        db<Frequency_Profiler>(INF) << "sp=[" << CPU::sp() << "], epc=[" << CPU::epc() << "]" << endl;
+
         if (!_profiler)
             return;
 

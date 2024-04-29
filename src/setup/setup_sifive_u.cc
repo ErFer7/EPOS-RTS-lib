@@ -668,13 +668,7 @@ void _entry() // machine mode
         CPU::halt();
 
     CPU::mstatusc(CPU::MIE);                            // disable interrupts (they will be reenabled at Init_End)
-
-    if (Traits<Machine>::supervisor) {
-        CPU::tp(CPU::mhartid() - 1);                        // tp will be CPU::id() for supervisor mode; we won't count core 0, which is an heterogeneous E51
-    }
-
     CPU::sp(Memory_Map::BOOT_STACK + Traits<Machine>::STACK_SIZE - sizeof(long)); // set the stack pointer, thus creating a stack for SETUP
-
     Machine::clear_bss();
 
     if (Traits<Machine>::supervisor) {
@@ -682,6 +676,7 @@ void _entry() // machine mode
         // interruptions. The interruptions will also not be enabled here, since they will be enabled after
         // the interruption handler is set up.
 
+        CPU::tp(CPU::mhartid() - 1);                        // tp will be CPU::id() for supervisor mode; we won't count core 0, which is an heterogeneous E51
         CPU::mtvec(CPU::INT_DIRECT, Memory_Map::INT_M2S);   // setup a machine mode interrupt handler to forward timer interrupts (which cannot be delegated via mideleg)
         CPU::mideleg(CPU::SSI | CPU::STI | CPU::SEI);       // delegate supervisor interrupts to supervisor mode
         CPU::medeleg(0xf1ff);                               // delegate all exceptions to supervisor mode but ecalls

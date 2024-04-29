@@ -12,6 +12,8 @@ Frequency_Profiler * Frequency_Profiler::_profiler = nullptr;
 Frequency_Profiler frequency_Profiler;
 
 Frequency_Profiler::Frequency_Profiler() {
+    db<Frequency_Profiler>(TRC) << "Frequency_Profiler() => " << this << endl;
+
     _initial_time = 0UL;
     _diff_time_sum = 0UL;
     _execution_time = 0UL;
@@ -20,7 +22,15 @@ Frequency_Profiler::Frequency_Profiler() {
     _profiler = this;
 }
 
+
+Frequency_Profiler::~Frequency_Profiler() {
+    db<Frequency_Profiler>(TRC) << "~Frequency_Profiler(this=" << this << ")" << endl;
+}
+
+
 void Frequency_Profiler::profile() {
+    db<Frequency_Profiler>(TRC) << "profile(profiler=" << _profiler << ")" << endl;
+
     assert(CPU::int_enabled());
 
     if (!_profiler)
@@ -40,7 +50,10 @@ void Frequency_Profiler::profile() {
     _profiler->_profiling = false;
 }
 
+
 void Frequency_Profiler::analyse_profiled_data() {
+    db<Frequency_Profiler>(TRC) << "analyse_profiled_data(profiler=" << _profiler << ")" << endl;
+
     assert(CPU::int_disabled());
 
     if (!_profiler)

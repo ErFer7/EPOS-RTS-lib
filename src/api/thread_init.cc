@@ -1,10 +1,10 @@
 // EPOS Thread Initialization
 
+#include <machine/frequency_profiler.h>
 #include <machine/timer.h>
 #include <machine/ic.h>
 #include <system.h>
 #include <process.h>
-#include <machine/frequency_profiler.h>
 
 __BEGIN_SYS
 
