@@ -27,7 +27,7 @@ void Semaphore::p()
         sleep();
     }
 
-    if (_solve_priority_inversion && _value == 0)
+    if (_solve_priority_inversion)
         _pis.enter_critical_section();
     end_atomic();
 }
@@ -39,9 +39,9 @@ void Semaphore::v()
 
     begin_atomic();
     if(finc(_value) < 0) {
-        wakeup();
         if (_solve_priority_inversion)
             _pis.exit_critical_section();
+        wakeup();
     }
     end_atomic();
 }

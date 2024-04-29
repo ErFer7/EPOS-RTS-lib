@@ -18,15 +18,17 @@ struct Test_Args
     int test;
     char c;
     Mutex *mutex[3];
-    Semaphore *semaphore[3];
+    Semaphore *semaphore;
     int thread_index; 
 };
 
 void work(char c, Periodic_Thread *thread);
+
 void simple_lock(char c, Periodic_Thread *thread, Mutex *mutex);
 void nested_lock(char c, Periodic_Thread *thread, Mutex *mutex, Mutex *nested_mutex);
 void doubly_nested_lock(char c, Periodic_Thread *thread, Mutex *mutex, Mutex *nested_mutex, Mutex *doubly_nested_mutex);
 void doubly_nested_non_well_formed_lock(char c, Periodic_Thread * thread, Mutex * mutex, Mutex *nested_mutex, Mutex *doubly_nested_mutex);
+void simple_lock_semaphore(char c, Periodic_Thread *thread, Semaphore *semaphore);
 
 int test_task(Test_Args *args);
 
@@ -36,6 +38,7 @@ void test_classical_case();
 void test_nested_case();
 void test_doubly_nested_case();
 void test_doubly_nested_non_well_formed_case();
+void test_simple_semaphore_case();
 
 int main() {
     chrono.start();
@@ -46,6 +49,7 @@ int main() {
     test_nested_case();
     test_doubly_nested_case();
     test_doubly_nested_non_well_formed_case();
+    test_simple_semaphore_case();
 
     chrono.stop();
 
@@ -149,40 +153,69 @@ void doubly_nested_non_well_formed_lock(char c, Periodic_Thread * thread, Mutex 
     cout << "Thread [" << c << "] released the doubly nested lock, priority: " << thread->priority() << endl;
 }
 
+void simple_lock_semaphore(char c, Periodic_Thread *thread, Semaphore *semaphore) {
+    cout << "Thread [" << c << "] will try to take the semaphore, priority: " << thread->priority() << endl;
+    semaphore->p();
+    cout << "Thread [" << c << "] got the semaphore, priority: " << thread->priority() << endl;
+
+    work(c, thread);
+
+    cout << "Thread [" << c << "] will release the semaphore, priority: " << thread->priority() << endl;
+    semaphore->v();
+    cout << "Thread [" << c << "] released the semaphore, priority: " << thread->priority() << endl;
+}
+
+void doubly_locked_semaphore(char c, Periodic_Thread *thread, Semaphore *semaphore) {
+    cout << "Thread [" << c << "] will try to take the semaphore, priority: " << thread->priority() << endl;
+    semaphore->p();
+    cout << "Thread [" << c << "] got the semaphore, priority: " << thread->priority() << endl;
+    cout << "Thread [" << c << "] will try to take the semaphore again, priority: " << thread->priority() << endl;
+    semaphore->p();
+    cout << "Thread [" << c << "] got the semaphore again, priority: " << thread->priority() << endl;
+
+    work(c, thread);
+
+    cout << "Thread [" << c << "] will release the semaphore, priority: " << thread->priority() << endl;
+    semaphore->v();
+    cout << "Thread [" << c << "] released the semaphore, priority: " << thread->priority() << endl;
+    cout << "Thread [" << c << "] will release the semaphore again, priority: " << thread->priority() << endl;
+    semaphore->v();
+    cout << "Thread [" << c << "] released the semaphore again, priority: " << thread->priority() << endl;
+}
+
 int test_task(Test_Args *args) {
+    bool locking_threads = args->c == 'L' || args->c == 'H';
+
     do {
-        switch (args->test)
-        {
-        case 0:
-        case 1:
-            simple_lock(args->c, threads[args->thread_index], args->mutex[0]);
-            break;
-        case 2:
-            if (args->c == 'L' || args->c == 'H')
+        if (locking_threads) {
+            switch (args->test)
+            {
+            case 1:
                 simple_lock(args->c, threads[args->thread_index], args->mutex[0]);
-            else
-                work(args->c, threads[args->thread_index]);
-            break;
-        case 3:
-            if (args->c == 'L' || args->c == 'H')
+                break;
+            case 2:
+                simple_lock(args->c, threads[args->thread_index], args->mutex[0]);
+                break;
+            case 3:
                 nested_lock(args->c, threads[args->thread_index], args->mutex[0], args->mutex[1]);
-            else
-                work(args->c, threads[args->thread_index]);
-            break;
-        case 4:
-            if (args->c == 'L' || args->c == 'H')
+                break;
+            case 4:
                 doubly_nested_lock(args->c, threads[args->thread_index], args->mutex[0], args->mutex[1], args->mutex[2]);
-            else
-                work(args->c, threads[args->thread_index]);
-            break;
-        case 5:
-            if (args->c == 'L' || args->c == 'H')
+                break;
+            case 5:
                 doubly_nested_non_well_formed_lock(args->c, threads[args->thread_index], args->mutex[0], args->mutex[1], args->mutex[2]);
-            else
+                break;
+            case 6:
+                simple_lock_semaphore(args->c, threads[args->thread_index], args->semaphore);
+                break;
+            default:
+                return '?';
+            }
+        } else {
+            if (args->test >= 2)
                 work(args->c, threads[args->thread_index]);
-            break;
-        default:
-            return '?';
+            else
+                simple_lock(args->c, threads[args->thread_index], args->mutex[0]);  // Test 0
         }
     } while(Periodic_Thread::wait_next());
 
@@ -249,7 +282,7 @@ void test_low_and_high_case() {
 
 void test_classical_case() {
     cout << "Test case 2: 3 threads [low, medium and high] and 1 mutex." << endl;
-    cout << "Expected: The low priority thread should inherit the priority of the high priority thread. The medium"
+    cout << "Expected: The low priority thread should inherit the priority of the high priority thread. The medium "
          << "thread should not cause priority inversions." << endl;
 
     const int test = 2;
@@ -292,8 +325,8 @@ void test_classical_case() {
 
 void test_nested_case() {
     cout << "Test case 3: 3 threads [low, medium and high] and 2 mutexes." << endl;
-    cout << "Expected: The low priority thread should inherit the priority of the high priority thread. The medium"
-         << "thread should not cause priority inversions. The priority must be handled correctly across nested mutexes" << endl;
+    cout << "Expected: The low priority thread should inherit the priority of the high priority thread. The medium "
+         << "thread should not cause priority inversions. The priority must be handled correctly across nested mutexes." << endl;
 
     const int test = 3;
 
@@ -338,8 +371,8 @@ void test_nested_case() {
 
 void test_doubly_nested_case() {
     cout << "Test case 4: 3 threads [low, medium and high] and 3 mutexes." << endl;
-    cout << "Expected: The low priority thread should inherit the priority of the high priority thread. The medium"
-         << "thread should not cause priority inversions. The priority must be handled correctly across nested mutexes" << endl;
+    cout << "Expected: The low priority thread should inherit the priority of the high priority thread. The medium "
+         << "thread should not cause priority inversions. The priority must be handled correctly across nested mutexes." << endl;
 
     const int test = 4;
 
@@ -387,8 +420,8 @@ void test_doubly_nested_case() {
 
 void test_doubly_nested_non_well_formed_case() {
     cout << "Test case 5: 3 threads [low, medium and high] and 3 mutexes." << endl;
-    cout << "Expected: The low priority thread should inherit the priority of the high priority thread. The medium"
-         << "thread should not cause priority inversions. The priority must be handled correctly across nested mutexes."
+    cout << "Expected: The low priority thread should inherit the priority of the high priority thread. The medium "
+         << "thread should not cause priority inversions. The priority must be handled correctly across nested mutexes. "
          << "The order of unlocking is not well formed (La Lb Lc -> Ub Ua Uc)" << endl;
 
     const int test = 5;
@@ -426,6 +459,51 @@ void test_doubly_nested_non_well_formed_case() {
     int status_l = threads[0]->join();
     int status_m = threads[2]->join();
     int status_h = threads[1]->join();
+
+    delete threads[0];
+    delete threads[1];
+    delete threads[2];
+
+    cout << "Threads finished with the status: [L] = " << char(status_l) << ", [M] = " << char(status_m) << ", [H] = " << char(status_h) << endl;
+    cout << "\n\n\n";
+}
+
+void test_simple_semaphore_case() {
+    cout << "Test case 6: 3 threads [low, medium and high] and 1 semaphore." << endl;
+    cout << "Expected: The low priority thread should inherit the priority of the high priority thread. The medium "
+         << "thread should not cause priority inversions." << endl;
+
+    const int test = 6;
+
+    Semaphore * semaphore = new Semaphore(1);
+
+    Test_Args args_l;
+    args_l.test = test;
+    args_l.c = 'L';
+    args_l.semaphore = semaphore;
+    args_l.thread_index = 0;
+
+    Test_Args args_m;
+    args_m.test = test;
+    args_m.c = 'M';
+    args_m.thread_index = 2;
+
+    Test_Args args_h;
+    args_h.test = test;
+    args_h.c = 'H';
+    args_h.semaphore = semaphore;
+    args_h.thread_index = 1;
+
+    threads[0] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations + 2, Thread::READY, Thread::LOW), &test_task, &args_l);
+    Delay pick_lock_first(100000);
+    threads[1] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::HIGH), &test_task, &args_h);
+    threads[2] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::NORMAL - 1), &test_task, &args_m);
+
+    int status_l = threads[0]->join();
+    int status_m = threads[2]->join();
+    int status_h = threads[1]->join();
+
+    delete semaphore;
 
     delete threads[0];
     delete threads[1];
