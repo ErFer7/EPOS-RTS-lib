@@ -21,7 +21,7 @@ public:
         LAST_PAGE       = RAM_TOP + 1 - 4096,
         INT_M2S         = LAST_PAGE,   	  // the last page is used by the _int_m2s() machine mode interrupt forwarder installed by SETUP before going into supervisor mode; code and stack share the same page, with code at the bottom and the stack at the top
         FLAT_MEM_MAP    = INT_M2S - 4096, // in LIBRARY mode, a single-level mapping of the whole memory space is used
-        BOOT_STACK      = FLAT_MEM_MAP - Traits<Machine>::STACK_SIZE, // will be used as the stack's base, not the stack pointer
+        BOOT_STACK      = (Traits<Machine>::supervisor ? FLAT_MEM_MAP : LAST_PAGE) - Traits<Machine>::STACK_SIZE, // will be used as the stack's base, not the stack pointer
         FREE_BASE       = RAM_BASE,
         FREE_TOP        = BOOT_STACK - 1,
 

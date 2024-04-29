@@ -4,7 +4,7 @@
 
 __BEGIN_SYS
 
-Mutex::Mutex(): _locked(false)
+Mutex::Mutex(bool solve_priority_inversion): _locked(false), _solve_priority_inversion(solve_priority_inversion)
 {
     db<Synchronizer>(TRC) << "Mutex() => " << this << endl;
 }
@@ -21,9 +21,13 @@ void Mutex::lock()
     db<Synchronizer>(TRC) << "Mutex::lock(this=" << this << ")" << endl;
 
     begin_atomic();
-    priority_ceiling_check_lock();
-    if(tsl(_locked))
+    if(tsl(_locked)) {
+        if (_solve_priority_inversion)
+            _pis.blocked();
         sleep();
+    }
+    if (_solve_priority_inversion)
+        _pis.enter_critical_section();
     end_atomic();
 }
 
@@ -33,7 +37,9 @@ void Mutex::unlock()
     db<Synchronizer>(TRC) << "Mutex::unlock(this=" << this << ")" << endl;
 
     begin_atomic();
-    priority_ceiling_check_unlock();
+    if (_solve_priority_inversion)
+        _pis.exit_critical_section();
+
     if(_queue.empty())
         _locked = false;
     else

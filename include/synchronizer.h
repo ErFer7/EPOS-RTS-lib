@@ -5,6 +5,7 @@
 
 #include <architecture.h>
 #include <utility/handler.h>
+#include <priority_inversion_solver.h>
 #include <process.h>
 
 __BEGIN_SYS
@@ -26,8 +27,6 @@ protected:
     // Thread operations
     void begin_atomic() { Thread::lock(); }
     void end_atomic() { Thread::unlock(); }
-    void priority_ceiling_check_lock() { Thread::check_acquire_ceiling(); }
-    void priority_ceiling_check_unlock() { Thread::check_release_ceiling(); }
 
     void sleep() { Thread::sleep(&_queue); }
     void wakeup() { Thread::wakeup(&_queue); }
@@ -41,7 +40,7 @@ protected:
 class Mutex: protected Synchronizer_Common
 {
 public:
-    Mutex();
+    Mutex(bool solve_priority_inversion = true);
     ~Mutex();
 
     void lock();
@@ -49,13 +48,15 @@ public:
 
 private:
     volatile bool _locked;
+    Priority_Inversion_Solver _pis;
+    bool _solve_priority_inversion;
 };
 
 
 class Semaphore: protected Synchronizer_Common
 {
 public:
-    Semaphore(long v = 1);
+    Semaphore(long v = 1, bool solve_priority_inversion = true);
     ~Semaphore();
 
     void p();
@@ -63,6 +64,8 @@ public:
 
 private:
     volatile long _value;
+    Priority_Inversion_Solver _pis;
+    bool _solve_priority_inversion;
 };
 
 

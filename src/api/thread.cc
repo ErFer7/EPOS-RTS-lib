@@ -2,6 +2,7 @@
 
 #include <machine.h>
 #include <system.h>
+#include <priority_inversion_solver.h>
 #include <process.h>
 
 __BEGIN_SYS
@@ -19,6 +20,7 @@ void Thread::constructor_prologue(unsigned int stack_size)
     _scheduler.insert(this);
 
     _stack = new (SYSTEM) char[stack_size];
+    _synchronizers_in_use = new PIS_List();
 }
 
 
@@ -86,6 +88,7 @@ Thread::~Thread()
 
     unlock();
 
+    delete _synchronizers_in_use;
     delete _stack;
 }
 
@@ -99,13 +102,27 @@ void Thread::priority(const Criterion & c)
     _link.rank(Criterion(c));
 
     if(_state != RUNNING) {
-        _scheduler.update_priority(this);
+        _scheduler.remove(this);
+        _scheduler.insert(this);
     }
 
     if(preemptive)
         reschedule();
     else
         unlock();
+}
+
+
+void Thread::non_locked_priority(const Criterion & c)
+{
+    db<Thread>(TRC) << "Thread::non_locked_priority(this=" << this << ",prio=" << c << ")" << endl;
+
+    _link.rank(Criterion(c));
+
+    if(_state != RUNNING) {
+        _scheduler.remove(this);
+        _scheduler.insert(this);
+    }
 }
 
 
@@ -376,27 +393,6 @@ int Thread::idle()
     for(;;);
 
     return 0;
-}
-
-void Thread::check_acquire_ceiling() {
-    assert(locked());
-
-    Thread * t = running();
-    if (t->priority() != Thread::ISR) {
-        t->save_current_priority();
-        t->_link.rank(Thread::ISR); // instead of priority() to avoid reschedule
-    }
-    t->cs_counter++;
-}
-
-void Thread::check_release_ceiling() {
-    assert(locked());
-
-    Thread * t = running();
-    if (t->cs_counter == 1) {
-        t->_link.rank(t->_old_priority); // instead of priority() to avoid reschedule
-    }
-    t->cs_counter--;
 }
 
 __END_SYS
