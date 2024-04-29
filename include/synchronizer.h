@@ -40,7 +40,7 @@ protected:
 class Mutex: protected Synchronizer_Common
 {
 public:
-    Mutex(bool solve_priority_inversion = false);
+    Mutex(bool solve_priority_inversion = true);
     ~Mutex();
 
     void lock();
@@ -56,7 +56,7 @@ private:
 class Semaphore: protected Synchronizer_Common
 {
 public:
-    Semaphore(long v = 1, bool solve_priority_inversion = false);
+    Semaphore(long v = 1, bool solve_priority_inversion = true);
     ~Semaphore();
 
     void p();

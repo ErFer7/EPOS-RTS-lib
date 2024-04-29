@@ -190,7 +190,7 @@ void test_simple_case() {
     cout << "Test case 0: 1 thread [normal] and 1 mutex." << endl;
     cout << "Expected: The thread should finish its job without any issues." << endl;
 
-    Mutex mutex(true);
+    Mutex mutex;
 
     Test_Args args;
     args.test = 0;
@@ -212,7 +212,7 @@ void test_low_and_high_case() {
     cout << "Test case 1: 2 threads [low and high] and 1 mutex." << endl;
     cout << "Expected: The low priority thread should inherit the priority of the high priority thread." << endl;
 
-    Mutex mutex(true);
+    Mutex mutex;
 
     Test_Args args_l;
     args_l.test = 1;
