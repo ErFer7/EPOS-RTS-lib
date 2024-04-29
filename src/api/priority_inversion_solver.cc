@@ -75,9 +75,9 @@ void Priority_Inversion_Solver::blocked() {
     if (blocked_priority < _critical_section_thread->priority()) {
         Criterion new_priority;
 
-        if (Traits<Priority_Inversion_Solver>::priority_ceiling) 
+        if (Traits<Priority_Inversion_Solver>::priority_ceiling)
             new_priority = Thread::ISR;
-        else 
+        else
             new_priority = blocked_priority;
 
         _critical_section_priority = new_priority;

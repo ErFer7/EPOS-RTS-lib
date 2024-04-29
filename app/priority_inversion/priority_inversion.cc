@@ -19,7 +19,7 @@ struct Test_Args
     char c;
     Mutex *mutex[3];
     Semaphore *semaphore;
-    int thread_index; 
+    int thread_index;
 };
 
 void work(char c, Periodic_Thread *thread);
