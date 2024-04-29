@@ -206,6 +206,7 @@ namespace EPOS {
 #define __PMU_H                 __HEADER_ARCH(pmu)
 #define __UART_H                __HEADER_MACH(uart)
 #define __SPI_H                 __HEADER_MACH(spi)
+#define __FREQ_PROF_H           __HEADER_MACH(frequency_profiler)
 
 #ifndef __standalone__
 #define __NIC_H                 __HEADER_MACH(nic)

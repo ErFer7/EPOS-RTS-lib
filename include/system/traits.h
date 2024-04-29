@@ -81,6 +81,9 @@ class GEM;
 class IEEE802_15_4_NIC;
 class Ethernet_NIC;
 
+// Machine Specific Profiler
+class Frequency_Profiler;
+
 // Transducer Mediators (i.e. sensors and actuators)
 class Transducers;
 class Dummy_Transducer;
@@ -124,6 +127,7 @@ class Address_Space;
 class Segment;
 
 class Synchronizer;
+class Priority_Inversion_Solver;
 class Mutex;
 class Semaphore;
 class Condition;
