@@ -22,16 +22,18 @@ public:
         }
 
         if(Memory_Map::BOOT_STACK != Memory_Map::NOT_USED)
-            MMU::free(Memory_Map::BOOT_STACK, MMU::pages(Traits<Machine>::STACK_SIZE));
+            MMU::free(Memory_Map::BOOT_STACK, MMU::pages(Traits<Machine>::STACK_SIZE));  // TODO: Free everything correctly
 
         db<Init>(INF) << "INIT ends here!" << endl;
 
         // Thread::self() and Task::self() can be safely called after the construction of MAIN
         // even if no reschedule() was called (running is set by the Scheduler at each insert())
         // It will return MAIN for CPU0 and IDLE for the others
-        Thread * first = Thread::self();
+        Thread * first = Thread::self();  // TODO: It's returning MAIN for all cores :(
 
         db<Init, Thread>(INF) << "Dispatching the first thread: " << first << endl;
+
+        CPU::smp_barrier();  // TODO: Check this
 
         // Interrupts have been disabled at Thread::init() and will be reenabled by CPU::Context::load()
         // but we first reset the timer to avoid getting a time interrupt during load()

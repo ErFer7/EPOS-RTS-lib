@@ -84,6 +84,10 @@ private:
 
     static void init();
 
+    static void timer_cpu(unsigned int cpu) { _timer_cpu = cpu; }
+
+    static unsigned int timer_cpu() { return _timer_cpu; }
+
 protected:
     unsigned int _channel;
     Tick _initial;
@@ -91,6 +95,7 @@ protected:
     volatile Tick _current;
     Handler _handler;
 
+    static unsigned int _timer_cpu;  // CPU responsible for time interrupts
     static Timer * _channels[CHANNELS];
 };
 

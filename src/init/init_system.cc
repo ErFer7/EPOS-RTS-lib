@@ -1,5 +1,6 @@
 // EPOS System Initializer
 
+#include <boot_synchronizer.h>
 #include <utility/random.h>
 #include <machine.h>
 #include <memory.h>
@@ -20,30 +21,37 @@ public:
         db<Init>(INF) << "Init:si=" << *System::info() << endl;
 
         db<Init>(INF) << "Initializing the architecture: " << endl;
+
         CPU::init();
 
-        db<Init>(INF) << "Initializing system's heap: " << endl;
-        if(Traits<System>::multiheap) {
-            System::_heap_segment = new (&System::_preheap[0]) Segment(HEAP_SIZE, Segment::Flags::SYSD);
-            char * heap;
-            if(Memory_Map::SYS_HEAP == Traits<Machine>::NOT_USED)
-                heap = Address_Space(MMU::current()).attach(System::_heap_segment);
-            else
-                heap = Address_Space(MMU::current()).attach(System::_heap_segment, Memory_Map::SYS_HEAP);
-            if(!heap)
-                db<Init>(ERR) << "Failed to initialize the system's heap!" << endl;
-            System::_heap = new (&System::_preheap[sizeof(Segment)]) Heap(heap, System::_heap_segment->size());
-        } else
-            System::_heap = new (&System::_preheap[0]) Heap(MMU::alloc(MMU::pages(HEAP_SIZE)), HEAP_SIZE);
+        if(Boot_Synchronizer::try_acquire()) {
+            db<Init>(INF) << "Initializing system's heap: " << endl;
+            if(Traits<System>::multiheap) {
+                System::_heap_segment = new (&System::_preheap[0]) Segment(HEAP_SIZE, Segment::Flags::SYSD);
+                char * heap;
+                if(Memory_Map::SYS_HEAP == Traits<Machine>::NOT_USED)
+                    heap = Address_Space(MMU::current()).attach(System::_heap_segment);
+                else
+                    heap = Address_Space(MMU::current()).attach(System::_heap_segment, Memory_Map::SYS_HEAP);
+                if(!heap)
+                    db<Init>(ERR) << "Failed to initialize the system's heap!" << endl;
+                System::_heap = new (&System::_preheap[sizeof(Segment)]) Heap(heap, System::_heap_segment->size());
+            } else
+                System::_heap = new (&System::_preheap[0]) Heap(MMU::alloc(MMU::pages(HEAP_SIZE)), HEAP_SIZE);
 
-        db<Init>(INF) << "Initializing the machine: " << endl;
-        Machine::init();
+            db<Init>(INF) << "Initializing the machine: " << endl;
+            // TODO: We will need to move this outside to enable time interruptions for all cores (it's necessary for the idle threads to work properly)
+            // However, only one core should call the time interruption handler (the timer cpu)
+            Machine::init();
+        }
+
+        CPU::smp_barrier();  // TODO: Check this
 
         db<Init>(INF) << "Initializing system abstractions: " << endl;
         System::init();
 
         // Randomize the Random Numbers Generator's seed
-        if(Traits<Random>::enabled) {
+        if(Traits<Random>::enabled && Boot_Synchronizer::try_acquire()) {
             db<Init>(INF) << "Randomizing the Random Numbers Generator's seed." << endl;
             if(Traits<TSC>::enabled)
                 Random::seed(TSC::time_stamp());

@@ -11,6 +11,7 @@ bool Thread::_not_booting;
 volatile unsigned int Thread::_thread_count;
 Scheduler_Timer * Thread::_timer;
 Scheduler<Thread> Thread::_scheduler;
+Simple_Spin Thread::_spinlock;
 
 void Thread::constructor_prologue(unsigned int stack_size)
 {
@@ -91,7 +92,6 @@ Thread::~Thread()
     delete _synchronizers_in_use;
     delete _stack;
 }
-
 
 void Thread::priority(const Criterion & c)
 {
@@ -368,7 +368,7 @@ int Thread::idle()
 {
     db<Thread>(TRC) << "Thread::idle(this=" << running() << ")" << endl;
 
-    while(_thread_count > 1) { // someone else besides idle
+    while(_thread_count > CPU::cores()) { // someone else besides idle
         if(Traits<Thread>::trace_idle)
             db<Thread>(TRC) << "Thread::idle(this=" << running() << ")" << endl;
 

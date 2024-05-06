@@ -15,9 +15,8 @@ public:
     static bool try_acquire();
 
 private:
-    static volatile bool _self_lock;
-    static unsigned int _counter[Traits<Build>::CPUS];
-    static unsigned int _max;
+    static volatile unsigned int _counter[Traits<Build>::CPUS];
+    static volatile unsigned int _max;
 };
 
 __END_SYS

@@ -255,10 +255,12 @@ public:
         if(sizeof(T) == sizeof(Reg64))
             ASM("1: lr.d    %0, (%1)        \n"
                 "   sc.d    t3, %2, (%1)    \n"
+                "   fence                   \n"
                 "   bnez    t3, 1b          \n" : "=&r"(old) : "r"(&lock), "r"(one) : "t3", "cc", "memory");
         else
             ASM("1: lr.w    %0, (%1)        \n"
                 "   sc.w    t3, %2, (%1)    \n"
+                "   fence                   \n"
                 "   bnez    t3, 1b          \n" : "=&r"(old) : "r"(&lock), "r"(one) : "t3", "cc", "memory");
         return old;
     }
@@ -270,11 +272,13 @@ public:
             ASM("1: lr.d    %0, (%1)        \n"
                 "   addi    %0, %0, 1       \n"
                 "   sc.d    t3, %0, (%1)    \n"
+                "   fence                   \n"
                 "   bnez    t3, 1b          \n" : "=&r"(old) : "r"(&value) : "t3", "cc", "memory");
         else
             ASM("1: lr.w    %0, (%1)        \n"
                 "   addi    %0, %0, 1       \n"
                 "   sc.w    t3, %0, (%1)    \n"
+                "   fence                   \n"
                 "   bnez    t3, 1b          \n" : "=&r"(old) : "r"(&value) : "t3", "cc", "memory");
         return old - 1;
     }
@@ -286,11 +290,13 @@ public:
             ASM("1: lr.d    %0, (%1)        \n"
                 "   addi    %0, %0, -1      \n"
                 "   sc.d    t3, %0, (%1)    \n"
+                "   fence                   \n"
                 "   bnez    t3, 1b          \n" : "=&r"(old) : "r"(&value) : "t3", "cc", "memory");
         else
             ASM("1: lr.w    %0, (%1)        \n"
                 "   addi    %0, %0, -1      \n"
                 "   sc.w    t3, %0, (%1)    \n"
+                "   fence                   \n"
                 "   bnez    t3, 1b          \n" : "=&r"(old) : "r"(&value) : "t3", "cc", "memory");
         return old + 1;
     }
@@ -302,19 +308,45 @@ public:
             ASM("1: lr.d    %0, (%1)        \n"
                 "   bne     %0, %2, 2f      \n"
                 "   sc.d    t3, %3, (%1)    \n"
+                "   fence                   \n"
                 "   bnez    t3, 1b          \n"
                 "2:                         \n" : "=&r"(old) : "r"(&value), "r"(compare), "r"(replacement) : "t3", "cc", "memory");
         else
             ASM("1: lr.w    %0, (%1)        \n"
                 "   bne     %0, %2, 2f      \n"
                 "   sc.w    t3, %3, (%1)    \n"
+                "   fence                   \n"
                 "   bnez    t3, 1b          \n"
                 "2:                         \n" : "=&r"(old) : "r"(&value), "r"(compare), "r"(replacement) : "t3", "cc", "memory");
         return old;
     }
 
+    // TODO: Check if using fence here makes sense, if it does, then we will just refactor. Otherwise, we will need to use the
+    // smp_barrier defined at CPU_Common and just adapt it.
+    static void smp_barrier(unsigned int cores = CPU::cores()) {
+        if(cores > 1) {
+            static volatile int ready[2];
+            static volatile int i;
+
+            int j = i;
+
+            finc(ready[j]);
+            if(id() == 0) {
+                while(ready[j] < int(cores));
+                fence();
+                i = !i;
+                ready[j] = 0;
+            } else {
+                while(ready[j]);
+                fence();
+            }
+        }
+    }
+
     static void flush_tlb() {         ASM("sfence.vma"    : :           : "memory"); }
     static void flush_tlb(Reg addr) { ASM("sfence.vma %0" : : "r"(addr) : "memory"); }
+
+    static void fence() { ASM("fence" : : : "memory"); }
 
     using CPU_Common::htole64;
     using CPU_Common::htole32;

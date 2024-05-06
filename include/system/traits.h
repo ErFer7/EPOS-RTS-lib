@@ -126,6 +126,7 @@ class LLF;
 class Address_Space;
 class Segment;
 
+class Boot_Synchronizer;
 class Synchronizer;
 class Priority_Inversion_Solver;
 class Mutex;
