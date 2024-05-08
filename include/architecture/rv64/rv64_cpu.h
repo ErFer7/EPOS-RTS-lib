@@ -253,13 +253,9 @@ public:
         register T old;
         register T one = 1;
         if(sizeof(T) == sizeof(Reg64))
-            ASM("1: lr.d    %0, (%1)        \n"
-                "   sc.d    t3, %2, (%1)    \n"
-                "   bnez    t3, 1b          \n" : "=&r"(old) : "r"(&lock), "r"(one) : "t3", "cc", "memory");
+            ASM("   amoswap.d.aq %0, %2, (%1) \n" : "=&r"(old) : "r"(&lock), "r"(one) : "cc", "memory");
         else
-            ASM("1: lr.w    %0, (%1)        \n"
-                "   sc.w    t3, %2, (%1)    \n"
-                "   bnez    t3, 1b          \n" : "=&r"(old) : "r"(&lock), "r"(one) : "t3", "cc", "memory");
+            ASM("   amoswap.w.aq %0, %2, (%1) \n" : "=&r"(old) : "r"(&lock), "r"(one) : "cc", "memory");
         return old;
     }
 
@@ -312,6 +308,8 @@ public:
                 "2:                         \n" : "=&r"(old) : "r"(&value), "r"(compare), "r"(replacement) : "t3", "cc", "memory");
         return old;
     }
+
+    static void smp_barrier(unsigned int cores = CPU::cores()) { CPU_Common::smp_barrier<&finc>(cores, id()); }
 
     static void flush_tlb() {         ASM("sfence.vma"    : :           : "memory"); }
     static void flush_tlb(Reg addr) { ASM("sfence.vma %0" : : "r"(addr) : "memory"); }
