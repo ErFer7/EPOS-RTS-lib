@@ -5,9 +5,10 @@
 __BEGIN_SYS
 
 unsigned int Boot_Synchronizer::_counter[Traits<Build>::CPUS] = {0, 0, 0, 0};
-unsigned int Boot_Synchronizer::_max = 0;
+volatile unsigned int Boot_Synchronizer::_max = 0;
 volatile bool Boot_Synchronizer::_locked = false;
 
+// TODO: Fix
 bool Boot_Synchronizer::try_acquire() {
     db<Boot_Synchronizer>(TRC) << "Boot_Synchronizer::try_acquire()" << endl;
 
