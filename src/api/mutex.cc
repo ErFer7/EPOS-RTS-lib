@@ -41,7 +41,7 @@ void Mutex::unlock()
         _pis.exit_critical_section();
 
     if(_queue.empty())
-        _locked = false;
+        asz(_locked);
     else
         wakeup();
     end_atomic();
