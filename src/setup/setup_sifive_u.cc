@@ -677,9 +677,20 @@ void _entry() // machine mode
     CPU::sp((Memory_Map::BOOT_STACK - Traits<Machine>::STACK_SIZE * CPU::id()) + Traits<Machine>::STACK_SIZE * CPU::mhartid() - sizeof(long)); // set the stack pointer, thus creating a stack for SETUP for each core
 
     if(Boot_Synchronizer::try_acquire()) {
-        kout << "C" << CPU::id();
         Machine::clear_bss();
     }
+
+    // Don't delete this, it's a test that I will do later
+    // if(Boot_Synchronizer::try_acquire()) {
+    //     kout << "J";
+    //     Machine::clear_bss();
+    // }
+
+    // if(Boot_Synchronizer::try_acquire()) {
+    //     kout << "Z";
+    // }
+
+    // while(true);
 
     if (Traits<Machine>::supervisor) {
         // If we are using the machine mode, we won't need to setup int_m2s() and also won't need to delegate

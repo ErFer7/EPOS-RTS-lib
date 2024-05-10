@@ -5,6 +5,8 @@
 #include <priority_inversion_solver.h>
 #include <process.h>
 
+extern "C" { volatile unsigned long _running() __attribute__ ((alias ("_ZN4EPOS1S6Thread4selfEv"))); }
+
 __BEGIN_SYS
 
 bool Thread::_not_booting;
@@ -209,6 +211,11 @@ void Thread::resume()
         db<Thread>(WRN) << "Resume called for unsuspended object!" << endl;
 
     unlock();
+}
+
+
+Thread * volatile Thread::self() {
+    return _not_booting ? running() : reinterpret_cast<Thread * volatile>(CPU::id() + 1);
 }
 
 

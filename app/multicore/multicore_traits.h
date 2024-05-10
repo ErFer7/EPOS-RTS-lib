@@ -15,7 +15,7 @@ template<> struct Traits<Build>: public Traits_Tokens
     static const unsigned int MODEL = SiFive_U;
     static const unsigned int CPUS = 4;
     static const unsigned int NETWORKING = STANDALONE;
-    static const unsigned int EXPECTED_SIMULATION_TIME = 2; // s (0 => not simulated)
+    static const unsigned int EXPECTED_SIMULATION_TIME = 5; // s (0 => not simulated)
 
     // Default flags
     static const bool enabled = true;
