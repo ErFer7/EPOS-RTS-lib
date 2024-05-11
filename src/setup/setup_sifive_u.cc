@@ -107,8 +107,6 @@ Setup::Setup()
 {
     si = reinterpret_cast<System_Info *>(&__boot_time_system_info);
 
-    CPU::smp_barrier();
-
     if(Boot_Synchronizer::try_acquire()) {
         // SETUP doesn't handle global constructors, so we need to manually initialize any object with a non-empty default constructor
         new (&kout) OStream;
@@ -680,17 +678,7 @@ void _entry() // machine mode
         Machine::clear_bss();
     }
 
-    // Don't delete this, it's a test that I will do later
-    // if(Boot_Synchronizer::try_acquire()) {
-    //     kout << "J";
-    //     Machine::clear_bss();
-    // }
-
-    // if(Boot_Synchronizer::try_acquire()) {
-    //     kout << "Z";
-    // }
-
-    // while(true);
+    CPU::smp_barrier();
 
     if (Traits<Machine>::supervisor) {
         // If we are using the machine mode, we won't need to setup int_m2s() and also won't need to delegate

@@ -311,7 +311,7 @@ public:
     static void flush_tlb() {         ASM("sfence.vma"    : :           : "memory"); }
     static void flush_tlb(Reg addr) { ASM("sfence.vma %0" : : "r"(addr) : "memory"); }
 
-    static void fence() { ASM("fence" : : : "memory"); }
+    static void fence_i() { ASM("fence.i" : : : "memory"); }
 
     using CPU_Common::htole64;
     using CPU_Common::htole32;

@@ -13,7 +13,7 @@ bool Thread::_not_booting;
 volatile unsigned int Thread::_thread_count;
 Scheduler_Timer * Thread::_timer;
 Scheduler<Thread> Thread::_scheduler;
-Simple_Spin Thread::_spinlock;
+Spin Thread::_spinlock;
 
 void Thread::constructor_prologue(unsigned int stack_size)
 {

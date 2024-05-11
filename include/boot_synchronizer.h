@@ -16,7 +16,7 @@ public:
 
 private:
     static unsigned int _counter[Traits<Build>::CPUS];
-    static volatile unsigned int _max;
+    static volatile unsigned int _step;
     static volatile bool _locked;
 };
 

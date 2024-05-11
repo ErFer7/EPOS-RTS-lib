@@ -5,7 +5,6 @@
 
 __BEGIN_SYS
 
-unsigned int Timer::_timer_cpu;
 Timer * Timer::_channels[CHANNELS];
 
 void Timer::int_handler(Interrupt_Id i)

@@ -25,7 +25,6 @@ void Machine::init()
 
     if(Traits<Timer>::enabled) {
         Timer::init();
-        Timer::timer_cpu(CPU::id());
     }
 }
 

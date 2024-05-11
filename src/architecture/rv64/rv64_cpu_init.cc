@@ -11,8 +11,6 @@ void CPU::init()
 {
     db<Init, CPU>(TRC) << "CPU::init()" << endl;
 
-    CPU::smp_barrier();  // TODO: Check this
-
     if(Boot_Synchronizer::try_acquire()) {
         if(Traits<MMU>::enabled)
             MMU::init();
@@ -20,12 +18,14 @@ void CPU::init()
             db<Init, MMU>(WRN) << "MMU is disabled!" << endl;
     }
 
-    CPU::smp_barrier();  // TODO: Check this
+    CPU::smp_barrier();
 
 #ifdef __TSC_H
     if(Traits<TSC>::enabled)
         TSC::init();
 #endif
+
+    // TODO: Should we put a barrier here?
 
 #ifdef __PMU_H
     if(Traits<PMU>::enabled)

@@ -15,7 +15,12 @@ void Thread::init()
 {
     db<Init, Thread>(TRC) << "Thread::init()" << endl;
 
+    // TODO: Maybe we should put a barrier here to prevent any problems with the Criterion::init()
+    CPU::smp_barrier();
+
     Criterion::init();
+
+    CPU::smp_barrier();  // TODO: Check if this should be here
 
     if (Boot_Synchronizer::try_acquire()) {
         typedef int (Main)();
@@ -30,7 +35,10 @@ void Thread::init()
     // Idle thread creation does not cause rescheduling (see Thread::constructor_epilogue)
     new (SYSTEM) Thread(Thread::Configuration(Thread::READY, Thread::IDLE), &Thread::idle);
 
-    CPU::smp_barrier();  // TODO: Check this
+    CPU::smp_barrier();
+
+    // db<Init>(WRN) << "I";
+    // while(true);
 
     // The installation of the scheduler timer handler does not need to be done after the
     // creation of threads, since the constructor won't call reschedule() which won't call

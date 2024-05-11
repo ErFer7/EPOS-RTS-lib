@@ -114,7 +114,7 @@ protected:
         CPU::int_enable();
     }
 
-    static bool locked() { return CPU::int_disabled(); }
+    static bool locked() { return _spinlock.taken(); }
 
     void save_original_priority() { _original_priority = _link.rank(); }
     const Criterion & original_priority() const { return _original_priority; }
@@ -147,7 +147,7 @@ protected:
     static volatile unsigned int _thread_count;
     static Scheduler_Timer * _timer;
     static Scheduler<Thread> _scheduler;
-    static Simple_Spin _spinlock;  // TODO: This could be problematic, but I don't know... Maybe we should use the real Spin
+    static Spin _spinlock;
 };
 
 

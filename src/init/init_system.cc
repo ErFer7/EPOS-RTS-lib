@@ -22,7 +22,11 @@ public:
 
         db<Init>(INF) << "Initializing the architecture: " << endl;
 
+        CPU::smp_barrier();
+
         CPU::init();
+
+        CPU::smp_barrier();
 
         if(Boot_Synchronizer::try_acquire()) {
             db<Init>(INF) << "Initializing system's heap: " << endl;
@@ -40,12 +44,11 @@ public:
                 System::_heap = new (&System::_preheap[0]) Heap(MMU::alloc(MMU::pages(HEAP_SIZE)), HEAP_SIZE);
 
             db<Init>(INF) << "Initializing the machine: " << endl;
-            // TODO: We will need to move this outside to enable time interruptions for all cores (it's necessary for the idle threads to work properly)
-            // However, only one core should call the time interruption handler (the timer cpu)
-            Machine::init();
         }
 
-        CPU::smp_barrier();  // TODO: Check this
+        Machine::init();
+
+        CPU::smp_barrier();
 
         db<Init>(INF) << "Initializing system abstractions: " << endl;
         System::init();

@@ -221,6 +221,21 @@ public:
         Real_Time_Scheduler_Common(d - c, d, p, c) {}
 };
 
+class GLLF: public LLF
+{
+public:
+    static const unsigned int HEADS = Traits<Machine>::CPUS;
+
+public:
+    GLLF(int p = APERIODIC): LLF(p) {}
+    GLLF(const Microsecond & d, const Microsecond & p = SAME, const Microsecond & c = UNKNOWN, unsigned int cpu = ANY)
+    : LLF(d, p, c, cpu) {}
+
+    unsigned int queue() const { return current_head(); }
+    void queue(unsigned int q) {}
+    static unsigned int current_head() { return CPU::id(); }
+};
+
 __END_SYS
 
 #endif
