@@ -294,15 +294,17 @@ public:
     static T cas(volatile T & value, T compare, T replacement) {
         register T old;
         if(sizeof(T) == sizeof(Reg64))
-            ASM("   ld      %0, (%1)              \n"
-                "   bne     %0, %2, 2f            \n"
-                "   amoswap.d.aq %0, %3, (%1)     \n"
-                "2:                               \n" : "=&r"(old) : "r"(&value), "r"(compare), "r"(replacement) : "cc", "memory");
+            ASM("1: lr.d    %0, (%1)        \n"
+                "   bne     %0, %2, 2f      \n"
+                "   sc.d    t3, %3, (%1)    \n"
+                "   bnez    t3, 1b          \n"
+                "2:                         \n" : "=&r"(old) : "r"(&value), "r"(compare), "r"(replacement) : "t3", "cc", "memory");
         else
-            ASM("   lw      %0, (%1)              \n"
-                "   bne     %0, %2, 2f            \n"
-                "   amoswap.w.aq %0, %3, (%1)     \n"
-                "2:                               \n" : "=&r"(old) : "r"(&value), "r"(compare), "r"(replacement) : "cc", "memory");
+            ASM("1: lr.w    %0, (%1)        \n"
+                "   bne     %0, %2, 2f      \n"
+                "   sc.w    t3, %3, (%1)    \n"
+                "   bnez    t3, 1b          \n"
+                "2:                         \n" : "=&r"(old) : "r"(&value), "r"(compare), "r"(replacement) : "t3", "cc", "memory");
         return old;
     }
 
@@ -311,6 +313,7 @@ public:
     static void flush_tlb() {         ASM("sfence.vma"    : :           : "memory"); }
     static void flush_tlb(Reg addr) { ASM("sfence.vma %0" : : "r"(addr) : "memory"); }
 
+    static void fence() { ASM("fence" : : : "memory"); }
     static void fence_i() { ASM("fence.i" : : : "memory"); }
 
     using CPU_Common::htole64;

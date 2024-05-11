@@ -31,7 +31,10 @@ public:
         // It will return MAIN for CPU0 and IDLE for the others
         Thread * first = Thread::self();  // TODO: It's returning MAIN for all cores :(
 
-        db<Init, Thread>(INF) << "Dispatching the first thread: " << first << endl;
+        db<Init, Thread>(WRN) << "Dispatching the first thread: " << first << endl;
+
+        db<Init>(WRN) << "A";
+        while(true);
 
         CPU::smp_barrier();  // TODO: Check this
 

@@ -672,7 +672,7 @@ void _entry() // machine mode
 
     CPU::tp(CPU::mhartid() - 1);                        // tp will be CPU::id(); we won't count core 0, which is an heterogeneous E51
     CPU::mstatusc(CPU::MIE);                            // disable interrupts (they will be reenabled at Init_End)
-    CPU::sp((Memory_Map::BOOT_STACK - Traits<Machine>::STACK_SIZE * CPU::id()) + Traits<Machine>::STACK_SIZE * CPU::mhartid() - sizeof(long)); // set the stack pointer, thus creating a stack for SETUP for each core
+    CPU::sp(Memory_Map::BOOT_STACK + Traits<Machine>::STACK_SIZE * CPU::mhartid() - sizeof(long)); // set the stack pointer, thus creating a stack for SETUP for each core
 
     if(Boot_Synchronizer::try_acquire()) {
         Machine::clear_bss();

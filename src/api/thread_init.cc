@@ -37,9 +37,6 @@ void Thread::init()
 
     CPU::smp_barrier();
 
-    // db<Init>(WRN) << "I";
-    // while(true);
-
     // The installation of the scheduler timer handler does not need to be done after the
     // creation of threads, since the constructor won't call reschedule() which won't call
     // dispatch that could call timer->reset()
@@ -49,13 +46,13 @@ void Thread::init()
     if(Criterion::timed && Boot_Synchronizer::try_acquire())
         _timer = new (SYSTEM) Scheduler_Timer(QUANTUM, time_slicer);
 
-    if (Traits<Frequency_Profiler>::profiled && Boot_Synchronizer::try_acquire())
+    if (Traits<Frequency_Profiler>::profiled && Traits<Build>::CPUS == 1)
         Frequency_Profiler::profile();
 
     // No more interrupts until we reach init_end
     CPU::int_disable();
 
-    if (Traits<Frequency_Profiler>::profiled && Boot_Synchronizer::try_acquire())
+    if (Traits<Frequency_Profiler>::profiled && Traits<Build>::CPUS == 1)
         Frequency_Profiler::analyse_profiled_data();
 
     // Transition from CPU-based locking to thread-based locking
