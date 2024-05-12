@@ -21,20 +21,21 @@ public:
             return;
         }
 
+        CPU::smp_barrier();
+
         if(Memory_Map::BOOT_STACK != Memory_Map::NOT_USED)
-            MMU::free(Memory_Map::BOOT_STACK, MMU::pages(Traits<Machine>::STACK_SIZE));  // TODO: Free everything correctly
+            MMU::free(Memory_Map::BOOT_STACK + Traits<Machine>::STACK_SIZE * CPU::id(), MMU::pages(Traits<Machine>::STACK_SIZE));
 
         db<Init>(INF) << "INIT ends here!" << endl;
+
+        CPU::smp_barrier();
 
         // Thread::self() and Task::self() can be safely called after the construction of MAIN
         // even if no reschedule() was called (running is set by the Scheduler at each insert())
         // It will return MAIN for CPU0 and IDLE for the others
-        Thread * first = Thread::self();  // TODO: It's returning MAIN for all cores :(
+        Thread * first = Thread::self();
 
-        db<Init, Thread>(WRN) << "Dispatching the first thread: " << first << endl;
-
-        db<Init>(WRN) << "A";
-        while(true);
+        db<Init, Thread>(INF) << "Dispatching the first thread: " << first << endl;
 
         CPU::smp_barrier();  // TODO: Check this
 

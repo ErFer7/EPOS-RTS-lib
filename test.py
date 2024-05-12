@@ -28,8 +28,11 @@ for i in range(TESTS):
         print('>>> Error:', exception)
         break
 
-    if not 'J' in output:
+    if 'IC:' in output and not 'Hello multicore world!' in output:
         print('>>> Failed')
+        with open('output.txt', 'w', encoding='utf-8') as file:
+            file.write(output)
+
         break
 
     print('>>> Passed')

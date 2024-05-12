@@ -29,7 +29,7 @@ private:
 
 public:
     typedef typename T::Criterion Criterion;
-    typedef Multihead_Scheduling_List<T, Criterion> Queue;
+    typedef Scheduling_List<T, Criterion> Queue;
     typedef typename Queue::Element Element;
 
 public:

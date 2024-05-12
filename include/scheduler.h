@@ -238,4 +238,12 @@ public:
 
 __END_SYS
 
+__BEGIN_UTIL
+
+template<typename T>
+class Scheduling_Queue<T, GLLF>:
+public Multihead_Scheduling_List<T> {};
+
+__END_UTIL
+
 #endif
