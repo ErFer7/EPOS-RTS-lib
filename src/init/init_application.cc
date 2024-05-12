@@ -20,8 +20,6 @@ public:
     Init_Application() {
         db<Init>(TRC) << "Init_Application()" << endl;
 
-        CPU::smp_barrier();
-
         if (Boot_Synchronizer::try_acquire()) {
             // Initialize Application's heap
             db<Init>(INF) << "Initializing application's heap: ";

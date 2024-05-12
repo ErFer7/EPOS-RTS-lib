@@ -15,12 +15,9 @@ void Thread::init()
 {
     db<Init, Thread>(TRC) << "Thread::init()" << endl;
 
-    // TODO: Maybe we should put a barrier here to prevent any problems with the Criterion::init()
     CPU::smp_barrier();
 
     Criterion::init();
-
-    CPU::smp_barrier();  // TODO: Check if this should be here
 
     if (Boot_Synchronizer::try_acquire()) {
         typedef int (Main)();

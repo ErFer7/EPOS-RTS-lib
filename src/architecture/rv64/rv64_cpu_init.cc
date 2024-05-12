@@ -18,8 +18,6 @@ void CPU::init()
             db<Init, MMU>(WRN) << "MMU is disabled!" << endl;
     }
 
-    CPU::smp_barrier();
-
 #ifdef __TSC_H
     if(Traits<TSC>::enabled)
         TSC::init();
