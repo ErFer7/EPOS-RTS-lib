@@ -102,11 +102,10 @@ void Thread::priority(const Criterion & c)
 
     db<Thread>(TRC) << "Thread::priority(this=" << this << ",prio=" << c << ")" << endl;
 
-    _link.rank(Criterion(c));
-
     if(_state != RUNNING) {
         _scheduler.remove(this);
         _scheduler.insert(this);
+        _link.rank(Criterion(c));
     }
 
     if(preemptive)
