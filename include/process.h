@@ -111,7 +111,8 @@ protected:
 
     static void unlock() {
         _spinlock.release();
-        CPU::int_enable();
+        if(_not_booting)  // TODO: Why do we need this?
+            CPU::int_enable();
     }
 
     static bool locked() { return _spinlock.taken(); }

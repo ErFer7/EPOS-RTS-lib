@@ -107,6 +107,7 @@ template <> struct Traits<Frequency_Profiler>: public Traits<Machine_Common>
 
 template <> struct Traits<Priority_Inversion_Solver>: public Traits<Machine_Common>
 {
+    static const bool priority_inversion_solver_enabled = false;
     static const bool priority_ceiling = false;
 };
 

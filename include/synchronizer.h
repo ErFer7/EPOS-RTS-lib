@@ -41,7 +41,7 @@ protected:
 class Mutex: protected Synchronizer_Common
 {
 public:
-    Mutex(bool solve_priority_inversion = true);
+    Mutex(bool solve_priority_inversion = Traits<Priority_Inversion_Solver>::priority_inversion_solver_enabled);
     ~Mutex();
 
     void lock();
@@ -57,7 +57,7 @@ private:
 class Semaphore: protected Synchronizer_Common
 {
 public:
-    Semaphore(long v = 1, bool solve_priority_inversion = true);
+    Semaphore(long v = 1, bool solve_priority_inversion = Traits<Priority_Inversion_Solver>::priority_inversion_solver_enabled);
     ~Semaphore();
 
     void p();

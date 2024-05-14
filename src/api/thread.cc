@@ -111,8 +111,8 @@ void Thread::priority(const Criterion & c)
 
     if(preemptive)
         reschedule();
-    else
-        unlock();
+
+    unlock();
 }
 
 
@@ -387,7 +387,7 @@ int Thread::idle()
         CPU::int_enable();
         CPU::halt();
 
-        if(!preemptive && _scheduler.schedulables() > 0)
+        if(!preemptive)
             yield();
     }
 
