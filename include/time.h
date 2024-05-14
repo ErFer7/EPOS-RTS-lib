@@ -62,8 +62,17 @@ private:
     static Microsecond timer_period() { return 1000000 / frequency(); }
     static Tick ticks(const Microsecond & time) { return (time + timer_period() / 2) / timer_period(); }
 
-    static void lock() { Thread::lock(); }
-    static void unlock() { Thread::unlock(); }
+    static void lock() {
+        CPU::int_disable();
+        _lock.acquire();
+    }
+
+    static void unlock() {
+        _lock.release();
+        CPU::int_enable();
+    }
+
+    static bool locked() { return _lock.taken(); }
 
     static void handler(IC::Interrupt_Id i);
 
@@ -79,6 +88,7 @@ private:
     static Alarm_Timer * _timer;
     static volatile Tick _elapsed;
     static Queue _request;
+    static Spin _lock;
 };
 
 

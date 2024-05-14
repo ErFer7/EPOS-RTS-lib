@@ -102,17 +102,16 @@ void Thread::priority(const Criterion & c)
 
     db<Thread>(TRC) << "Thread::priority(this=" << this << ",prio=" << c << ")" << endl;
 
-    _link.rank(Criterion(c));
-
     if(_state != RUNNING) {
         _scheduler.remove(this);
         _scheduler.insert(this);
+        _link.rank(Criterion(c));
     }
 
     if(preemptive)
         reschedule();
-    else
-        unlock();
+
+    unlock();
 }
 
 
@@ -387,7 +386,7 @@ int Thread::idle()
         CPU::int_enable();
         CPU::halt();
 
-        if(!preemptive && _scheduler.schedulables() > 0)
+        if(!preemptive)
             yield();
     }
 
