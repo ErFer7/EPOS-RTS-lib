@@ -104,8 +104,8 @@ void Thread::priority(const Criterion & c)
 
     if(_state != RUNNING) {
         _scheduler.remove(this);
-        _scheduler.insert(this);
         _link.rank(Criterion(c));
+        _scheduler.insert(this);
     }
 
     if(preemptive)
@@ -119,10 +119,9 @@ void Thread::non_locked_priority(const Criterion & c)
 {
     db<Thread>(TRC) << "Thread::non_locked_priority(this=" << this << ",prio=" << c << ")" << endl;
 
-    _link.rank(Criterion(c));
-
     if(_state != RUNNING) {
         _scheduler.remove(this);
+        _link.rank(Criterion(c));
         _scheduler.insert(this);
     }
 }
@@ -391,7 +390,7 @@ int Thread::idle()
     }
 
     CPU::int_disable();
-    if (Boot_Synchronizer::try_acquire()) {
+    if (Boot_Synchronizer::acquire_single_core_section()) {
         db<Thread>(WRN) << "The last thread has exited!" << endl;
         if(reboot) {
             db<Thread>(WRN) << "Rebooting the machine ..." << endl;

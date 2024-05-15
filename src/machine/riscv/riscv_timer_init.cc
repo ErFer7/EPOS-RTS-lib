@@ -15,7 +15,7 @@ void Timer::init()
 
     IC::int_vector(IC::INT_SYS_TIMER, int_handler);
 
-    if (Boot_Synchronizer::try_acquire()) {
+    if (Boot_Synchronizer::acquire_single_core_section()) {
         _alarm_handler_cpu = CPU::id();
     }
 

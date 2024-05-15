@@ -107,7 +107,7 @@ Setup::Setup()
 {
     si = reinterpret_cast<System_Info *>(&__boot_time_system_info);
 
-    if(Boot_Synchronizer::try_acquire()) {
+    if(Boot_Synchronizer::acquire_single_core_section()) {
         // SETUP doesn't handle global constructors, so we need to manually initialize any object with a non-empty default constructor
         new (&kout) OStream;
         new (&kerr) OStream;
@@ -674,7 +674,7 @@ void _entry() // machine mode
     CPU::mstatusc(CPU::MIE);                            // disable interrupts (they will be reenabled at Init_End)
     CPU::sp(Memory_Map::BOOT_STACK + Traits<Machine>::STACK_SIZE * CPU::mhartid() - sizeof(long)); // set the stack pointer, thus creating a stack for SETUP for each core
 
-    if(Boot_Synchronizer::try_acquire()) {
+    if(Boot_Synchronizer::acquire_single_core_section()) {
         Machine::clear_bss();
     }
 

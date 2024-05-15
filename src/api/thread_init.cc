@@ -19,7 +19,7 @@ void Thread::init()
 
     Criterion::init();
 
-    if (Boot_Synchronizer::try_acquire()) {
+    if (Boot_Synchronizer::acquire_single_core_section()) {
         typedef int (Main)();
 
         // If EPOS is a library, then adjust the application entry point to __epos_app_entry, which will directly call main().
@@ -40,7 +40,7 @@ void Thread::init()
     // Letting reschedule() happen during thread creation is also harmless, since MAIN is
     // created first and dispatch won't replace it nor by itself neither by IDLE (which
     // has a lower priority)
-    if(Criterion::timed && Boot_Synchronizer::try_acquire())
+    if(Criterion::timed && Boot_Synchronizer::acquire_single_core_section())
         _timer = new (SYSTEM) Scheduler_Timer(QUANTUM, time_slicer);
 
     if (Traits<Frequency_Profiler>::profiled && Traits<Build>::CPUS == 1)

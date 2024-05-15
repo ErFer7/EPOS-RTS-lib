@@ -10,7 +10,6 @@ Timer * Timer::_channels[CHANNELS];
 
 void Timer::int_handler(Interrupt_Id i)
 {
-    // TODO: Multicore stuff here
     if(_channels[ALARM] && CPU::id() == _alarm_handler_cpu && (--_channels[ALARM]->_current[0] <= 0)) {
         _channels[ALARM]->_current[_alarm_handler_cpu] = _channels[ALARM]->_initial;
         _channels[ALARM]->_handler(i);

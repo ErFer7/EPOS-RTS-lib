@@ -11,7 +11,7 @@ void CPU::init()
 {
     db<Init, CPU>(TRC) << "CPU::init()" << endl;
 
-    if(Boot_Synchronizer::try_acquire()) {
+    if(Boot_Synchronizer::acquire_single_core_section()) {
         if(Traits<MMU>::enabled)
             MMU::init();
         else
