@@ -104,8 +104,8 @@ void Thread::priority(const Criterion & c)
 
     if(_state != RUNNING) {
         _scheduler.remove(this);
-        _scheduler.insert(this);
         _link.rank(Criterion(c));
+        _scheduler.insert(this);
     }
 
     if(preemptive)
