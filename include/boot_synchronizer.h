@@ -12,7 +12,7 @@ class Boot_Synchronizer
 public:
     // When a core tries to acquire a boot task; something that should be done only once, the synchronizer will check
     // if the task was already done and it will return true if the task was not done yet, and false otherwise.
-    static bool try_acquire();
+    static bool acquire_single_core_section();
 
 private:
     static unsigned int _counter[Traits<Build>::CPUS];

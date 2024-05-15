@@ -28,7 +28,7 @@ public:
 
         CPU::smp_barrier();
 
-        if(Boot_Synchronizer::try_acquire()) {
+        if(Boot_Synchronizer::acquire_single_core_section()) {
             db<Init>(INF) << "Initializing system's heap: " << endl;
             if(Traits<System>::multiheap) {
                 System::_heap_segment = new (&System::_preheap[0]) Segment(HEAP_SIZE, Segment::Flags::SYSD);
@@ -54,7 +54,7 @@ public:
         System::init();
 
         // Randomize the Random Numbers Generator's seed
-        if(Traits<Random>::enabled && Boot_Synchronizer::try_acquire()) {
+        if(Traits<Random>::enabled && Boot_Synchronizer::acquire_single_core_section()) {
             db<Init>(INF) << "Randomizing the Random Numbers Generator's seed." << endl;
             if(Traits<TSC>::enabled)
                 Random::seed(TSC::time_stamp());

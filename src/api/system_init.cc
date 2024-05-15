@@ -9,7 +9,7 @@ __BEGIN_SYS
 
 void System::init()
 {
-    if(Traits<Alarm>::enabled && Boot_Synchronizer::try_acquire())
+    if(Traits<Alarm>::enabled && Boot_Synchronizer::acquire_single_core_section())
         Alarm::init();
 
     if(Traits<Thread>::enabled)

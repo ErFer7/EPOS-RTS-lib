@@ -20,7 +20,7 @@ public:
     Init_Application() {
         db<Init>(TRC) << "Init_Application()" << endl;
 
-        if (Boot_Synchronizer::try_acquire()) {
+        if (Boot_Synchronizer::acquire_single_core_section()) {
             // Initialize Application's heap
             db<Init>(INF) << "Initializing application's heap: ";
             if(Traits<System>::multiheap) { // heap in data segment arranged by SETUP

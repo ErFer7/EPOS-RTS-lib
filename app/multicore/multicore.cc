@@ -2,14 +2,16 @@
 #include <time.h>
 #include <real-time.h>
 #include <synchronizer.h>
+#include <utility/spin.h>
 
 using namespace EPOS;
 
-const int work_time = 10000000; // us
+const int work_time = 1000000; // us
+const int thread_count = 16;
 
-Mutex print_mutex;
+Spin print_lock;
 OStream cout;
-Thread * threads[8];
+Thread * threads[thread_count];
 Chronometer chrono;
 
 void print();
@@ -18,7 +20,7 @@ int simple_task();
 
 void test_single_thread_creation();
 void test_multiple_threads_creation();
-void test_threads_over_time();
+void test_threads_with_heavy_work();
 
 int main()
 {
@@ -28,7 +30,7 @@ int main()
 
     test_single_thread_creation();
     test_multiple_threads_creation();
-    test_threads_over_time();
+    test_threads_with_heavy_work();
 
     chrono.stop();
 
@@ -36,9 +38,9 @@ int main()
 }
 
 void print() {
-    print_mutex.lock();
+    print_lock.acquire();
     cout << "Thread [" << Thread::self() << "] is running on core [" << CPU::id() << "]" << endl;
-    print_mutex.unlock();
+    print_lock.release();
 }
 
 int simple_task() {
@@ -49,23 +51,18 @@ int simple_task() {
 int heavy_task() {
 
     int initial_time = chrono.read();
-    int final_time = 0;
-    int total_elapsed_time = 0;
-    int last_print_time = 0;
-    int print_interval = 10000;
+    int last_print_time = chrono.read();
+    int print_time = last_print_time;
+    const int print_interval = 250000;
 
     do {
-        final_time = chrono.read();
-
-        if (last_print_time > print_interval) {
-            last_print_time = 0;
+        if (print_time > print_interval) {
+            last_print_time = chrono.read();
             print();
         }
 
-        int elapsed_time = final_time - initial_time;
-        last_print_time += elapsed_time;
-        total_elapsed_time += elapsed_time;
-    } while (total_elapsed_time < work_time);
+        print_time = chrono.read() - last_print_time;
+    } while (chrono.read() - initial_time < work_time);
 
     return 0;
 }
@@ -86,11 +83,11 @@ void test_single_thread_creation() {
 
 void test_multiple_threads_creation() {
     cout << "Test 2: Creating multiple threads" << endl;
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < thread_count; i++) {
         threads[i] = new Thread(&simple_task);
     }
 
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < thread_count; i++) {
         int status = threads[i]->join();
         delete threads[i];
         if (status != 0) {
@@ -102,13 +99,13 @@ void test_multiple_threads_creation() {
     cout << "Test 2: Passed\n" << endl;
 }
 
-void test_threads_over_time() {
+void test_threads_with_heavy_work() {
     cout << "Test 3: Creating multiple threads over time" << endl;
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < thread_count; i++) {
         threads[i] = new Thread(&heavy_task);
     }
 
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < thread_count; i++) {
         int status = threads[i]->join();
         delete threads[i];
         if (status != 0) {
