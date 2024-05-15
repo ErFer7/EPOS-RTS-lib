@@ -1,6 +1,7 @@
 // EPOS RISC-V 64 CPU Mediator Initialization
 
 #include <architecture.h>
+#include <boot_synchronizer.h>
 
 extern "C" { void __epos_library_app_entry(void); }
 
@@ -10,10 +11,12 @@ void CPU::init()
 {
     db<Init, CPU>(TRC) << "CPU::init()" << endl;
 
-    if(Traits<MMU>::enabled)
-        MMU::init();
-    else
-        db<Init, MMU>(WRN) << "MMU is disabled!" << endl;
+    if(Boot_Synchronizer::acquire_single_core_section()) {
+        if(Traits<MMU>::enabled)
+            MMU::init();
+        else
+            db<Init, MMU>(WRN) << "MMU is disabled!" << endl;
+    }
 
 #ifdef __TSC_H
     if(Traits<TSC>::enabled)

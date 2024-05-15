@@ -29,7 +29,7 @@ public:
 
         if(--_level <= 0) {
     	    _level = 0;
-            _owner = 0;
+            CPU::asz(_owner);
     	}
     }
 

@@ -66,7 +66,7 @@ void work(char c, Periodic_Thread *thread) {
 
     while (time < 500) {
         if (last_cout + 50 < time) {
-            cout << "Thread [" << c << "] " << "is working. Time elapsed: " << elapsed << ", priority: " << thread->priority() << endl;
+            cout << "Thread [" << c << "] " << "is working. Time elapsed: " << elapsed << ", priority: " << thread->priority() << ", core: " << CPU::id() << endl;
             last_cout = time;
         }
 
