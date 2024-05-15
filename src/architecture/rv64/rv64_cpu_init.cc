@@ -23,7 +23,6 @@ void CPU::init()
         TSC::init();
 #endif
 
-    // TODO: Should we put a barrier here?
 
 #ifdef __PMU_H
     if(Traits<PMU>::enabled)

@@ -21,7 +21,6 @@ System_Info * System::_si = (Memory_Map::SYS_INFO != Memory_Map::NOT_USED) ? rei
 char System::_preheap[];
 Segment * System::_heap_segment;
 Heap * System::_heap;
-volatile Spin System::_heap_lock;
 
 __END_SYS
 

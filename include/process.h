@@ -106,15 +106,15 @@ protected:
 
     static void lock() {
         CPU::int_disable();
-        _spinlock.acquire();
+        _lock.acquire();
     }
 
     static void unlock() {
-        _spinlock.release();
+        _lock.release();
         CPU::int_enable();
     }
 
-    static bool locked() { return _spinlock.taken(); }
+    static bool locked() { return _lock.taken(); }
 
     void save_original_priority() { _original_priority = _link.rank(); }
     const Criterion & original_priority() const { return _original_priority; }
@@ -147,7 +147,7 @@ protected:
     static volatile unsigned int _thread_count;
     static Scheduler_Timer * _timer;
     static Scheduler<Thread> _scheduler;
-    static Spin _spinlock;
+    static Spin _lock;
 };
 
 

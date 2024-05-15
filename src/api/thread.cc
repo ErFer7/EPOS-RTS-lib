@@ -14,7 +14,7 @@ bool Thread::_not_booting;
 volatile unsigned int Thread::_thread_count;
 Scheduler_Timer * Thread::_timer;
 Scheduler<Thread> Thread::_scheduler;
-Spin Thread::_spinlock;
+Spin Thread::_lock;
 
 void Thread::constructor_prologue(unsigned int stack_size)
 {
@@ -360,7 +360,7 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
         }
         db<Thread>(INF) << "Thread::dispatch:next={" << next << ",ctx=" << *next->_context << "}" << endl;
 
-        _spinlock.release();
+        _lock.release();
 
         // The non-volatile pointer to volatile pointer to a non-volatile context is correct
         // and necessary because of context switches, but here, we are locked() and
@@ -369,7 +369,7 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
         // parameters on the stack anyway).
         CPU::switch_context(const_cast<Context **>(&prev->_context), next->_context);
 
-        _spinlock.acquire();
+        _lock.acquire();
     }
 }
 
