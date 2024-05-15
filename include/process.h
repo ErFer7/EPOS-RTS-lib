@@ -91,7 +91,7 @@ public:
     void suspend();
     void resume();
 
-    static Thread * volatile self() { return _not_booting ? running() : reinterpret_cast<Thread * volatile>(CPU::id() + 1); }
+    static Thread * volatile self();
     static void yield();
     static void exit(int status = 0);
 
@@ -104,14 +104,21 @@ protected:
 
     static Thread * volatile running() { return _scheduler.chosen(); }
 
-    static void lock() { CPU::int_disable(); }
-    static void unlock() { CPU::int_enable(); }
-    static bool locked() { return CPU::int_disabled(); }
+    static void lock() {
+        CPU::int_disable();
+        _spinlock.acquire();
+    }
+
+    static void unlock() {
+        _spinlock.release();
+        CPU::int_enable();
+    }
+
+    static bool locked() { return _spinlock.taken(); }
 
     void save_original_priority() { _original_priority = _link.rank(); }
     const Criterion & original_priority() const { return _original_priority; }
     PIS_List * synchronizers_in_use() { return _synchronizers_in_use; }
-
     static void sleep(Queue * q);
     static void wakeup(Queue * q);
     static void wakeup_all(Queue * q);
@@ -140,6 +147,7 @@ protected:
     static volatile unsigned int _thread_count;
     static Scheduler_Timer * _timer;
     static Scheduler<Thread> _scheduler;
+    static Spin _spinlock;
 };
 
 

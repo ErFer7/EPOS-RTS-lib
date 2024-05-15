@@ -5,6 +5,7 @@
 #define __setup__
 
 #include <architecture.h>
+#include <boot_synchronizer.h>
 #include <machine.h>
 #include <utility/elf.h>
 #include <utility/string.h>
@@ -106,29 +107,31 @@ Setup::Setup()
 {
     si = reinterpret_cast<System_Info *>(&__boot_time_system_info);
 
-    // SETUP doesn't handle global constructors, so we need to manually initialize any object with a non-empty default constructor
-    new (&kout) OStream;
-    new (&kerr) OStream;
-    Display::init();
-    kout << endl;
-    kerr << endl;
+    if(Boot_Synchronizer::acquire_single_core_section()) {
+        // SETUP doesn't handle global constructors, so we need to manually initialize any object with a non-empty default constructor
+        new (&kout) OStream;
+        new (&kerr) OStream;
+        Display::init();
+        kout << endl;
+        kerr << endl;
 
-    db<Setup>(TRC) << "Setup(si=" << reinterpret_cast<void *>(si) << ",sp=" << CPU::sp() << ")" << endl;
-    db<Setup>(INF) << "Setup:si=" << *si << endl;
+        db<Setup>(TRC) << "Setup(si=" << reinterpret_cast<void *>(si) << ",sp=" << CPU::sp() << ")" << endl;
+        db<Setup>(INF) << "Setup:si=" << *si << endl;
 
-    // Print basic facts about this EPOS instance
-    say_hi();
+        // Print basic facts about this EPOS instance
+        say_hi();
 
-    // Memory paging is implemented only for the supervisor mode
-    if (Traits<Machine>::supervisor) {
-        // Configure a flat memory model for the single task in the system
-        setup_flat_paging();
+        // Memory paging is implemented only for the supervisor mode
+        if (Traits<Machine>::supervisor) {
+            // Configure a flat memory model for the single task in the system
+            setup_flat_paging();
 
-        // Relocate the machine to supervisor interrupt forwarder
-        setup_m2s();
+            // Relocate the machine to supervisor interrupt forwarder
+            setup_m2s();
 
-        // Enable paging
-        enable_paging();
+            // Enable paging
+            enable_paging();
+        }
     }
 
     // SETUP ends here, so let's transfer control to the next stage (INIT or APP)
@@ -667,16 +670,21 @@ void _entry() // machine mode
     if(CPU::mhartid() == 0)                             // SiFive-U has 2 cores, but core 0 (an E51) does not feature an MMU, so we halt it and let core 1 (an U54) run in a single-core configuration
         CPU::halt();
 
+    CPU::tp(CPU::mhartid() - 1);                        // tp will be CPU::id(); we won't count core 0, which is an heterogeneous E51
     CPU::mstatusc(CPU::MIE);                            // disable interrupts (they will be reenabled at Init_End)
-    CPU::sp(Memory_Map::BOOT_STACK + Traits<Machine>::STACK_SIZE - sizeof(long)); // set the stack pointer, thus creating a stack for SETUP
-    Machine::clear_bss();
+    CPU::sp(Memory_Map::BOOT_STACK + Traits<Machine>::STACK_SIZE * CPU::mhartid() - sizeof(long)); // set the stack pointer, thus creating a stack for SETUP for each core
+
+    if(Boot_Synchronizer::acquire_single_core_section()) {
+        Machine::clear_bss();
+    }
+
+    CPU::smp_barrier();
 
     if (Traits<Machine>::supervisor) {
         // If we are using the machine mode, we won't need to setup int_m2s() and also won't need to delegate
         // interruptions. The interruptions will also not be enabled here, since they will be enabled after
         // the interruption handler is set up.
 
-        CPU::tp(CPU::mhartid() - 1);                        // tp will be CPU::id() for supervisor mode; we won't count core 0, which is an heterogeneous E51
         CPU::mtvec(CPU::INT_DIRECT, Memory_Map::INT_M2S);   // setup a machine mode interrupt handler to forward timer interrupts (which cannot be delegated via mideleg)
         CPU::mideleg(CPU::SSI | CPU::STI | CPU::SEI);       // delegate supervisor interrupts to supervisor mode
         CPU::medeleg(0xf1ff);                               // delegate all exceptions to supervisor mode but ecalls

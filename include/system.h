@@ -47,6 +47,7 @@ private:
     static char _preheap[(Traits<System>::multiheap ? sizeof(Segment) : 0) + sizeof(Heap)];
     static Segment * _heap_segment;
     static Heap * _heap;
+    static volatile Spin _heap_lock;
 };
 
 __END_SYS

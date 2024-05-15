@@ -228,8 +228,8 @@ public:
     static Log_Addr fr() { Reg r; ASM("mv %0, a0" :  "=r"(r)); return r; }
     static void fr(Reg r) {       ASM("mv a0, %0" : : "r"(r) :); }
 
-    static unsigned int id() { return supervisor ? tp() : mhartid(); }  // When in machine mode, the core 0 will be the E51 core
-    static unsigned int cores() { return 1; }  // TODO [For the group]: This should be changed for P3
+    static unsigned int id() { return tp(); }
+    static unsigned int cores() { return Traits<Build>::CPUS; }
 
     using CPU_Common::clock;
     using CPU_Common::min_clock;
@@ -294,15 +294,17 @@ public:
     static T cas(volatile T & value, T compare, T replacement) {
         register T old;
         if(sizeof(T) == sizeof(Reg64))
-            ASM("   ld      %0, (%1)              \n"
-                "   bne     %0, %2, 2f            \n"
-                "   amoswap.d.aq %0, %3, (%1)     \n"
-                "2:                               \n" : "=&r"(old) : "r"(&value), "r"(compare), "r"(replacement) : "cc", "memory");
+            ASM("1: lr.d    %0, (%1)        \n"
+                "   bne     %0, %2, 2f      \n"
+                "   sc.d    t3, %3, (%1)    \n"
+                "   bnez    t3, 1b          \n"
+                "2:                         \n" : "=&r"(old) : "r"(&value), "r"(compare), "r"(replacement) : "t3", "cc", "memory");
         else
-            ASM("   lw      %0, (%1)              \n"
-                "   bne     %0, %2, 2f            \n"
-                "   amoswap.w.aq %0, %3, (%1)     \n"
-                "2:                               \n" : "=&r"(old) : "r"(&value), "r"(compare), "r"(replacement) : "cc", "memory");
+            ASM("1: lr.w    %0, (%1)        \n"
+                "   bne     %0, %2, 2f      \n"
+                "   sc.w    t3, %3, (%1)    \n"
+                "   bnez    t3, 1b          \n"
+                "2:                         \n" : "=&r"(old) : "r"(&value), "r"(compare), "r"(replacement) : "t3", "cc", "memory");
         return old;
     }
 
