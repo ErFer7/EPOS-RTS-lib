@@ -5,7 +5,7 @@
 
 using namespace EPOS;
 
-const int work_time = 1000000;
+const int work_time = 10000000; // us
 
 Mutex print_mutex;
 OStream cout;
