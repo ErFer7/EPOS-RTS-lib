@@ -1,6 +1,7 @@
 // EPOS RISC-V Timer Mediator Initialization
 
 #include <architecture/cpu.h>
+#include <boot_synchronizer.h>
 #include <machine/timer.h>
 #include <machine/ic.h>
 
@@ -13,6 +14,10 @@ void Timer::init()
     assert(CPU::int_disabled());
 
     IC::int_vector(IC::INT_SYS_TIMER, int_handler);
+
+    if (Boot_Synchronizer::acquire_single_core_section()) {
+        _alarm_handler_cpu = CPU::id();
+    }
 
     reset();
     IC::enable(IC::INT_SYS_TIMER);

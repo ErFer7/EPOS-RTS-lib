@@ -27,7 +27,7 @@ void Mutex::lock()
         sleep();
     }
     if (_solve_priority_inversion)
-        _pis.enter_critical_section();
+        _pis.acquire_resource();
     end_atomic();
 }
 
@@ -38,10 +38,10 @@ void Mutex::unlock()
 
     begin_atomic();
     if (_solve_priority_inversion)
-        _pis.exit_critical_section();
+        _pis.release_resource();
 
     if(_queue.empty())
-        _locked = false;
+        asz(_locked);
     else
         wakeup();
     end_atomic();

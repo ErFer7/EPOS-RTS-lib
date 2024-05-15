@@ -122,10 +122,12 @@ class CEDF;
 class PRM;
 class EA_PEDF;
 class LLF;
+class GLLF;
 
 class Address_Space;
 class Segment;
 
+class Boot_Synchronizer;
 class Synchronizer;
 class Priority_Inversion_Solver;
 class Mutex;

@@ -14,16 +14,18 @@ Priority_Inversion_Solver::~Priority_Inversion_Solver() {
 }
 
 
-void Priority_Inversion_Solver::enter_critical_section() {
+void Priority_Inversion_Solver::acquire_resource() {
     db<Priority_Inversion_Solver>(TRC) << "Priority_Inversion_Solver::enter_critical_section(this=" << this << ")" << endl;
 
-    if (Thread::self()->priority() == Thread::MAIN || Thread::self()->priority() == Thread::IDLE)
+    Thread * self = Thread::self();
+
+    if (self->priority() == Thread::MAIN || self->priority() == Thread::IDLE)
         return;
 
     if (_critical_section_thread)  // This will be handled to avoid any serious problems
         _critical_section_thread->synchronizers_in_use()->remove(&_link);
 
-    _critical_section_thread = Thread::self();
+    _critical_section_thread = self;
     PIS_List * pis_list = _critical_section_thread->synchronizers_in_use();
 
     if (pis_list->empty())
@@ -34,10 +36,12 @@ void Priority_Inversion_Solver::enter_critical_section() {
 }
 
 
-void Priority_Inversion_Solver::exit_critical_section() {
+void Priority_Inversion_Solver::release_resource() {
     db<Priority_Inversion_Solver>(TRC) << "Priority_Inversion_Solver::exit_critical_section(this=" << this << ")" << endl;
 
-    if (!_critical_section_thread || Thread::self()->priority() == Thread::MAIN || Thread::self()->priority() == Thread::IDLE)
+    Criterion self_priority = Thread::self()->priority();
+
+    if (!_critical_section_thread || self_priority == Thread::MAIN || self_priority == Thread::IDLE)
         return;
 
     PIS_List * pis_list = _critical_section_thread->synchronizers_in_use();

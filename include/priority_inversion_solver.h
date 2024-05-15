@@ -27,8 +27,8 @@ protected:
     Criterion critical_section_priority() { return _critical_section_priority; }
     void critical_section_priority(Criterion p) { _critical_section_priority = p; }
 
-    void enter_critical_section();
-    void exit_critical_section();
+    void acquire_resource();
+    void release_resource();
     void blocked();
 
 private:
