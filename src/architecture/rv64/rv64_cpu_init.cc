@@ -23,7 +23,6 @@ void CPU::init()
         TSC::init();
 #endif
 
-
 #ifdef __PMU_H
     if(Traits<PMU>::enabled)
         PMU::init();

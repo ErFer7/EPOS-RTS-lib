@@ -119,6 +119,7 @@ protected:
     void save_original_priority() { _original_priority = _link.rank(); }
     const Criterion & original_priority() const { return _original_priority; }
     PIS_List * synchronizers_in_use() { return _synchronizers_in_use; }
+
     static void sleep(Queue * q);
     static void wakeup(Queue * q);
     static void wakeup_all(Queue * q);
