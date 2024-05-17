@@ -290,21 +290,24 @@ public:
         return old;
     }
 
+        /*
+        Implementando CAS com AMO
+        TO-DO:
+            - [] Testar se AMO está funcionando;
+            - [] Testar se o spin está funcionando como deveria com CAS;
+            - [] Apagar esse comentário.
+        Atenção:
+            - "memory" é uma restrição de memória que garante que as
+            operações de AMO não sejam reordenadas com outras operações de memória.
+        */
+
     template <typename T>
     static T cas(volatile T & value, T compare, T replacement) {
         register T old;
-        if(sizeof(T) == sizeof(Reg64))
-            ASM("1: lr.d    %0, (%1)        \n"
-                "   bne     %0, %2, 2f      \n"
-                "   sc.d    t3, %3, (%1)    \n"
-                "   bnez    t3, 1b          \n"
-                "2:                         \n" : "=&r"(old) : "r"(&value), "r"(compare), "r"(replacement) : "t3", "cc", "memory");
+        if (sizeof(T) == sizeof(Reg64))
+            ASM("amo.swap.d %0, %2, (%1)" : "=&r"(old) : "r"(&value), "r"(replacement) : "memory");
         else
-            ASM("1: lr.w    %0, (%1)        \n"
-                "   bne     %0, %2, 2f      \n"
-                "   sc.w    t3, %3, (%1)    \n"
-                "   bnez    t3, 1b          \n"
-                "2:                         \n" : "=&r"(old) : "r"(&value), "r"(compare), "r"(replacement) : "t3", "cc", "memory");
+            ASM("amo.swap.w %0, %2, (%1)" : "=&r"(old) : "r"(&value), "r"(replacement) : "memory");
         return old;
     }
 
