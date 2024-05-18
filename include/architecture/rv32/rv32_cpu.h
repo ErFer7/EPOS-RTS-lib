@@ -224,7 +224,7 @@ public:
     static Log_Addr fr() { Reg r; ASM("mv %0, a0" :  "=r"(r)); return r; }
     static void fr(Reg r) {       ASM("mv a0, %0" : : "r"(r) :); }
 
-    static unsigned int id() { return supervisor ? tp() : 0; }
+    static unsigned int id() { return supervisor ? tp() : mhartid(); }
     static unsigned int cores() { return 1; }
 
     using CPU_Common::clock;
@@ -461,7 +461,6 @@ if(interrupt) {
     ASM("       mv       x3,    x1              \n");   // push RA as PC on context switches
 }
     ASM("       sw       x3,    0(sp)           \n");   // push PC
-
 if(supervisor) {
     ASM("       csrr     x3, sstatus            \n");
 } else {
@@ -503,20 +502,15 @@ if(interrupt) {
 
 inline void CPU::Context::pop(bool interrupt)
 {
-if(interrupt) {
-    int_disable();                                      // atomize Context::pop() by disabling interrupts (SPIE will restore the flag on iret())
-}
     ASM("       lw       x3,    0(sp)           \n");   // pop PC into TMP
 if(supervisor) {
     ASM("       csrw     sepc, x3               \n");   // SEPC = PC
 } else {
     ASM("       csrw     mepc, x3               \n");   // MEPC = PC
 }
-    ASM("       lw       x3,    4(sp)           \n");   // pop ST into TMP
-if(!interrupt) {
-    ASM("       li      x10, %0                 \n"     // use X10 as a second TMP, since it will be restored later
+    ASM("       lw       x3,    4(sp)           \n"     // pop ST into TMP
+        "       li      x10, %0                 \n"     // use X10 as a second TMP, since it will be restored later
         "       or       x3, x3, x10            \n" : : "i"(supervisor ? SPP_S : MPP_M)); // [M|S]STATUS.[S|M]PP is automatically cleared on the [M|S]RET in the ISR, so we need to recover it here
-}
     ASM("       lw       x1,    8(sp)           \n"     // pop RA
         "       lw       x5,   12(sp)           \n"     // pop X5-X31
         "       lw       x6,   16(sp)           \n"

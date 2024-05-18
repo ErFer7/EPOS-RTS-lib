@@ -53,7 +53,7 @@ public:
     }
 
     void enable() { Traits<Machine>::emulated ? timer(STCS) = 0xf : timer(STCS) = 0x2;}
-    void disable() { timer(STCS) = 0; }
+    void disable() {timer(STCS) = 0;}
 
     void eoi() {} // TODO: implement at first need
 

@@ -5,7 +5,6 @@
 #include <machine/ic.h>
 #include <machine/timer.h>
 #include <process.h>
-#include <machine/frequency_profiler.h>
 
 extern "C" { static void print_context(bool push); }
 
@@ -19,9 +18,6 @@ void IC::entry()
     // Save context into the stack
     CPU::Context::push(true);
 
-    if(Traits<Frequency_Profiler>::profiled)
-        Frequency_Profiler::measure_initial_time();
-
     if(Traits<IC>::hysterically_debugged)
         print_context(true);
 
@@ -29,9 +25,6 @@ void IC::entry()
 
     if(Traits<IC>::hysterically_debugged)
         print_context(false);
-
-    if(Traits<Frequency_Profiler>::profiled)
-        Frequency_Profiler::measure_final_time();
 
     // Restore context from the stack
     CPU::Context::pop(true);

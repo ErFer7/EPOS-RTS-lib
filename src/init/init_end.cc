@@ -21,10 +21,8 @@ public:
             return;
         }
 
-        CPU::smp_barrier();
-
         if(Memory_Map::BOOT_STACK != Memory_Map::NOT_USED)
-            MMU::free(Memory_Map::BOOT_STACK + Traits<Machine>::STACK_SIZE * CPU::id(), MMU::pages(Traits<Machine>::STACK_SIZE));
+            MMU::free(Memory_Map::BOOT_STACK, MMU::pages(Traits<Machine>::STACK_SIZE));
 
         db<Init>(INF) << "INIT ends here!" << endl;
 
@@ -34,8 +32,6 @@ public:
         Thread * first = Thread::self();
 
         db<Init, Thread>(INF) << "Dispatching the first thread: " << first << endl;
-
-        CPU::smp_barrier();
 
         // Interrupts have been disabled at Thread::init() and will be reenabled by CPU::Context::load()
         // but we first reset the timer to avoid getting a time interrupt during load()

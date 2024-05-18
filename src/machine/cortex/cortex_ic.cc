@@ -214,7 +214,7 @@ void IC::prefetch_abort()
 void IC::undefined_instruction()
 {
     CPU::svc_enter(CPU::MODE_UNDEFINED, false); // enter SVC to capture LR (the faulting address) in r1
-    db<IC, Machine>(ERR) << "IC::undefined_instruction() [addr=" << CPU::Log_Addr(CPU::r1()) << "]" << endl;
+    db<IC, Machine>(WRN) << "IC::undefined_instruction() [addr=" << CPU::Log_Addr(CPU::r1()) << "]" << endl;
     CPU::svc_stay();  // undo the context saving of svc_enter(), but do not leave SVC
     kill();
 }

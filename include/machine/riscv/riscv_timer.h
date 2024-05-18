@@ -17,7 +17,6 @@ class Timer: private Timer_Common, private CLINT
     friend Machine;
     friend IC;
     friend class Init_System;
-    friend class Frequency_Profiler;
 
 protected:
     static const unsigned int CHANNELS = 2;
@@ -38,7 +37,7 @@ public:
     static const Hertz CLOCK = Traits<Timer>::CLOCK;
 
 protected:
-    Timer(unsigned int channel, const Hertz & frequency, const Handler & handler, bool retrigger = true)
+    Timer(unsigned int channel, Hertz frequency, Handler handler, bool retrigger = true)
     : _channel(channel), _initial(FREQUENCY / frequency), _retrigger(retrigger), _handler(handler) {
         db<Timer>(TRC) << "Timer(f=" << frequency << ",h=" << reinterpret_cast<void*>(handler) << ",ch=" << channel << ") => {count=" << _initial << "}" << endl;
 
@@ -47,8 +46,7 @@ protected:
         else
             db<Timer>(WRN) << "Timer not installed!"<< endl;
 
-        for (unsigned int i = 0; i < Traits<Machine>::CPUS; i++)
-            _current[i] = _initial;
+        _current = _initial;
     }
 
 public:
@@ -58,13 +56,13 @@ public:
         _channels[_channel] = 0;
     }
 
-    Tick read() { return _current[CPU::id()]; }
+    Tick read() { return _current; }
 
     int restart() {
         db<Timer>(TRC) << "Timer::restart() => {f=" << frequency() << ",h=" << reinterpret_cast<void *>(_handler) << ",count=" << _current << "}" << endl;
 
-        int percentage = _current[CPU::id()] * 100 / _initial;
-        _current[CPU::id()] = _initial;
+        int percentage = _current * 100 / _initial;
+        _current = _initial;
 
         return percentage;
     }
@@ -76,10 +74,10 @@ public:
     Hertz frequency() const { return (FREQUENCY / _initial); }
     void frequency(Hertz f) { _initial = FREQUENCY / f; reset(); }
 
-    void handler(const Handler & handler) { _handler = handler; }
+    void handler(Handler handler) { _handler = handler; }
 
 private:
-    static void config(const Hertz & frequency) { mtimecmp(mtime() + (CLOCK / frequency)); }
+    static void config(Hertz frequency) { mtimecmp(mtime() + (CLOCK / frequency)); }
 
     static void int_handler(Interrupt_Id i);
 
@@ -89,10 +87,9 @@ protected:
     unsigned int _channel;
     Tick _initial;
     bool _retrigger;
-    volatile Tick _current[Traits<Machine>::CPUS];
+    volatile Tick _current;
     Handler _handler;
 
-    static unsigned int _alarm_handler_cpu;
     static Timer * _channels[CHANNELS];
 };
 
@@ -100,14 +97,14 @@ protected:
 class Scheduler_Timer: public Timer
 {
 public:
-    Scheduler_Timer(const Microsecond & quantum, const Handler & handler): Timer(SCHEDULER, 1000000 / quantum, handler) {}
+    Scheduler_Timer(Microsecond quantum, Handler handler): Timer(SCHEDULER, 1000000 / quantum, handler) {}
 };
 
 // Timer used by Alarm
 class Alarm_Timer: public Timer
 {
 public:
-    Alarm_Timer(const Handler & handler): Timer(ALARM, FREQUENCY, handler) {}
+    Alarm_Timer(Handler handler): Timer(ALARM, FREQUENCY, handler) {}
 };
 
 __END_SYS

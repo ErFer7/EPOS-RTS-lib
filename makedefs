@@ -124,7 +124,7 @@ riscv_CC_FLAGS          = -march=rv32gc -mabi=ilp32f -Wl, -mno-relax
 riscv_AS_FLAGS          = -march=rv32gc -mabi=ilp32f
 riscv_LD_FLAGS          = -m elf32lriscv_ilp32f --no-relax
 riscv_EMULATOR          = qemu-system-riscv32 $(QEMU_DEBUG) -machine sifive_e -m $(RAM_SIZE_MB) -serial mon:stdio -bios none -nographic -no-reboot $(BOOT_ROM) -kernel 
-riscv_DEBUGGER          = $(shell pwd)/../../rv64_toolchain-gcc_13.2.0/riscv/bin/riscv64-unknown-linux-gnu-gdb
+riscv_DEBUGGER          = /usr/local/rv64/bin/riscv64-unknown-linux-gnu-gdb
 riscv_FLASHER           = 
 riscv_MAGIC             = --nmagic
 riscv_CODE_NAME         = .init
@@ -145,7 +145,7 @@ riscv_AS_FLAGS          = -march=rv32gc -mabi=ilp32d
 riscv_LD_FLAGS          = -m elf32lriscv_ilp32f --no-relax
 riscv_EMULATOR          = qemu-system-riscv32 $(QEMU_DEBUG) -machine sifive_u -smp $(shell expr $(CPUS) + 1) -m $(RAM_SIZE_MB) -serial mon:stdio -bios none -nographic -no-reboot $(BOOT_ROM) -kernel 
 endif 
-riscv_DEBUGGER          = $(shell pwd)/../../rv64_toolchain-gcc_13.2.0/riscv/bin/riscv64-unknown-linux-gnu-gdb
+riscv_DEBUGGER          = /usr/local/rv64/bin/riscv64-unknown-linux-gnu-gdb
 riscv_FLASHER           = 
 riscv_MAGIC             = --nmagic
 riscv_CODE_NAME         = .init

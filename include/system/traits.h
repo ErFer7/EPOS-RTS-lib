@@ -81,9 +81,6 @@ class GEM;
 class IEEE802_15_4_NIC;
 class Ethernet_NIC;
 
-// Machine Specific Profiler
-class Frequency_Profiler;
-
 // Transducer Mediators (i.e. sensors and actuators)
 class Transducers;
 class Dummy_Transducer;
@@ -112,7 +109,9 @@ class FCFS;
 class RR;
 class RM;
 class DM;
+class LM;
 class EDF;
+class LLF;
 class GRR;
 class Fixed_CPU;
 class CPU_Affinity;
@@ -121,15 +120,11 @@ class PEDF;
 class CEDF;
 class PRM;
 class EA_PEDF;
-class LLF;
-class GLLF;
 
 class Address_Space;
 class Segment;
 
-class Boot_Synchronizer;
 class Synchronizer;
-class Priority_Inversion_Solver;
 class Mutex;
 class Semaphore;
 class Condition;
@@ -209,6 +204,9 @@ struct Traits_Tokens
 
     // SmartData predictors
     enum :unsigned char {NONE, LVP, DBP};
+
+    // Priority inversion protocols
+    enum {CEILING, INHERITANCE};
 
     // Default aspects
     typedef ALIST<> ASPECTS;

@@ -47,6 +47,7 @@ for SMOD in $SMODS ; do
                 TIME=0
             fi
         done
+        
         printf "\n--------------------------------------------------------------------------------\n"
         printf "Running test set for $MMOD (a $MACH on $ARCH) in mode $SMOD\n\n"
 
