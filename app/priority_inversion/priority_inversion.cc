@@ -230,13 +230,13 @@ void test_simple_case() {
 
     Mutex mutex;
 
-    Test_Args args;
-    args.test = test;
-    args.c = 'M';
-    args.mutex[0] = &mutex;
-    args.thread_index = 0;
+    Test_Args * args = new Test_Args();
+    args->test = test;
+    args->c = 'M';
+    args->mutex[0] = &mutex;
+    args->thread_index = 0;
 
-    threads[0] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::NORMAL - 1), &test_task, &args);
+    threads[0] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations), &test_task, args);
 
     int status = threads[0]->join();
 
