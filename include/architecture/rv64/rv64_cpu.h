@@ -305,9 +305,9 @@ public:
     static T cas(volatile T & value, T compare, T replacement) {
         register T old;
         if (sizeof(T) == sizeof(Reg64))
-            ASM("amo.swap.d %0, %2, (%1)" : "=&r"(old) : "r"(&value), "r"(replacement) : "memory");
+            ASM("amoswap.d %0, %2, (%1)" : "=&r"(old) : "r"(&value), "r"(replacement) : "memory");
         else
-            ASM("amo.swap.w %0, %2, (%1)" : "=&r"(old) : "r"(&value), "r"(replacement) : "memory");
+            ASM("amoswap.w %0, %2, (%1)" : "=&r"(old) : "r"(&value), "r"(replacement) : "memory");
         return old;
     }
 
