@@ -1,0 +1,23 @@
+# Gitignore personalizado
+# Binários
+app/*/*
+!app/*/*.h
+!app/*/*.cc
+!app/*/makefile
+
+# Configurações
+*.cfg
+
+# Imagem
+img/*
+!img/makefile
+
+# Arquivos temporários
+*.o
+
+# Ferramentas
+eposcfg
+eposmkbi
+
+# VSCode
+.vscode
