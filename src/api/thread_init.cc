@@ -1,5 +1,6 @@
 // EPOS Thread Initialization
 
+#include <machine/frequency_profiler.h>
 #include <machine/timer.h>
 #include <machine/ic.h>
 #include <system.h>
@@ -35,8 +36,14 @@ void Thread::init()
     if(Criterion::timed)
         _timer = new (SYSTEM) Scheduler_Timer(QUANTUM, time_slicer);
 
+    if (Traits<Frequency_Profiler>::profiled && Traits<Build>::CPUS == 1)
+        Frequency_Profiler::profile();
+
     // No more interrupts until we reach init_end
     CPU::int_disable();
+
+    if (Traits<Frequency_Profiler>::profiled && Traits<Build>::CPUS == 1)
+        Frequency_Profiler::analyse_profiled_data();
 }
 
 __END_SYS
