@@ -7,7 +7,9 @@ REP=$EPOS/report
 SMODS="LIBRARY"
 APPLICATIONS="hello philosophers_dinner producer_consumer"
 LIBRARY_TARGETS=("IA32 PC Legacy_PC" "RV32 RISCV SiFive_E" "RV32 RISCV SiFive_U" "RV64 RISCV SiFive_U" "ARMv7 Cortex LM3S811" "ARMv7 Cortex eMote3" "ARMv7 Cortex Realview_PBX" "ARMv7 Cortex Zynq" "ARMv7 Cortex Raspberry_Pi3" "ARMv8 Cortex Raspberry_Pi3")
-LIBRARY_TESTS="alarm_test segment_test active_test"
+LIBRARY_TESTS="alarm_test segment_test active_test scheduler_dm_test scheduler_rm_test scheduler_edf_test"
+
+NOQEMU="eMote3 Zynq"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -39,7 +41,12 @@ for SMOD in $SMODS ; do
         MACH=$2
         MMOD=$3
         PREFIX=${SMOD,,}"-"${ARCH,,}"-"${MACH,,}"-"${MMOD,,}
-        
+        TIME=60
+        for SKIPRUN in $NOQEMU ; do
+            if [ "$SKIP" == "$MMOD" ] ; then
+                TIME=0
+            fi
+        done
         printf "\n--------------------------------------------------------------------------------\n"
         printf "Running test set for $MMOD (a $MACH on $ARCH) in mode $SMOD\n\n"
 
@@ -48,7 +55,7 @@ for SMOD in $SMODS ; do
 
         DONE=0
         for TEST in $APPLICATIONS $TESTS ; do
-            sed -e "s/^\(.*SMOD = \).*;$/\1$SMOD;/" -e "s/^\(.*ARCHITECTURE = \).*;$/\1$ARCH;/" -e "s/^\(.*MACHINE = \).*;$/\1$MACH;/" $APP/$TEST/$TEST""_traits.h -e "s/^\(.*MODEL = \).*;$/\1$MMOD;/" -i $APP/$TEST/$TEST""_traits.h
+            sed -e "s/^\(.*SMOD = \).*;.*$/\1$SMOD;/" -e "s/^\(.*ARCHITECTURE = \).*;.*$/\1$ARCH;/" -e "s/^\(.*MACHINE = \).*;.*$/\1$MACH;/" -e "s/^\(.*MODEL = \).*;.*$/\1$MMOD;/" -e "s/^\(.*EXPECTED_SIMULATION_TIME = \).*;.*$/\1$TIME;/" -i $APP/$TEST/$TEST""_traits.h
             if [ -e "$REP/${PREFIX}-${TEST}.out" ] ; then
               let "DONE+=1"
             fi
@@ -73,10 +80,10 @@ make veryclean &> /dev/null
 printf "********************************************************************************\n"
 cd $REP
 printf "${GREEN}Passed:\n"
-find . -name \*.out -not -empty -exec grep -l "The last thread has exited!" \{} \; | cut -c 3- | sed s/.out//
+find . -name \*.out -not -empty -exec grep -l "*** The last thread under control of EPOS has finished." \{} \; | cut -c 3- | sed s/.out//
 printf "\n${YELLOW}Not run:\n"
 find . -name \*.out -empty -printf "%f\n" | sed s/.out//
 printf "\n${RED}Failed:\n"
-find . -name \*.out -not -empty -exec grep -L "The last thread has exited!" \{} \; | cut -c 3- | sed s/.out//
+find . -name \*.out -not -empty -exec grep -L "*** The last thread under control of EPOS has finished." \{} \; | cut -c 3- | sed s/.out//
 printf "${NORMAL}"
 printf "********************************************************************************\n"

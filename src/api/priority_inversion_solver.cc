@@ -80,7 +80,7 @@ void Priority_Inversion_Solver::blocked() {
         Criterion new_priority;
 
         if (Traits<Priority_Inversion_Solver>::priority_ceiling)
-            new_priority = Thread::ISR;
+            new_priority = Thread::HIGH;
         else
             new_priority = blocked_priority;
 

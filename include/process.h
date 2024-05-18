@@ -26,8 +26,6 @@ class Thread
 
 protected:
     static const bool preemptive = Traits<Thread>::Criterion::preemptive;
-    static const bool reboot = Traits<System>::reboot;
-
     static const unsigned int QUANTUM = Traits<Thread>::QUANTUM;
     static const unsigned int STACK_SIZE = Traits<Application>::STACK_SIZE;
 
@@ -47,7 +45,6 @@ public:
     // Thread Scheduling Criterion
     typedef Traits<Thread>::Criterion Criterion;
     enum {
-        ISR     = Criterion::ISR,
         HIGH    = Criterion::HIGH,
         NORMAL  = Criterion::NORMAL,
         LOW     = Criterion::LOW,

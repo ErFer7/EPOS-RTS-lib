@@ -10,6 +10,8 @@ extern "C" { volatile unsigned long _running() __attribute__ ((alias ("_ZN4EPOS1
 
 __BEGIN_SYS
 
+extern OStream kout;
+
 bool Thread::_not_booting;
 volatile unsigned int Thread::_thread_count;
 Scheduler_Timer * Thread::_timer;
@@ -389,20 +391,11 @@ int Thread::idle()
             yield();
     }
 
-    CPU::int_disable();
     if (Boot_Synchronizer::acquire_single_core_section()) {
-        db<Thread>(WRN) << "The last thread has exited!" << endl;
-        if(reboot) {
-            db<Thread>(WRN) << "Rebooting the machine ..." << endl;
-            Machine::reboot();
-        } else {
-            db<Thread>(WRN) << "Halting the machine ..." << endl;
-            CPU::halt();
-        }
+        kout << "\n\n*** The last thread under control of EPOS has finished." << endl;
+        kout << "*** EPOS is shutting down!" << endl;
+        Machine::reboot();
     }
-
-    // Some machines will need a little time to actually reboot
-    for(;;);
 
     return 0;
 }

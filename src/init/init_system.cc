@@ -60,7 +60,7 @@ public:
                 Random::seed(TSC::time_stamp());
 
             if(!Traits<TSC>::enabled)
-                db<Init>(WRN) << "Due to lack of entropy, Random is a pseudo random numbers generator!" << endl;
+                db<Init>(INF) << "Due to lack of entropy, Random is a pseudo random numbers generator!" << endl;
         }
 
         // Initialization continues at init_end

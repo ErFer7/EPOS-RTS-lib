@@ -65,7 +65,11 @@ template<typename T>
 inline Select_Debug<(Traits<T>::debugged && Traits<Debug>::warning)>
 db(Debug_Warning l)
 {
+    extern OStream::Err error;
+
     Select_Debug<(Traits<T>::debugged && Traits<Debug>::warning)>() << begl;
+    if((Traits<Build>::EXPECTED_SIMULATION_TIME > 0) && EQUAL<T, IC>::Result)
+        Select_Debug<(Traits<T>::debugged && Traits<Debug>::warning)>() << error;
     return Select_Debug<(Traits<T>::debugged && Traits<Debug>::warning)>();
 }
 
@@ -73,7 +77,11 @@ template<typename T1, typename T2>
 inline Select_Debug<((Traits<T1>::debugged || Traits<T2>::debugged) && Traits<Debug>::warning)>
 db(Debug_Warning l)
 {
+    extern OStream::Err error;
+
     Select_Debug<((Traits<T1>::debugged || Traits<T2>::debugged) && Traits<Debug>::warning)>() << begl;
+    if((Traits<Build>::EXPECTED_SIMULATION_TIME > 0) && (EQUAL<T1, IC>::Result || EQUAL<T2, IC>::Result))
+        Select_Debug<((Traits<T1>::debugged || Traits<T2>::debugged) && Traits<Debug>::warning)>() << error;
     return Select_Debug<((Traits<T1>::debugged || Traits<T2>::debugged) && Traits<Debug>::warning)>();
 }
 

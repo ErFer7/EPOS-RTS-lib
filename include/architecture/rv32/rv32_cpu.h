@@ -120,7 +120,7 @@ public:
             }
         }
 
-        void save() volatile __attribute__ ((naked));
+        void save() const volatile __attribute__ ((naked));
         void load() const volatile __attribute__ ((naked));
 
         friend OStream & operator<<(OStream & os, const Context & c) {
@@ -462,10 +462,6 @@ if(interrupt) {
 }
     ASM("       sw       x3,    0(sp)           \n");   // push PC
 
-if(!interrupt && supervisor) {
-    ASM("       li       x3,      %0            \n"
-        "       csrs     sstatus, x3            \n": : "i"(SPP_S));   // set SPP_S inside the kernel; the push(true) on IC::entry() has already saved the correct value to eventually return to the application
-}
 if(supervisor) {
     ASM("       csrr     x3, sstatus            \n");
 } else {
@@ -511,9 +507,6 @@ if(interrupt) {
     int_disable();                                      // atomize Context::pop() by disabling interrupts (SPIE will restore the flag on iret())
 }
     ASM("       lw       x3,    0(sp)           \n");   // pop PC into TMP
-if(interrupt) {
-    ASM("       add      x3, x3, a0             \n");   // A0 is set by exception handlers to adjust [M|S]EPC to point to the next instruction if needed
-}
 if(supervisor) {
     ASM("       csrw     sepc, x3               \n");   // SEPC = PC
 } else {
