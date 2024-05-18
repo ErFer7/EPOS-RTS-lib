@@ -5,7 +5,6 @@
 #include <machine/ic.h>
 #include <machine/timer.h>
 #include <process.h>
-#include <machine/frequency_profiler.h>
 
 extern "C" { static void print_context(bool push); }
 
@@ -19,9 +18,6 @@ void IC::entry()
     // Save context into the stack
     CPU::Context::push(true);
 
-    if(Traits<Frequency_Profiler>::profiled)
-        Frequency_Profiler::measure_initial_time();
-
     if(Traits<IC>::hysterically_debugged)
         print_context(true);
 
@@ -29,9 +25,6 @@ void IC::entry()
 
     if(Traits<IC>::hysterically_debugged)
         print_context(false);
-
-    if(Traits<Frequency_Profiler>::profiled)
-        Frequency_Profiler::measure_final_time();
 
     // Restore context from the stack
     CPU::Context::pop(true);
@@ -53,16 +46,11 @@ void IC::dispatch()
     }
 
     _int_vector[id](id);
-
-    if(id >= EXCS)
-        CPU::fr(0); // tell CPU::Context::pop(true) not to increment PC since it is automatically incremented for hardware interrupts
 }
 
 void IC::int_not(Interrupt_Id id)
 {
     db<IC>(WRN) << "IC::int_not(i=" << id << ")" << endl;
-    if(Traits<Build>::hysterically_debugged)
-        Machine::panic();
 }
 
 void IC::exception(Interrupt_Id id)
@@ -122,14 +110,8 @@ void IC::exception(Interrupt_Id id)
 
     db<IC, System>(WRN) << endl;
 
-    if(Traits<Build>::hysterically_debugged)
-        db<IC, System>(ERR) << "Exception stopped execution due to hysterically debugging!" << endl;
-    else {
-        db<IC, Machine>(WRN) << "The running thread will now be terminated!" << endl;
-        Thread::exit(-1);
-    }
-
-    CPU::fr(4); // since exceptions do not increment PC, tell CPU::Context::pop(true) to perform PC = PC + 4 on return
+    db<IC, Machine>(WRN) << "The running thread will now be terminated!" << endl;
+    Thread::exit(-1);
 }
 
 __END_SYS
@@ -137,6 +119,5 @@ __END_SYS
 static void print_context(bool push) {
     __USING_SYS
     db<IC, System>(TRC) << "IC::entry:" << (push ? "push" : "pop") << ":ctx=" << *static_cast<CPU::Context *>(CPU::sp() + 3 * sizeof(CPU::Reg) + (push ? sizeof(CPU::Context) : 0)) << endl; // 3 words for function's stack frame
-    CPU::fr(0);
 }
 

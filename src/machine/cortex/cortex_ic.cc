@@ -191,12 +191,12 @@ void IC::dispatch()
 void IC::int_not(Interrupt_Id i)
 {
     CPU::int_disable();
-    db<IC, Machine>(ERR) << "IC::int_not(i=" << i << ")" << endl; // IC is Traits<IC>::debug is usually off (bound to hysterically debugged), so we add Machine to warnings and errors
+    db<IC, Machine>(WRN) << "IC::int_not(i=" << i << ")" << endl; // IC is Traits<IC>::debug is usually off (bound to hysterically debugged), so we add Machine to warnings and errors
 }
 
 void IC::int_bad()
 {
-    db<IC, Machine>(ERR) << "IC::int_bad()" << endl;
+    db<IC, Machine>(WRN) << "IC::int_bad()" << endl;
 }
 
 #ifdef __cortex_a__
@@ -206,7 +206,7 @@ void IC::prefetch_abort()
     // A prefetch abort on __exit is triggered by MAIN after returning to CRT0 and by the other threads after returning using the LR initialized at creation time to invoke Thread::exit()
 
     CPU::svc_enter(CPU::MODE_ABORT, false); // enter SVC to capture LR (the faulting address) in r1
-    db<IC, Machine>(ERR) << "IC::prefetch_abort() [addr=" << CPU::Log_Addr(CPU::r1()) << "]" << endl;
+    db<IC, Machine>(WRN) << "IC::prefetch_abort() [addr=" << CPU::Log_Addr(CPU::r1()) << "]" << endl;
     CPU::svc_stay();  // undo the context saving of svc_enter(), but do not leave SVC
     kill();
 }
@@ -214,7 +214,7 @@ void IC::prefetch_abort()
 void IC::undefined_instruction()
 {
     CPU::svc_enter(CPU::MODE_UNDEFINED, false); // enter SVC to capture LR (the faulting address) in r1
-    db<IC, Machine>(ERR) << "IC::undefined_instruction() [addr=" << CPU::Log_Addr(CPU::r1()) << "]" << endl;
+    db<IC, Machine>(WRN) << "IC::undefined_instruction() [addr=" << CPU::Log_Addr(CPU::r1()) << "]" << endl;
     CPU::svc_stay();  // undo the context saving of svc_enter(), but do not leave SVC
     kill();
 }
@@ -222,7 +222,7 @@ void IC::undefined_instruction()
 void IC::software_interrupt()
 {
     CPU::svc_enter(CPU::MODE_UNDEFINED, false); // enter SVC to capture LR (the faulting address) in r1
-    db<IC, Machine>(ERR) << "IC::software_interrupt() [addr=" << CPU::Log_Addr(CPU::r1()) << "]" << endl;
+    db<IC, Machine>(WRN) << "IC::software_interrupt() [addr=" << CPU::Log_Addr(CPU::r1()) << "]" << endl;
     CPU::svc_stay();  // undo the context saving of svc_enter(), but do not leave SVC
     kill();
 }
@@ -230,7 +230,7 @@ void IC::software_interrupt()
 void IC::data_abort()
 {
     CPU::svc_enter(CPU::MODE_ABORT, false); // enter SVC to capture LR (the faulting address) in r1
-    db<IC, Machine>(ERR) << "IC::data_abort() [addr=" << CPU::Log_Addr(CPU::r1()) << "]" << endl;
+    db<IC, Machine>(WRN) << "IC::data_abort() [addr=" << CPU::Log_Addr(CPU::r1()) << "]" << endl;
     CPU::svc_stay();  // undo the context saving of svc_enter(), but do not leave SVC
     kill();
 }
@@ -238,7 +238,7 @@ void IC::data_abort()
 void IC::fiq()
 {
     CPU::svc_enter(CPU::MODE_FIQ, false); // enter SVC to capture LR (the return address) in r1
-    db<IC, Machine>(ERR) << "IC::FIQ()" << endl;
+    db<IC, Machine>(WRN) << "IC::FIQ()" << endl;
     CPU::svc_stay();  // undo the context saving of svc_enter(), but do not leave SVC
     kill();
 }

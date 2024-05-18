@@ -35,7 +35,7 @@ public:
     Data * message() { return data(); }
 
     bool lock() { return !CPU::tsl(_lock); }
-    void unlock() { CPU::asz(_lock); }
+    void unlock() { _lock = 0; }
 
     Owner * owner() const { return _owner; }
     Owner * nic() const { return owner(); }
