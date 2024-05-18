@@ -99,7 +99,7 @@ template <> struct Traits<Timer>: public Traits<Machine_Common>
 
 template <> struct Traits<Frequency_Profiler>: public Traits<Machine_Common>
 {
-    static const bool profiled = true;
+    static const bool profiled = false;
     static const unsigned long PROFILING_TIME = 1000000;
     static const unsigned long PROFILING_WAIT_LOAD = 100;
     static constexpr float INTERRUPTION_TIME_RATIO_THRESHOLD = 0.02f;
