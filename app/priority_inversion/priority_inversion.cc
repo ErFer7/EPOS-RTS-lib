@@ -9,17 +9,20 @@ using namespace EPOS;
 
 const unsigned int iterations = 2;
 const unsigned int period = 500;  // ms
+int test = 0;
+
 OStream cout;
 Chronometer chrono;
 Periodic_Thread * threads[3];
 
 struct Test_Args
 {
-    int test;
+    Test_Args(char c, int thread_index): c(c), thread_index(thread_index) {}
+
     char c;
-    Mutex *mutex[3];
-    Semaphore *semaphore;
     int thread_index;
+    Mutex * mutex[3];
+    Semaphore * semaphore;
 };
 
 void work(char c, Periodic_Thread *thread);
@@ -188,7 +191,7 @@ int test_task(Test_Args *args) {
 
     do {
         if (locking_threads) {
-            switch (args->test)
+            switch (test)
             {
             case 1:
                 simple_lock(args->c, threads[args->thread_index], args->mutex[0]);
@@ -212,7 +215,7 @@ int test_task(Test_Args *args) {
                 return '?';
             }
         } else {
-            if (args->test >= 2)
+            if (test >= 2)
                 work(args->c, threads[args->thread_index]);
             else
                 simple_lock(args->c, threads[args->thread_index], args->mutex[0]);  // Test 0
@@ -222,62 +225,64 @@ int test_task(Test_Args *args) {
     return args->c;
 }
 
+int hi() {
+    cout << "Hi" << endl;
+
+    return 0;
+}
+
 void test_simple_case() {
     cout << "Test case 0: 1 thread [normal] and 1 mutex." << endl;
     cout << "Expected: The thread should finish its job without any issues." << endl;
 
-    const int test = 0;
+    Mutex * mutex = new Mutex();
 
-    Mutex mutex;
-
-    Test_Args * args = new Test_Args();
-    args->test = test;
-    args->c = 'M';
-    args->mutex[0] = &mutex;
-    args->thread_index = 0;
+    Test_Args * args = new Test_Args('M', 0);
+    args->mutex[0] = mutex;
 
     threads[0] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations), &test_task, args);
 
     int status = threads[0]->join();
 
     delete threads[0];
+    delete mutex;
+    delete args;
 
     cout << "Thread [M] finished with status " << char(status) << "." << endl;
     cout << "\n\n\n";
+
+    test++;
 }
 
 void test_low_and_high_case() {
     cout << "Test case 1: 2 threads [low and high] and 1 mutex." << endl;
     cout << "Expected: The low priority thread should inherit the priority of the high priority thread." << endl;
 
-    const int test = 1;
+    Mutex * mutex = new Mutex();
 
-    Mutex mutex;
+    Test_Args * args_l = new Test_Args('L', 0);
+    args_l->mutex[0] = mutex;
 
-    Test_Args args_l;
-    args_l.test = test;
-    args_l.c = 'L';
-    args_l.mutex[0] = &mutex;
-    args_l.thread_index = 0;
+    Test_Args * args_h = new Test_Args('H', 1);
+    args_l->mutex[0] = mutex;
 
-    Test_Args args_h;
-    args_h.test = test;
-    args_h.c = 'H';
-    args_h.mutex[0] = &mutex;
-    args_h.thread_index = 1;
-
-    threads[0] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations + 1, Thread::READY, Thread::LOW), &test_task, &args_l);
+    threads[0] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations), &test_task, args_l);
     Delay pick_lock_first(100000);
-    threads[1] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::HIGH), &test_task, &args_h);
+    threads[1] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations), &test_task, args_h);
 
     int status_l = threads[0]->join();
     int status_h = threads[1]->join();
 
     delete threads[0];
     delete threads[1];
+    delete mutex;
+    delete args_h;
+    delete args_l;
 
     cout << "Threads finished with the status: [L] = " << char(status_l) << ", [H] = " << char(status_h) << endl;
     cout << "\n\n\n";
+
+    test++;
 }
 
 void test_classical_case() {
@@ -285,31 +290,20 @@ void test_classical_case() {
     cout << "Expected: The low priority thread should inherit the priority of the high priority thread. The medium "
          << "thread should not cause priority inversions." << endl;
 
-    const int test = 2;
+    Mutex * mutex = new Mutex();
 
-    Mutex mutex;
+    Test_Args * args_l = new Test_Args('L', 0);
+    args_l->mutex[0] = mutex;
 
-    Test_Args args_l;
-    args_l.test = test;
-    args_l.c = 'L';
-    args_l.mutex[0] = &mutex;
-    args_l.thread_index = 0;
+    Test_Args * args_m = new Test_Args('M', 2);
 
-    Test_Args args_m;
-    args_m.test = test;
-    args_m.c = 'M';
-    args_m.thread_index = 2;
+    Test_Args * args_h = new Test_Args('H', 1);
+    args_l->mutex[0] = mutex;
 
-    Test_Args args_h;
-    args_h.test = test;
-    args_h.c = 'H';
-    args_h.mutex[0] = &mutex;
-    args_h.thread_index = 1;
-
-    threads[0] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations + 2, Thread::READY, Thread::LOW), &test_task, &args_l);
+    threads[0] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations), &test_task, args_l);
     Delay pick_lock_first(100000);
-    threads[1] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::HIGH), &test_task, &args_h);
-    threads[2] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::NORMAL - 1), &test_task, &args_m);
+    threads[1] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations), &test_task, args_h);
+    threads[2] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations), &test_task, args_m);
 
     int status_l = threads[0]->join();
     int status_m = threads[2]->join();
@@ -318,9 +312,15 @@ void test_classical_case() {
     delete threads[0];
     delete threads[1];
     delete threads[2];
+    delete mutex;
+    delete args_l;
+    delete args_m;
+    delete args_h;
 
     cout << "Threads finished with the status: [L] = " << char(status_l) << ", [M] = " << char(status_m) << ", [H] = " << char(status_h) << endl;
     cout << "\n\n\n";
+
+    test++;
 }
 
 void test_nested_case() {
@@ -328,34 +328,23 @@ void test_nested_case() {
     cout << "Expected: The low priority thread should inherit the priority of the high priority thread. The medium "
          << "thread should not cause priority inversions. The priority must be handled correctly across nested mutexes." << endl;
 
-    const int test = 3;
+    Mutex * mutex = new Mutex();
+    Mutex * nested_mutex = new Mutex();
 
-    Mutex mutex;
-    Mutex nested_mutex;
+    Test_Args * args_l = new Test_Args('L', 0);
+    args_l->mutex[0] = mutex;
+    args_l->mutex[1] = nested_mutex;
 
-    Test_Args args_l;
-    args_l.test = test;
-    args_l.c = 'L';
-    args_l.mutex[0] = &mutex;
-    args_l.mutex[1] = &nested_mutex;
-    args_l.thread_index = 0;
+    Test_Args * args_m = new Test_Args('M', 2);
 
-    Test_Args args_m;
-    args_m.test = test;
-    args_m.c = 'M';
-    args_m.thread_index = 2;
+    Test_Args * args_h = new Test_Args('H', 1);
+    args_l->mutex[0] = mutex;
+    args_l->mutex[1] = nested_mutex;
 
-    Test_Args args_h;
-    args_h.test = test;
-    args_h.c = 'H';
-    args_h.mutex[0] = &mutex;
-    args_h.mutex[1] = &nested_mutex;
-    args_h.thread_index = 1;
-
-    threads[0] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations + 3, Thread::READY, Thread::LOW), &test_task, &args_l);
+    threads[0] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations), &test_task, args_l);
     Delay pick_lock_first(100000);
-    threads[1] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::HIGH), &test_task, &args_h);
-    threads[2] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::NORMAL - 1), &test_task, &args_m);
+    threads[1] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations), &test_task, args_h);
+    threads[2] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations), &test_task, args_m);
 
     int status_l = threads[0]->join();
     int status_m = threads[2]->join();
@@ -364,9 +353,16 @@ void test_nested_case() {
     delete threads[0];
     delete threads[1];
     delete threads[2];
+    delete mutex;
+    delete nested_mutex;
+    delete args_l;
+    delete args_m;
+    delete args_h;
 
     cout << "Threads finished with the status: [L] = " << char(status_l) << ", [M] = " << char(status_m) << ", [H] = " << char(status_h) << endl;
     cout << "\n\n\n";
+
+    test++;
 }
 
 void test_doubly_nested_case() {
@@ -374,37 +370,26 @@ void test_doubly_nested_case() {
     cout << "Expected: The low priority thread should inherit the priority of the high priority thread. The medium "
          << "thread should not cause priority inversions. The priority must be handled correctly across nested mutexes." << endl;
 
-    const int test = 4;
+    Mutex * mutex = new Mutex();
+    Mutex * nested_mutex = new Mutex();
+    Mutex * doubly_nested_mutex = new Mutex();
 
-    Mutex mutex;
-    Mutex nested_mutex;
-    Mutex doubly_nested_mutex;
+    Test_Args * args_l = new Test_Args('L', 0);
+    args_l->mutex[0] = mutex;
+    args_l->mutex[1] = nested_mutex;
+    args_l->mutex[2] = doubly_nested_mutex;
 
-    Test_Args args_l;
-    args_l.test = test;
-    args_l.c = 'L';
-    args_l.mutex[0] = &mutex;
-    args_l.mutex[1] = &nested_mutex;
-    args_l.mutex[2] = &doubly_nested_mutex;
-    args_l.thread_index = 0;
+    Test_Args * args_m = new Test_Args('M', 2);
 
-    Test_Args args_m;
-    args_m.test = test;
-    args_m.c = 'M';
-    args_m.thread_index = 2;
+    Test_Args * args_h = new Test_Args('H', 1);
+    args_l->mutex[0] = mutex;
+    args_l->mutex[1] = nested_mutex;
+    args_l->mutex[2] = doubly_nested_mutex;
 
-    Test_Args args_h;
-    args_h.test = test;
-    args_h.c = 'H';
-    args_h.mutex[0] = &mutex;
-    args_h.mutex[1] = &nested_mutex;
-    args_h.mutex[2] = &doubly_nested_mutex;
-    args_h.thread_index = 1;
-
-    threads[0] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations + 3, Thread::READY, Thread::LOW), &test_task, &args_l);
+    threads[0] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations), &test_task, args_l);
     Delay pick_lock_first(100000);
-    threads[1] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::HIGH), &test_task, &args_h);
-    threads[2] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::NORMAL - 1), &test_task, &args_m);
+    threads[1] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations), &test_task, args_h);
+    threads[2] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations), &test_task, args_m);
 
     int status_l = threads[0]->join();
     int status_m = threads[2]->join();
@@ -413,9 +398,17 @@ void test_doubly_nested_case() {
     delete threads[0];
     delete threads[1];
     delete threads[2];
+    delete mutex;
+    delete nested_mutex;
+    delete doubly_nested_mutex;
+    delete args_l;
+    delete args_m;
+    delete args_h;
 
     cout << "Threads finished with the status: [L] = " << char(status_l) << ", [M] = " << char(status_m) << ", [H] = " << char(status_h) << endl;
     cout << "\n\n\n";
+
+    test++;
 }
 
 void test_doubly_nested_non_well_formed_case() {
@@ -424,37 +417,26 @@ void test_doubly_nested_non_well_formed_case() {
          << "thread should not cause priority inversions. The priority must be handled correctly across nested mutexes. "
          << "The order of unlocking is not well formed (La Lb Lc -> Ub Ua Uc)" << endl;
 
-    const int test = 5;
+    Mutex * mutex = new Mutex();
+    Mutex * nested_mutex = new Mutex();
+    Mutex * doubly_nested_mutex = new Mutex();
 
-    Mutex mutex;
-    Mutex nested_mutex;
-    Mutex doubly_nested_mutex;
+    Test_Args * args_l = new Test_Args('L', 0);
+    args_l->mutex[0] = mutex;
+    args_l->mutex[1] = nested_mutex;
+    args_l->mutex[2] = doubly_nested_mutex;
 
-    Test_Args args_l;
-    args_l.test = test;
-    args_l.c = 'L';
-    args_l.mutex[0] = &mutex;
-    args_l.mutex[1] = &nested_mutex;
-    args_l.mutex[2] = &doubly_nested_mutex;
-    args_l.thread_index = 0;
+    Test_Args * args_m = new Test_Args('M', 2);
 
-    Test_Args args_m;
-    args_m.test = test;
-    args_m.c = 'M';
-    args_m.thread_index = 2;
+    Test_Args * args_h = new Test_Args('H', 1);
+    args_l->mutex[0] = mutex;
+    args_l->mutex[1] = nested_mutex;
+    args_l->mutex[2] = doubly_nested_mutex;
 
-    Test_Args args_h;
-    args_h.test = test;
-    args_h.c = 'H';
-    args_h.mutex[0] = &mutex;
-    args_h.mutex[1] = &nested_mutex;
-    args_h.mutex[2] = &doubly_nested_mutex;
-    args_h.thread_index = 1;
-
-    threads[0] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations + 3, Thread::READY, Thread::LOW), &test_task, &args_l);
+    threads[0] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations), &test_task, args_l);
     Delay pick_lock_first(100000);
-    threads[1] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::HIGH), &test_task, &args_h);
-    threads[2] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::NORMAL - 1), &test_task, &args_m);
+    threads[1] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations), &test_task, args_h);
+    threads[2] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations), &test_task, args_m);
 
     int status_l = threads[0]->join();
     int status_m = threads[2]->join();
@@ -463,9 +445,17 @@ void test_doubly_nested_non_well_formed_case() {
     delete threads[0];
     delete threads[1];
     delete threads[2];
+    delete mutex;
+    delete nested_mutex;
+    delete doubly_nested_mutex;
+    delete args_l;
+    delete args_m;
+    delete args_h;
 
     cout << "Threads finished with the status: [L] = " << char(status_l) << ", [M] = " << char(status_m) << ", [H] = " << char(status_h) << endl;
     cout << "\n\n\n";
+
+    test++;
 }
 
 void test_simple_semaphore_case() {
@@ -473,41 +463,33 @@ void test_simple_semaphore_case() {
     cout << "Expected: The low priority thread should inherit the priority of the high priority thread. The medium "
          << "thread should not cause priority inversions." << endl;
 
-    const int test = 6;
-
     Semaphore * semaphore = new Semaphore(1);
 
-    Test_Args args_l;
-    args_l.test = test;
-    args_l.c = 'L';
-    args_l.semaphore = semaphore;
-    args_l.thread_index = 0;
+    Test_Args * args_l = new Test_Args('L', 0);
+    args_l->semaphore = semaphore;
 
-    Test_Args args_m;
-    args_m.test = test;
-    args_m.c = 'M';
-    args_m.thread_index = 2;
+    Test_Args * args_m = new Test_Args('M', 2);
 
-    Test_Args args_h;
-    args_h.test = test;
-    args_h.c = 'H';
-    args_h.semaphore = semaphore;
-    args_h.thread_index = 1;
+    Test_Args * args_h = new Test_Args('H', 1);
+    args_l->semaphore = semaphore;
 
-    threads[0] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations + 2, Thread::READY, Thread::LOW), &test_task, &args_l);
+    threads[0] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations), &test_task, args_l);
     Delay pick_lock_first(100000);
-    threads[1] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::HIGH), &test_task, &args_h);
-    threads[2] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations, Thread::READY, Thread::NORMAL - 1), &test_task, &args_m);
+    threads[1] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations), &test_task, args_h);
+    threads[2] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations), &test_task, args_m);
 
     int status_l = threads[0]->join();
     int status_m = threads[2]->join();
     int status_h = threads[1]->join();
 
-    delete semaphore;
 
     delete threads[0];
     delete threads[1];
     delete threads[2];
+    delete semaphore;
+    delete args_l;
+    delete args_m;
+    delete args_h;
 
     cout << "Threads finished with the status: [L] = " << char(status_l) << ", [M] = " << char(status_m) << ", [H] = " << char(status_h) << endl;
     cout << "\n\n\n";
