@@ -123,10 +123,12 @@ class PEDF;
 class CEDF;
 class PRM;
 class EA_PEDF;
+class GLLF;
 
 class Address_Space;
 class Segment;
 
+class Boot_Synchronizer;
 class Synchronizer;
 class Mutex;
 class Semaphore;

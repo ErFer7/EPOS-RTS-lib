@@ -20,17 +20,19 @@ public:
     using Grouping_List<char>::size;
     using Grouping_List<char>::grouped_size;
 
-    Heap() {
+    Heap(): _interrupts_enabled(false) {
         db<Init, Heaps>(TRC) << "Heap() => " << this << endl;
     }
 
-    Heap(void * addr, unsigned long bytes) {
+    Heap(void * addr, unsigned long bytes): _interrupts_enabled(false) {
         db<Init, Heaps>(TRC) << "Heap(addr=" << addr << ",bytes=" << bytes << ") => " << this << endl;
 
         free(addr, bytes);
     }
 
     void * alloc(unsigned long bytes) {
+        lock();
+
         db<Heaps>(TRC) << "Heap::alloc(this=" << this << ",bytes=" << bytes;
 
         if(!bytes)
@@ -60,10 +62,14 @@ public:
 
         db<Heaps>(TRC) << ") => " << reinterpret_cast<void *>(addr) << endl;
 
+        unlock();
+
         return addr;
     }
 
     void free(void * ptr, unsigned long bytes) {
+        lock();
+
         db<Heaps>(TRC) << "Heap::free(this=" << this << ",ptr=" << ptr << ",bytes=" << bytes << ")" << endl;
 
         if(ptr && (bytes >= sizeof(Element))) {
@@ -71,6 +77,8 @@ public:
             Element * m1, * m2;
             insert_merging(e, &m1, &m2);
         }
+
+        unlock();
     }
 
     static void typed_free(void * ptr) {
@@ -88,6 +96,24 @@ public:
 
 private:
     void out_of_memory(unsigned long bytes);
+
+    void lock() {
+        _interrupts_enabled = CPU::int_enabled();
+
+        CPU::int_disable();
+        _lock.acquire();
+    }
+
+    void unlock() {
+        _lock.release();
+
+        if (_interrupts_enabled)
+            CPU::int_enable();
+    }
+
+private:
+    Spin _lock;
+    bool _interrupts_enabled;
 };
 
 __END_UTIL

@@ -1,16 +1,21 @@
 // EPOS Thread Implementation
 
+#include <boot_synchronizer.h>
 #include <machine.h>
 #include <system.h>
 #include <process.h>
+
+extern "C" { volatile unsigned long _running() __attribute__ ((alias ("_ZN4EPOS1S6Thread4selfEv"))); }
 
 __BEGIN_SYS
 
 extern OStream kout;
 
+bool Thread::_not_booting;
 volatile unsigned int Thread::_thread_count;
 Scheduler_Timer * Thread::_timer;
 Scheduler<Thread> Thread::_scheduler;
+Spin Thread::_lock;
 
 
 void Thread::constructor_prologue(unsigned int stack_size)
@@ -202,6 +207,11 @@ void Thread::resume()
         db<Thread>(WRN) << "Resume called for unsuspended object!" << endl;
 
     unlock();
+}
+
+
+Thread * volatile Thread::self() {
+    return _not_booting ? running() : reinterpret_cast<Thread * volatile>(CPU::id() + 1);
 }
 
 
@@ -409,12 +419,16 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
         }
         db<Thread>(INF) << "Thread::dispatch:next={" << next << ",ctx=" << *next->_context << "}" << endl;
 
+        _lock.release();
+
         // The non-volatile pointer to volatile pointer to a non-volatile context is correct
         // and necessary because of context switches, but here, we are locked() and
         // passing the volatile to switch_constext forces it to push prev onto the stack,
         // disrupting the context (it doesn't make a difference for Intel, which already saves
         // parameters on the stack anyway).
         CPU::switch_context(const_cast<Context **>(&prev->_context), next->_context);
+
+        _lock.acquire();
     }
 }
 
@@ -423,7 +437,7 @@ int Thread::idle()
 {
     db<Thread>(TRC) << "Thread::idle(this=" << running() << ")" << endl;
 
-    while(_thread_count > 1) { // someone else besides idle
+    while(_thread_count > CPU::cores()) { // someone else besides idle
         if(Traits<Thread>::trace_idle)
             db<Thread>(TRC) << "Thread::idle(this=" << running() << ")" << endl;
 
@@ -434,9 +448,11 @@ int Thread::idle()
             yield();
     }
 
-    kout << "\n\n*** The last thread under control of EPOS has finished." << endl;
-    kout << "*** EPOS is shutting down!" << endl;
-    Machine::reboot();
+    if (Boot_Synchronizer::acquire_single_core_section()) {
+        kout << "\n\n*** The last thread under control of EPOS has finished." << endl;
+        kout << "*** EPOS is shutting down!" << endl;
+        Machine::reboot();
+    }
 
     return 0;
 }

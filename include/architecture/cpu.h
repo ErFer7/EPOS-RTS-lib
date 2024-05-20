@@ -142,18 +142,15 @@ public:
     template <int (* finc)(volatile int &)>
     static void smp_barrier(unsigned int cores, unsigned int id) {
         if(cores > 1) {
-            static volatile int ready[2];
-            static volatile int i;
+            int j = _i;
 
-            int j = i;
-
-            finc(ready[j]);
+            finc(_ready[j]);
             if(id == 0) {
-                while(ready[j] < int(cores));       // wait for all CPUs to be ready
-                i = !i;                             // toggle ready
-                ready[j] = 0;                       // signalizes waiting CPUs
+                while(_ready[j] < int(cores));       // wait for all CPUs to be ready
+                _i = !_i;                            // toggle ready
+                _ready[j] = 0;                       // signalizes waiting CPUs
             } else {
-                while(ready[j]);                    // wait for CPU[0] signal
+                while(_ready[j]);                    // wait for CPU[0] signal
             }
         }
     }
@@ -201,6 +198,10 @@ protected:
     static Reg16 swap16(Reg16 v) { return
         ((v & 0xff00) >> 8) |
         ((v & 0x00ff) << 8); }
+
+protected:	
+    static volatile int _ready[2];
+    static volatile int _i;
 };
 
 template<typename T>

@@ -5,6 +5,7 @@
 #define __setup__
 
 #include <architecture.h>
+#include <boot_synchronizer.h>
 #include <machine.h>
 #include <utility/elf.h>
 #include <utility/string.h>
@@ -77,28 +78,30 @@ Setup::Setup()
 {
     si = reinterpret_cast<System_Info *>(&__boot_time_system_info);
 
-    // SETUP doesn't handle global constructors, so we need to manually initialize any object with a non-empty default constructor
-    new (&kout) OStream;
-    new (&kerr) OStream;
-    Display::init();
-    kout << endl;
-    kerr << endl;
+    if (Boot_Synchronizer::acquire_single_core_section()) {
+        // SETUP doesn't handle global constructors, so we need to manually initialize any object with a non-empty default constructor
+        new (&kout) OStream;
+        new (&kerr) OStream;
+        Display::init();
+        kout << endl;
+        kerr << endl;
 
-    db<Setup>(TRC) << "Setup(si=" << reinterpret_cast<void *>(si) << ",sp=" << CPU::sp() << ")" << endl;
-    db<Setup>(INF) << "Setup:si=" << *si << endl;
+        db<Setup>(TRC) << "Setup(si=" << reinterpret_cast<void *>(si) << ",sp=" << CPU::sp() << ")" << endl;
+        db<Setup>(INF) << "Setup:si=" << *si << endl;
 
-    // Print basic facts about this EPOS instance
-    say_hi();
+        // Print basic facts about this EPOS instance
+        say_hi();
 
-    if(Traits<Machine>::supervisor) {
-        // Configure a flat memory model for the single task in the system
-        setup_flat_paging();
+        if(Traits<Machine>::supervisor) {
+            // Configure a flat memory model for the single task in the system
+            setup_flat_paging();
 
-        // Relocate the machine to supervisor interrupt forwarder
-        setup_m2s();
+            // Relocate the machine to supervisor interrupt forwarder
+            setup_m2s();
 
-        // Enable paging
-        enable_paging();
+            // Enable paging
+            enable_paging();
+        }
     }
 
     // SETUP ends here, so let's transfer control to the next stage (INIT or APP)
@@ -210,9 +213,12 @@ void _entry() // machine mode
     CPU::mstatusc(CPU::MIE);                            // disable interrupts (they will be reenabled at Init_End)
 
     CPU::tp(CPU::mhartid() - 1);                        // tp will be CPU::id() for supervisor mode; we won't count core 0, which is an heterogeneous E51
-    CPU::sp(Memory_Map::BOOT_STACK + Traits<Machine>::STACK_SIZE - sizeof(long)); // set the stack pointer, thus creating a stack for SETUP
+    CPU::sp(Memory_Map::BOOT_STACK + Traits<Machine>::STACK_SIZE * CPU::mhartid() - sizeof(long)); // set the stack pointer, thus creating a stack for SETUP for each core
 
-    Machine::clear_bss();
+    if(Boot_Synchronizer::acquire_single_core_section())
+        Machine::clear_bss();
+
+    CPU::smp_barrier();
 
     if(Traits<Machine>::supervisor) {
         CPU::mtvec(CPU::INT_DIRECT, Memory_Map::INT_M2S);   // setup a machine mode interrupt handler to forward timer interrupts (which cannot be delegated via mideleg)
@@ -236,7 +242,7 @@ void _entry() // machine mode
     CPU::mret();                                        // enter supervisor mode at setup (mepc) with interrupts enabled (mstatus.mpie = true)
 }
 
-void _setup() // supervisor mode
+void _setup()
 {
     kerr << endl;
     kout << endl;

@@ -24,7 +24,7 @@ public:
     static const bool supervisor = !library;                                                    // Run EPOS library in machine mode (works in supervisor as well)
 
     // CPU numbering
-    static const unsigned long CPU_OFFSET       = supervisor ? 1 : 0;                           // We skip core zero, which is a E CPU without MMU
+    static const unsigned long CPU_OFFSET       = 1;                                            // We skip core zero, which is a E CPU without MMU
 
     // Clocks
     static const unsigned long CLOCK            = 1000000000;                                   // CORECLK
