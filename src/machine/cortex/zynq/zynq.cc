@@ -7,7 +7,7 @@ __BEGIN_SYS
 
 void Zynq::reboot()
 {
-    db<Machine>(WRN) << "Machine::reboot()" << endl;
+    db<Machine>(TRC) << "Machine::reboot()" << endl;
 
     // This will mess with qemu but works on real hardware, possibly a bug
     // in qemu. Note that the asserting reset will clear the RAM where the

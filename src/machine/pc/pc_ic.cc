@@ -874,7 +874,7 @@ void IC::entry()
 // Default logical handler
 void IC::int_not(Interrupt_Id i)
 {
-    db<IC,Machine>(ERR) << "IC::int_not(i=" << i << ")" << endl;
+    db<IC,Machine>(WRN) << "IC::int_not(i=" << i << ")" << endl;
 }
 
 // Exception and fault handlers

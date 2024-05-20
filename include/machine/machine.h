@@ -35,7 +35,7 @@ protected:
     Machine_Common() {}
 
 public:
-    static void delay(const Microsecond & time) {
+    static void delay(Microsecond time) {
         assert(Traits<TSC>::enabled);
         TSC::Time_Stamp end = TSC::time_stamp() + Convert::us2count<TSC::Time_Stamp, Microsecond>(TSC::frequency(), time);
         while(end > TSC::time_stamp());

@@ -23,9 +23,8 @@ void Machine::init()
     if(Traits<IC>::enabled)
         IC::init();
 
-    if(Traits<Timer>::enabled) {
+    if(Traits<Timer>::enabled)
         Timer::init();
-    }
 }
 
 __END_SYS

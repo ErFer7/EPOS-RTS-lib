@@ -144,7 +144,7 @@ void Setup::say_hi()
     db<Setup>(TRC) << "Setup::say_hi()" << endl;
     db<Setup>(INF) << "System_Info=" << *si << endl;
 
-    kout << "This is EPOS!\n" << endl;
+    kout << "\n*** This is EPOS!\n" << endl;
     kout << "Setting up this machine as follows: " << endl;
     kout << "  Mode:         " << ((Traits<Build>::SMOD == Traits<Build>::LIBRARY) ? "library" : (Traits<Build>::SMOD == Traits<Build>::BUILTIN) ? "built-in" : "kernel") << endl;
     kout << "  Processor:    " << Traits<Machine>::CPUS << " x Cortex A53 (ARMv" << ((Traits<CPU>::WORD_SIZE == 32) ? "7" : "8") << "-A) at " << Traits<CPU>::CLOCK / 1000000 << " MHz (BUS clock = " << Traits<CPU>::CLOCK / 1000000 << " MHz)" << endl;
