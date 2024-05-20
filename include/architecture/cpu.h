@@ -199,7 +199,7 @@ protected:
         ((v & 0xff00) >> 8) |
         ((v & 0x00ff) << 8); }
 
-protected:	
+protected:
     static volatile int _ready[2];
     static volatile int _i;
 };
