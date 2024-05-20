@@ -28,7 +28,7 @@ public:
 
         CPU::smp_barrier();
 
-        if(Boot_Synchronizer::acquire_single_core_section()) {
+        if (Boot_Synchronizer::acquire_single_core_section()) {
             db<Init>(INF) << "Initializing system's heap: " << endl;
             if(Traits<System>::multiheap) {
                 System::_heap_segment = new (&System::_preheap[0]) Segment(HEAP_SIZE, Segment::Flags::SYSD);
@@ -42,10 +42,9 @@ public:
                 System::_heap = new (&System::_preheap[sizeof(Segment)]) Heap(heap, System::_heap_segment->size());
             } else
                 System::_heap = new (&System::_preheap[0]) Heap(MMU::alloc(MMU::pages(HEAP_SIZE)), HEAP_SIZE);
-
-            db<Init>(INF) << "Initializing the machine: " << endl;
         }
 
+        db<Init>(INF) << "Initializing the machine: " << endl;
         Machine::init();
 
         CPU::smp_barrier();
@@ -60,7 +59,7 @@ public:
                 Random::seed(TSC::time_stamp());
 
             if(!Traits<TSC>::enabled)
-                db<Init>(WRN) << "Due to lack of entropy, Random is a pseudo random numbers generator!" << endl;
+                db<Init>(INF) << "Due to lack of entropy, Random is a pseudo random numbers generator!" << endl;
         }
 
         // Initialization continues at init_end

@@ -30,11 +30,11 @@ public:
     static void panic();
 
     static void reboot() {
-        db<Machine>(WRN) << "Machine::reboot()" << endl;
+        db<Machine>(TRC) << "Machine::reboot()" << endl;
         Engine::reboot();
     }
     static void poweroff() {
-        db<Machine>(WRN) << "Machine::poweroff()" << endl;
+        db<Machine>(TRC) << "Machine::poweroff()" << endl;
         Engine::poweroff();
     }
 

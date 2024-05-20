@@ -52,8 +52,8 @@ public:
         return static_cast<Count>(timer(STCLO));
     }
 
-    void enable() {} // TODO: implement at first need
-    void disable() {}
+    void enable() { Traits<Machine>::emulated ? timer(STCS) = 0xf : timer(STCS) = 0x2;}
+    void disable() {timer(STCS) = 0;}
 
     void eoi() {} // TODO: implement at first need
 
@@ -77,7 +77,7 @@ private:
 public:
     typedef CPU::Reg64 Count;
 
-    static const unsigned int CLOCK = 2*19200000; // 2*19.2 MHz using crystal clock
+    static const Reg32 CLOCK = 2 * 19200000; // 2*19.2 MHz using crystal clock
 
     // Registers offsets from BASE (i.e. this)
     enum {                                      // Description

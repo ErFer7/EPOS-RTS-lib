@@ -59,7 +59,7 @@ public:
     typedef A9_Global_Timer::Count Count;
 
 public:
-    User_Timer_Engine(unsigned int unit, const Microsecond & time, bool interrupt, bool periodic) {
+    User_Timer_Engine(unsigned int unit, Microsecond time, bool interrupt, bool periodic) {
         assert(unit < UNITS);
         power(FULL);
         new (gt()) A9_Global_Timer;

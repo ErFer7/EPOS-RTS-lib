@@ -124,7 +124,7 @@ public:
             }
         }
 
-        void save() volatile __attribute__ ((naked));
+        void save() const volatile __attribute__ ((naked));
         void load() const volatile __attribute__ ((naked));
 
         friend OStream & operator<<(OStream & os, const Context & c) {
@@ -486,11 +486,6 @@ if(interrupt) {
     ASM("       mv       x3,    x1              \n");   // push RA as PC on context switches
 }
     ASM("       sd       x3,    0(sp)           \n");   // push PC
-
-//if(!interrupt && supervisor) {
-//    ASM("       li       x3,      %0            \n"
-//        "       csrs     sstatus, x3            \n": : "i"(SPP_S));   // set SPP_S inside the kernel; the push(true) on IC::entry() has already saved the correct value to eventually return to the application
-//}
 if(supervisor) {
     ASM("       csrr     x3, sstatus            \n");
 } else {
@@ -532,23 +527,15 @@ if(interrupt) {
 
 inline void CPU::Context::pop(bool interrupt)
 {
-if(interrupt) {
-    int_disable();                                      // atomize Context::pop() by disabling interrupts (SPIE will restore the flag on iret())
-}
     ASM("       ld       x3,    0(sp)           \n");   // pop PC into TMP
-if(interrupt) {
-    ASM("       add      x3, x3, a0             \n");   // A0 is set by exception handlers to adjust [M|S]EPC to point to the next instruction if needed
-}
 if(supervisor) {
     ASM("       csrw     sepc, x3               \n");   // SEPC = PC
 } else {
     ASM("       csrw     mepc, x3               \n");   // MEPC = PC
 }
-    ASM("       ld       x3,    8(sp)           \n");   // pop ST into TMP
-if(!interrupt) {
-    ASM("       li      x10, %0                 \n"     // use X10 as a second TMP, since it will be restored later
+    ASM("       ld       x3,    8(sp)           \n"     // pop ST into TMP
+        "       li      x10, %0                 \n"     // use X10 as a second TMP, since it will be restored later
         "       or       x3, x3, x10            \n" : : "i"(supervisor ? SPP_S : MPP_M)); // [M|S]STATUS.[S|M]PP is automatically cleared on the [M|S]RET in the ISR, so we need to recover it here
-}
     ASM("       ld       x1,   16(sp)           \n"     // pop RA
         "       ld       x5,   24(sp)           \n"     // pop X5-X31
         "       ld       x6,   32(sp)           \n"

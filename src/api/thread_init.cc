@@ -26,7 +26,7 @@ void Thread::init()
         // In this case, _init will have already been called, before Init_Application to construct MAIN's global objects.
         Main * main = reinterpret_cast<Main *>(__epos_app_entry);
 
-        new (SYSTEM) Thread(Thread::Configuration(Thread::RUNNING, Thread::MAIN), main);
+        new (SYSTEM) Task(main);
     }
 
     // Idle thread creation does not cause rescheduling (see Thread::constructor_epilogue)

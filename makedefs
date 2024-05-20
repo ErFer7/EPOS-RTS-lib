@@ -22,7 +22,7 @@ endif
 # Machine specifics
 pc_CC_FLAGS             = -m32 -Wa,--32
 pc_AS_FLAGS             = --32
-pc_LD_FLAGS             = -m elf_i386
+pc_LD_FLAGS             = -m elf_i386 -z noexecstack
 pc_EMULATOR             = qemu-system-i386 $(QEMU_DEBUG) -no-acpi -smp $(CPUS) -m $(RAM_SIZE_MB) -nographic -no-reboot -drive format=raw,index=0,if=floppy,read-only=on,file=
 pc_DEBUGGER             = gdb
 pc_FLASHER              =
@@ -143,7 +143,7 @@ else
 riscv_CC_FLAGS          = -march=rv32gc -mabi=ilp32d -Wl, -mno-relax
 riscv_AS_FLAGS          = -march=rv32gc -mabi=ilp32d
 riscv_LD_FLAGS          = -m elf32lriscv_ilp32f --no-relax
-riscv_EMULATOR          = qemu-system-riscv32 $(QEMU_DEBUG) -machine sifive_u -smp 2 -m $(RAM_SIZE_MB) -serial mon:stdio -bios none -nographic -no-reboot $(BOOT_ROM) -kernel 
+riscv_EMULATOR          = qemu-system-riscv32 $(QEMU_DEBUG) -machine sifive_u -smp $(shell expr $(CPUS) + 1) -m $(RAM_SIZE_MB) -serial mon:stdio -bios none -nographic -no-reboot $(BOOT_ROM) -kernel 
 endif 
 riscv_DEBUGGER          = $(shell pwd)/../../rv64_toolchain-gcc_13.2.0/riscv/bin/riscv64-unknown-linux-gnu-gdb
 riscv_FLASHER           = 

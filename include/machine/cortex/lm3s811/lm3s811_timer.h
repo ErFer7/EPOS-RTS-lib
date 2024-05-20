@@ -57,7 +57,7 @@ public:
     typedef GPTM::Count Count;
 
 public:
-    User_Timer_Engine(unsigned int unit, const Microsecond & time, bool interrupt, bool periodic) {
+    User_Timer_Engine(unsigned int unit, Microsecond time, bool interrupt, bool periodic) {
         assert(unit < UNITS);
         power(FULL);
         _gptm = new (gptm(unit)) GPTM;
