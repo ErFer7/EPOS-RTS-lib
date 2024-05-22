@@ -20,6 +20,7 @@ class Predictors;
 class Queues;
 class Random;
 class Spin;
+class Core_Spin;
 class SREC;
 class Vectors;
 template<typename> class Scheduler;

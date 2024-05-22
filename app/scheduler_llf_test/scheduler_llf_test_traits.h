@@ -116,7 +116,7 @@ template<> struct Traits<Thread>: public Traits<Build>
     static const bool enabled = Traits<System>::multithread;
     static const bool trace_idle = hysterically_debugged;
     static const bool simulate_capacity = false;
-    static const int priority_inversion_protocol = INHERITANCE;
+    static const int priority_inversion_protocol = NONE;
 
     typedef IF<(CPUS > 1), GLLF, LLF>::Result Criterion;
     static const unsigned int QUANTUM = 10000; // us
