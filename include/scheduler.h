@@ -148,6 +148,19 @@ protected:
     volatile int _priority;
 };
 
+class Variable_Queue_Scheduler
+{
+protected:
+    Variable_Queue_Scheduler(unsigned int queue): _queue(queue) {};
+
+    const volatile unsigned int & queue() const volatile { return _queue; }
+    void queue(unsigned int q) { _queue = q; }
+
+protected:
+    volatile unsigned int _queue;
+    static volatile unsigned int _next_queue;
+};
+
 // Round-Robin
 class RR: public Priority
 {
@@ -289,6 +302,22 @@ public:
     static unsigned int current_head() { return CPU::id(); }
 };
 
+class PLLF: public LLF, public Variable_Queue_Scheduler
+{
+public:
+    static const unsigned int QUEUES = Traits<Machine>::CPUS;
+
+public:
+    PLLF(int p = APERIODIC)
+    : LLF(p), Variable_Queue_Scheduler(((_priority == IDLE) || (_priority == MAIN)) ? CPU::id() : 0) {}
+
+    PLLF(const Microsecond & d, const Microsecond & p = SAME, const Microsecond & c = UNKNOWN, unsigned int cpu = ANY)
+    : LLF(d, p, c), Variable_Queue_Scheduler((cpu != ANY) ? cpu : ++_next_queue %= CPU::cores()) {}
+
+    using Variable_Queue_Scheduler::queue;
+    static unsigned int current_queue() { return CPU::id(); }
+};
+
 __END_SYS
 
 __BEGIN_UTIL
@@ -296,6 +325,10 @@ __BEGIN_UTIL
 template<typename T>
 class Scheduling_Queue<T, GLLF>:
 public Multihead_Scheduling_List<T> {};
+
+template<typename T>
+class Scheduling_Queue<T, PLLF>:
+public Scheduling_Multilist<T> {};
 
 __END_UTIL
 

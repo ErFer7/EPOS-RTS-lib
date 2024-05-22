@@ -5,6 +5,8 @@
 
 __BEGIN_SYS
 
+volatile unsigned int Variable_Queue_Scheduler::_next_queue;
+
 inline RT_Common::Tick RT_Common::elapsed() { return Alarm::elapsed(); }
 
 RT_Common::Tick RT_Common::ticks(Microsecond time) {
