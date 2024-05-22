@@ -50,7 +50,8 @@ void IC::dispatch()
             CPU::ecall();   // we can't clear CPU::sipc(CPU::STI) in supervisor mode, so let's ecall int_m2s to do it for us
         else
             Timer::reset(); // MIP.MTI is a direct logic on (MTIME == MTIMECMP) and reseting the Timer seems to be the only way to clear it
-    }
+    } else if (id == INT_RESCHEDULER)
+        IC::ipi_eoi(id & CLINT::INT_MASK);
 
     _int_vector[id](id);
 }

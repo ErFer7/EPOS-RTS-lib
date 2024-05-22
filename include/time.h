@@ -62,14 +62,8 @@ private:
 
     static Tick ticks(Microsecond time) { return Timer_Common::ticks(time, frequency()); }
 
-    static void lock() {
-        CPU::int_disable();
-        _lock.acquire();
-    }
-    static void unlock() {
-        _lock.release();
-        CPU::int_enable();
-    }
+    static void lock() { _lock.acquire(); }
+    static void unlock() { _lock.release(); }
 
     static void handler(IC::Interrupt_Id i);
 
@@ -85,7 +79,7 @@ private:
     static Alarm_Timer * _timer;
     static volatile Tick _elapsed;
     static Queue _request;
-    static Spin _lock;
+    static Core_Spin _lock;
 };
 
 
