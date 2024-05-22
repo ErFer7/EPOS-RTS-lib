@@ -50,7 +50,7 @@ void Thread::constructor_epilogue(Log_Addr entry, unsigned int stack_size)
     criterion().handle(Criterion::CREATE);
 
     if(preemptive && (_state == READY) && (_link.rank() != IDLE))
-        reschedule();
+        reschedule(_link.rank().queue());
 
     unlock();
 }
@@ -110,6 +110,9 @@ void Thread::priority(Criterion c)
 
     db<Thread>(TRC) << "Thread::priority(this=" << this << ",prio=" << c << ")" << endl;
 
+    unsigned long old_cpu = _link.rank().queue();
+    unsigned long new_cpu = c.queue();
+
     if(_state != RUNNING) { // reorder the scheduling queue
         _scheduler.suspend(this);
         _link.rank(c);
@@ -117,8 +120,15 @@ void Thread::priority(Criterion c)
     } else
         _link.rank(c);
 
-    if(preemptive)
-        reschedule();
+    if(preemptive) {
+        if (Traits<Build>::CPUS > 1) {
+            if (CPU::id() != old_cpu)
+                reschedule(old_cpu);
+            if (CPU::id() != new_cpu)
+                reschedule(new_cpu);
+        } else
+            reschedule();
+    }
 
     unlock();
 }
@@ -202,7 +212,7 @@ void Thread::resume()
         _scheduler.resume(this);
 
         if(preemptive)
-            reschedule();
+            reschedule(_link.rank().queue());
     } else
         db<Thread>(WRN) << "Resume called for unsuspended object!" << endl;
 
@@ -289,7 +299,7 @@ void Thread::wakeup(Queue * q)
         _scheduler.resume(t);
 
         if(preemptive)
-            reschedule();
+            reschedule(t->_link.rank().queue());
     }
 }
 
@@ -308,8 +318,10 @@ void Thread::wakeup_all(Queue * q)
             _scheduler.resume(t);
         }
 
-        if(preemptive)
-            reschedule();
+        if(preemptive) {
+            for(unsigned long i = 0; i < Traits<Build>::CPUS; i++)
+                reschedule(i);
+        }
     }
 }
 
@@ -382,6 +394,27 @@ void Thread::reschedule()
     Thread * next = _scheduler.choose();
 
     dispatch(prev, next);
+}
+
+
+void Thread::reschedule(unsigned int cpu)
+{
+    assert(locked()); // locking handled by caller
+
+    if(Traits<Build>::CPUS == 1 || CPU::id() == cpu)
+        reschedule();
+    else {
+        db<Thread>(TRC) << "Thread::reschedule(cpu=" << cpu << ")" << endl;
+        IC::ipi(cpu, IC::INT_RESCHEDULER);
+    }
+}
+
+
+void Thread::rescheduler(IC::Interrupt_Id i)
+{
+    lock();
+    reschedule();
+    unlock();
 }
 
 

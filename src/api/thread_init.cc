@@ -15,7 +15,13 @@ void Thread::init()
 {
     db<Init, Thread>(TRC) << "Thread::init()" << endl;
 
+    if(Traits<Build>::CPUS > 1 && Boot_Synchronizer::acquire_single_core_section())
+        IC::int_vector(IC::INT_RESCHEDULER, rescheduler);
+
     CPU::smp_barrier();
+
+    if (Traits<Thread>::CPUS > 1)
+        IC::enable(IC::INT_RESCHEDULER);
 
     Criterion::init();
 
@@ -52,6 +58,7 @@ void Thread::init()
     if (Traits<Frequency_Profiler>::profiled && Traits<Build>::CPUS == 1)
         Frequency_Profiler::analyse_profiled_data();
 
+    CPU::smp_barrier();
     // Transition from CPU-based locking to thread-based locking
     _not_booting = true;
 }
