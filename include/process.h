@@ -99,16 +99,8 @@ protected:
 
     static Thread * volatile running() { return _scheduler.chosen(); }
 
-    static void lock() {
-        CPU::int_disable();
-        _lock.acquire();
-    }
-
-    static void unlock() {
-        _lock.release();
-        CPU::int_enable();
-    }
-
+    static void lock() { _lock.acquire(); }
+    static void unlock() { _lock.release(); }
     static bool locked() { return _lock.taken(); }
 
     static void sleep(Queue * queue);
@@ -149,7 +141,7 @@ protected:
     static volatile unsigned int _thread_count;
     static Scheduler_Timer * _timer;
     static Scheduler<Thread> _scheduler;
-    static Spin _lock;
+    static Core_Spin _lock;
 };
 
 

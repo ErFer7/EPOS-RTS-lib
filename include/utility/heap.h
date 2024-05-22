@@ -99,20 +99,13 @@ private:
 
     void lock() {
         _interrupts_enabled = CPU::int_enabled();
-
-        CPU::int_disable();
         _lock.acquire();
     }
 
-    void unlock() {
-        _lock.release();
-
-        if (_interrupts_enabled)
-            CPU::int_enable();
-    }
+    void unlock() { _lock.release(_interrupts_enabled); }
 
 private:
-    Spin _lock;
+    Core_Spin _lock;
     bool _interrupts_enabled;
 };
 

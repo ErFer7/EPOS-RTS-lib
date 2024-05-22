@@ -15,7 +15,7 @@ bool Thread::_not_booting;
 volatile unsigned int Thread::_thread_count;
 Scheduler_Timer * Thread::_timer;
 Scheduler<Thread> Thread::_scheduler;
-Spin Thread::_lock;
+Core_Spin Thread::_lock;
 
 
 void Thread::constructor_prologue(unsigned int stack_size)
@@ -419,7 +419,7 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
         }
         db<Thread>(INF) << "Thread::dispatch:next={" << next << ",ctx=" << *next->_context << "}" << endl;
 
-        _lock.release();
+        _lock.release(false);
 
         // The non-volatile pointer to volatile pointer to a non-volatile context is correct
         // and necessary because of context switches, but here, we are locked() and
@@ -451,8 +451,9 @@ int Thread::idle()
     if (Boot_Synchronizer::acquire_single_core_section()) {
         kout << "\n\n*** The last thread under control of EPOS has finished." << endl;
         kout << "*** EPOS is shutting down!" << endl;
-        Machine::reboot();
     }
+
+    Machine::reboot();
 
     return 0;
 }
