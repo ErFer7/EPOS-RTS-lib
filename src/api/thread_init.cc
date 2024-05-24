@@ -49,13 +49,13 @@ void Thread::init()
     if(Criterion::timed && Boot_Synchronizer::acquire_single_core_section())
         _timer = new (SYSTEM) Scheduler_Timer(QUANTUM, time_slicer);
 
-    if (Traits<Frequency_Profiler>::profiled && Criterion::core_scheduling == Criterion::SINGLECORE)
+    if (Traits<Frequency_Profiler>::profiled && CPU::id() == 0)
         Frequency_Profiler::profile();
 
     // No more interrupts until we reach init_end
     CPU::int_disable();
 
-    if (Traits<Frequency_Profiler>::profiled && Criterion::core_scheduling == Criterion::SINGLECORE)
+    if (Traits<Frequency_Profiler>::profiled && CPU::id() == 0)
         Frequency_Profiler::analyse_profiled_data();
 
     CPU::smp_barrier();
