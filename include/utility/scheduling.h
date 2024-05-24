@@ -36,6 +36,7 @@ public:
     Scheduler() {}
 
     unsigned int schedulables() { return Base::size(); }
+    unsigned int schedulables(unsigned int queue) { return Base::size(queue); }
 
     T * volatile chosen() {
     	// If called before insert(), chosen will dereference a null pointer!

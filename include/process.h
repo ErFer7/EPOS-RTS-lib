@@ -21,6 +21,7 @@ class Thread
     friend class Synchronizer_Common;   // for lock() and sleep()
     friend class Alarm;                 // for lock()
     friend class System;                // for init()
+    friend class Balanced_Queue_Scheduler;
 
 protected:
     static const bool preemptive = Traits<Thread>::Criterion::preemptive;
@@ -127,6 +128,8 @@ protected:
 
 private:
     static void init();
+    static unsigned int scheduler_size() { return _scheduler.schedulables(); }
+    static unsigned int scheduler_size(unsigned int queue) { return _scheduler.schedulables(queue); }
 
 protected:
     Task * _task;

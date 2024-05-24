@@ -109,6 +109,7 @@ class Periodic_Thread;
 class RT_Thread;
 class Task;
 class Priority;
+class Balanced_Queue_Scheduler;
 class FCFS;
 class RR;
 class RM;
@@ -125,6 +126,7 @@ class CEDF;
 class PRM;
 class EA_PEDF;
 class GLLF;
+class PLLF;
 
 class Address_Space;
 class Segment;
@@ -213,6 +215,9 @@ struct Traits_Tokens
 
     // Priority inversion protocols
     enum {CEILING, INHERITANCE};
+
+    // Core scheduling policies
+    enum {SINGLECORE, GLOBAL_MULTICORE, PARTITIONED_MULTICORE};
 
     // Default aspects
     typedef ALIST<> ASPECTS;
