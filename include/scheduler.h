@@ -6,6 +6,7 @@
 #include <architecture/cpu.h>
 #include <architecture/pmu.h>
 #include <architecture/tsc.h>
+#include <process.h>
 #include <utility/scheduling.h>
 #include <utility/math.h>
 #include <utility/convert.h>
@@ -70,10 +71,17 @@ public:
         UPDATE          = 1 << 19
     };
 
+    enum Core_Scheduling {
+        SINGLECORE,
+        GLOBAL_MULTICORE,
+        PARTITIONED_MULTICORE
+    };
+
     // Policy traits
     static const bool timed = false;
     static const bool dynamic = false;
     static const bool preemptive = true;
+    static const Core_Scheduling core_scheduling = SINGLECORE;
 
     // Runtime Statistics (for policies that don't use any; that's why its a union)
     union Dummy_Statistics {  // for Traits<System>::monitored = false
@@ -122,6 +130,9 @@ public:
     Microsecond deadline() { return 0; }
     Microsecond capacity() { return 0; }
 
+    unsigned int queue() const { return 0; }
+    void queue(unsigned int q) {}
+
     bool periodic() { return false; }
 
     volatile Statistics & statistics() { return _statistics; }
@@ -148,17 +159,17 @@ protected:
     volatile int _priority;
 };
 
-class Variable_Queue_Scheduler
+class Balanced_Queue_Scheduler
 {
 protected:
-    Variable_Queue_Scheduler(unsigned int queue): _queue(queue) {};
+    Balanced_Queue_Scheduler(unsigned int queue): _queue(queue) {};
 
     const volatile unsigned int & queue() const volatile { return _queue; }
     void queue(unsigned int q) { _queue = q; }
+    static unsigned int next_queue();
 
 protected:
     volatile unsigned int _queue;
-    static volatile unsigned int _next_queue;
 };
 
 // Round-Robin
@@ -291,6 +302,7 @@ class GLLF: public LLF
 {
 public:
     static const unsigned int HEADS = Traits<Machine>::CPUS;
+    static const Core_Scheduling core_scheduling = GLOBAL_MULTICORE;
 
 public:
     GLLF(int p = APERIODIC): LLF(p) {}
@@ -302,19 +314,20 @@ public:
     static unsigned int current_head() { return CPU::id(); }
 };
 
-class PLLF: public LLF, public Variable_Queue_Scheduler
+class PLLF: public LLF, public Balanced_Queue_Scheduler
 {
 public:
     static const unsigned int QUEUES = Traits<Machine>::CPUS;
+    static const Core_Scheduling core_scheduling = PARTITIONED_MULTICORE;
 
 public:
     PLLF(int p = APERIODIC)
-    : LLF(p), Variable_Queue_Scheduler(((_priority == IDLE) || (_priority == MAIN)) ? CPU::id() : 0) {}
+    : LLF(p), Balanced_Queue_Scheduler(((p == IDLE) || (p == MAIN)) ? CPU::id() : next_queue()) {}
 
     PLLF(const Microsecond & d, const Microsecond & p = SAME, const Microsecond & c = UNKNOWN, unsigned int cpu = ANY)
-    : LLF(d, p, c), Variable_Queue_Scheduler((cpu != ANY) ? cpu : ++_next_queue %= CPU::cores()) {}
+    : LLF(d, p, c), Balanced_Queue_Scheduler((cpu != ANY) ? cpu : next_queue()) {}
 
-    using Variable_Queue_Scheduler::queue;
+    using Balanced_Queue_Scheduler::queue;
     static unsigned int current_queue() { return CPU::id(); }
 };
 

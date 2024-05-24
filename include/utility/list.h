@@ -1066,6 +1066,9 @@ public:
     using Base::begin;
     using Base::end;
 
+    unsigned long size() const { return Base::size(); }
+    unsigned long size(unsigned int queue) const { return Base::size(); }
+
     Element * volatile & chosen() { return _chosen; }
 
     void insert(Element * e) {
@@ -1179,6 +1182,9 @@ public:
     using Base::begin;
     using Base::end;
 
+    unsigned long size() const { return Base::size(); }
+    unsigned long size(unsigned int queue) const { return Base::size(); }
+
     Element * volatile & chosen() { return _chosen[R::current_head()]; }
 
     void insert(Element * e) {
@@ -1281,6 +1287,7 @@ public:
     bool empty() const { return _list[R::current_queue()].empty(); }
 
     unsigned long size() const { return _list[R::current_queue()].size(); }
+    unsigned long size(unsigned int queue) const { return _list[queue].size(); }
     unsigned long total_size() const {
         unsigned long s = 0;
         for(unsigned int i = 0; i < Q; i++)

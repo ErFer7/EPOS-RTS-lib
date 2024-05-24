@@ -15,12 +15,12 @@ void Thread::init()
 {
     db<Init, Thread>(TRC) << "Thread::init()" << endl;
 
-    if(Traits<Build>::CPUS > 1 && Boot_Synchronizer::acquire_single_core_section())
+    if(Criterion::core_scheduling != Criterion::SINGLECORE && Boot_Synchronizer::acquire_single_core_section())
         IC::int_vector(IC::INT_RESCHEDULER, rescheduler);
 
     CPU::smp_barrier();
 
-    if (Traits<Thread>::CPUS > 1)
+    if (Criterion::core_scheduling != Criterion::SINGLECORE)
         IC::enable(IC::INT_RESCHEDULER);
 
     Criterion::init();
@@ -49,13 +49,13 @@ void Thread::init()
     if(Criterion::timed && Boot_Synchronizer::acquire_single_core_section())
         _timer = new (SYSTEM) Scheduler_Timer(QUANTUM, time_slicer);
 
-    if (Traits<Frequency_Profiler>::profiled && Traits<Build>::CPUS == 1)
+    if (Traits<Frequency_Profiler>::profiled && Criterion::core_scheduling == Criterion::SINGLECORE)
         Frequency_Profiler::profile();
 
     // No more interrupts until we reach init_end
     CPU::int_disable();
 
-    if (Traits<Frequency_Profiler>::profiled && Traits<Build>::CPUS == 1)
+    if (Traits<Frequency_Profiler>::profiled && Criterion::core_scheduling == Criterion::SINGLECORE)
         Frequency_Profiler::analyse_profiled_data();
 
     CPU::smp_barrier();
