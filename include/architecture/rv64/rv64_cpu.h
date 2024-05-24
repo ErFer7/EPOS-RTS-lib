@@ -303,7 +303,7 @@ public:
                 "2:                           \n" : "=&r"(old) : "r"(&value), "r"(compare), "r"(replacement) : "cc", "memory");
         }
         else {
-            ASM("   ld $0, (%1)               \n"
+            ASM("   lw $0, (%1)               \n"
                 "   bne $0, %2, 2f            \n"
                 "   amoswap.w.aq %0, %3, (%1) \n"
                 "2:                           \n" : "=&r"(old) : "r"(&value), "r"(compare), "r"(replacement) : "cc", "memory");
