@@ -25,7 +25,7 @@ void test_threads_with_heavy_work();
 
 int main()
 {
-    cout << "Running multicore tests" << endl;
+    cout << "Running multicore tests with " << CPU::cores() << " cores:" << endl;
 
     chrono.start();
 

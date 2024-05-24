@@ -51,7 +51,7 @@ inline void exec(char c, Milisecond time = 0)
     Milisecond elapsed = chrono.read() / 1000;
     Milisecond end = elapsed + time;
 
-    cout << "\n" << elapsed << " " << c
+    cout << "\n" << elapsed << " " << c << " CPU=" << CPU::id()
          << " [A={i=" << thread_a->priority() << ",d=" << thread_a->criterion().deadline() / Alarm::frequency() << ",c=" << thread_a->statistics().job_utilization << "}"
          <<  " B={i=" << thread_b->priority() << ",d=" << thread_b->criterion().deadline() / Alarm::frequency() << ",c=" << thread_b->statistics().job_utilization << "}"
          <<  " C={i=" << thread_c->priority() << ",d=" << thread_c->criterion().deadline() / Alarm::frequency() << ",c=" << thread_c->statistics().job_utilization << "}]";
@@ -62,7 +62,7 @@ inline void exec(char c, Milisecond time = 0)
                 p = p + Point<long, 2>::trilaterate(p1, 123123, p2, 123123, p3, 123123);
         }
         elapsed = chrono.read() / 1000;
-        cout << "\n" << elapsed << " " << c
+        cout << "\n" << elapsed << " " << c << " CPU=" << CPU::id()
              << " [A={i=" << thread_a->priority() << ",d=" << thread_a->criterion().deadline() / Alarm::frequency() << ",c=" << thread_a->statistics().job_utilization << "}"
              <<  " B={i=" << thread_b->priority() << ",d=" << thread_b->criterion().deadline() / Alarm::frequency() << ",c=" << thread_b->statistics().job_utilization << "}"
              <<  " C={i=" << thread_c->priority() << ",d=" << thread_c->criterion().deadline() / Alarm::frequency() << ",c=" << thread_c->statistics().job_utilization << "}]";

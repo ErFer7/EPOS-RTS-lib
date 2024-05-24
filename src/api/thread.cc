@@ -50,7 +50,7 @@ void Thread::constructor_epilogue(Log_Addr entry, unsigned int stack_size)
     criterion().handle(Criterion::CREATE);
 
     if(preemptive && (_state == READY) && (_link.rank() != IDLE))
-        reschedule(_link.rank().queue());
+        reschedule();
 
     unlock();
 }
@@ -121,13 +121,22 @@ void Thread::priority(Criterion c)
         _link.rank(c);
 
     if(preemptive) {
-        if (Traits<Build>::CPUS > 1) {
+        switch (Criterion::core_scheduling)
+        {
+        case Criterion::SINGLECORE:
+            reschedule();
+            break;
+        case Criterion::GLOBAL_MULTICORE:
+            for (unsigned long i = 0; i < Traits<Build>::CPUS; i++)
+                reschedule(i);
+            break;
+        case Criterion::PARTITIONED_MULTICORE:
             if (CPU::id() != old_cpu)
                 reschedule(old_cpu);
             if (CPU::id() != new_cpu)
                 reschedule(new_cpu);
-        } else
-            reschedule();
+            break;
+        }
     }
 
     unlock();
@@ -211,8 +220,21 @@ void Thread::resume()
         _state = READY;
         _scheduler.resume(this);
 
-        if(preemptive)
-            reschedule(_link.rank().queue());
+        if(preemptive) {
+            switch (Criterion::core_scheduling)
+            {
+            case Criterion::SINGLECORE:
+                reschedule();
+                break;
+            case Criterion::GLOBAL_MULTICORE:
+                for (unsigned long i = 0; i < Traits<Build>::CPUS; i++)
+                    reschedule(i);
+                break;
+            case Criterion::PARTITIONED_MULTICORE:
+                reschedule(_link.rank().queue());
+                break;
+            }
+        }
     } else
         db<Thread>(WRN) << "Resume called for unsuspended object!" << endl;
 
@@ -298,8 +320,21 @@ void Thread::wakeup(Queue * q)
         t->_waiting = 0;
         _scheduler.resume(t);
 
-        if(preemptive)
-            reschedule(t->_link.rank().queue());
+        if(preemptive) {
+            switch (Criterion::core_scheduling)
+            {
+            case Criterion::SINGLECORE:
+                reschedule();
+                break;
+            case Criterion::GLOBAL_MULTICORE:
+                for (unsigned long i = 0; i < Traits<Build>::CPUS; i++)
+                    reschedule(i);
+                break;
+            case Criterion::PARTITIONED_MULTICORE:
+                reschedule(t->_link.rank().queue());
+                break;
+            }
+        }
     }
 }
 
@@ -401,7 +436,7 @@ void Thread::reschedule(unsigned int cpu)
 {
     assert(locked()); // locking handled by caller
 
-    if(Traits<Build>::CPUS == 1 || CPU::id() == cpu)
+    if(Criterion::core_scheduling == Criterion::SINGLECORE || CPU::id() == cpu)
         reschedule();
     else {
         db<Thread>(TRC) << "Thread::reschedule(cpu=" << cpu << ")" << endl;

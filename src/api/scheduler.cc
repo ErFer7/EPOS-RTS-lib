@@ -5,6 +5,21 @@
 
 __BEGIN_SYS
 
+unsigned int Balanced_Queue_Scheduler::next_queue() {
+    unsigned int cpu = 0;
+    unsigned int min_size = -1U;
+
+    for (unsigned int i = 0; i < CPU::cores(); i++) {
+        unsigned int size = Thread::scheduler_size(i);
+        if (size < min_size) {
+            min_size = size;
+            cpu = i;
+        }
+    }
+
+    return cpu;
+}
+
 inline RT_Common::Tick RT_Common::elapsed() { return Alarm::elapsed(); }
 
 RT_Common::Tick RT_Common::ticks(Microsecond time) {
