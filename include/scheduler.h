@@ -6,7 +6,6 @@
 #include <architecture/cpu.h>
 #include <architecture/pmu.h>
 #include <architecture/tsc.h>
-#include <process.h>
 #include <utility/scheduling.h>
 #include <utility/math.h>
 #include <utility/convert.h>
