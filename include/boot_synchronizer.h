@@ -1,7 +1,7 @@
 // EPOS Boot Synchronizer Declarations
 
-#ifndef __trylock_h
-#define __trylock_h
+#ifndef __boot_synchronizer_h
+#define __boot_synchronizer_h
 
 #include <architecture.h>
 

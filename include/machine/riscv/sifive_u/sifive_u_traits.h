@@ -21,7 +21,7 @@ public:
     static const unsigned long NOT_USED         = -1UL;
 
     // RISC-V mode for library
-    static const bool supervisor = false;                                                       // Run EPOS library in machine mode
+    static const bool supervisor = !library;                                                    // Run EPOS library in machine mode (works in supervisor as well)
 
     // CPU numbering
     static const unsigned long CPU_OFFSET       = 1;                                            // We skip core zero, which is a E CPU without MMU
@@ -103,12 +103,6 @@ template <> struct Traits<Frequency_Profiler>: public Traits<Machine_Common>
     static const unsigned long PROFILING_TIME = 1000000;
     static const unsigned long PROFILING_WAIT_LOAD = 100;
     static constexpr float INTERRUPTION_TIME_RATIO_THRESHOLD = 0.02f;
-};
-
-template <> struct Traits<Priority_Inversion_Solver>: public Traits<Machine_Common>
-{
-    static const bool priority_inversion_solver_enabled = false;
-    static const bool priority_ceiling = false;
 };
 
 template <> struct Traits<UART>: public Traits<Machine_Common>

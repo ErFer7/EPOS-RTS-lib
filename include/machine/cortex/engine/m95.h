@@ -77,7 +77,7 @@ public:
 private:
     int send_command(const char *command, unsigned int size);
     int send_data(const char * data, unsigned int size);
-    bool wait_response(const char * expected, const Microsecond & timeout, char * response = 0, unsigned int response_length = 0);
+    bool wait_response(const char * expected, Microsecond timeout, char * response = 0, unsigned int response_length = 0);
 
     Address _addr;
     Statistics _statistics;

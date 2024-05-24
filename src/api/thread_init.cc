@@ -15,7 +15,13 @@ void Thread::init()
 {
     db<Init, Thread>(TRC) << "Thread::init()" << endl;
 
+    if(Criterion::core_scheduling != Criterion::SINGLECORE && Boot_Synchronizer::acquire_single_core_section())
+        IC::int_vector(IC::INT_RESCHEDULER, rescheduler);
+
     CPU::smp_barrier();
+
+    if (Criterion::core_scheduling != Criterion::SINGLECORE)
+        IC::enable(IC::INT_RESCHEDULER);
 
     Criterion::init();
 
@@ -26,7 +32,7 @@ void Thread::init()
         // In this case, _init will have already been called, before Init_Application to construct MAIN's global objects.
         Main * main = reinterpret_cast<Main *>(__epos_app_entry);
 
-        new (SYSTEM) Thread(Thread::Configuration(Thread::RUNNING, Thread::MAIN), main);
+        new (SYSTEM) Task(main);
     }
 
     // Idle thread creation does not cause rescheduling (see Thread::constructor_epilogue)
@@ -43,15 +49,16 @@ void Thread::init()
     if(Criterion::timed && Boot_Synchronizer::acquire_single_core_section())
         _timer = new (SYSTEM) Scheduler_Timer(QUANTUM, time_slicer);
 
-    if (Traits<Frequency_Profiler>::profiled && Traits<Build>::CPUS == 1)
+    if (Traits<Frequency_Profiler>::profiled && CPU::id() == 0)
         Frequency_Profiler::profile();
 
     // No more interrupts until we reach init_end
     CPU::int_disable();
 
-    if (Traits<Frequency_Profiler>::profiled && Traits<Build>::CPUS == 1)
+    if (Traits<Frequency_Profiler>::profiled && CPU::id() == 0)
         Frequency_Profiler::analyse_profiled_data();
 
+    CPU::smp_barrier();
     // Transition from CPU-based locking to thread-based locking
     _not_booting = true;
 }

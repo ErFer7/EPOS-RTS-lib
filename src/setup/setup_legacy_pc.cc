@@ -101,8 +101,6 @@ private:
     void detect_pci(unsigned long * base, unsigned long * top);
     void calibrate_timers();
 
-    static void panic() { Machine::panic(); }
-
 private:
     char * bi;
     System_Info * si;
@@ -375,7 +373,7 @@ void Setup::say_hi()
     if(!si->lm.has_sys)
         db<Setup>(INF) << "No SYSTEM in boot image, assuming EPOS is a library!" << endl;
 
-    kout << "\nThis is EPOS!\n" << endl;
+    kout << "\n*** This is EPOS!\n" << endl;
     kout << "Setting up this machine as follows: " << endl;
     kout << "  Mode:         " << ((Traits<Build>::SMOD == Traits<Build>::LIBRARY) ? "library" : (Traits<Build>::SMOD == Traits<Build>::BUILTIN) ? "built-in" : "kernel") << endl;
     kout << "  Processor:    " << Traits<Machine>::CPUS << " x IA32 at " << Traits<CPU>::CLOCK / 1000000 << " MHz (BUS clock = " << Traits<CPU>::CLOCK / 1000000 << " MHz)" << endl;
@@ -419,7 +417,7 @@ void Setup::setup_idt()
     memset(idt, 0, sizeof(Page));
 
     // Adjust handler addresses to logical addresses
-    Log_Addr panic_h = Log_Addr(&panic) | PHY_MEM;
+    Log_Addr panic_h = Log_Addr(&Machine::panic) | PHY_MEM;
 
     // Map all handlers to panic()
     for(unsigned int i = 0; i < CPU::IDT_ENTRIES; i++)

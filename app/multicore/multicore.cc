@@ -9,6 +9,7 @@ using namespace EPOS;
 const int work_time = 1000000; // us
 const int thread_count = 16;
 
+int print_count = 0;
 Spin print_lock;
 OStream cout;
 Thread * threads[thread_count];
@@ -24,7 +25,7 @@ void test_threads_with_heavy_work();
 
 int main()
 {
-    cout << "Running multicore tests" << endl;
+    cout << "Running multicore tests with " << CPU::cores() << " cores:" << endl;
 
     chrono.start();
 
@@ -39,7 +40,7 @@ int main()
 
 void print() {
     print_lock.acquire();
-    cout << "Thread [" << Thread::self() << "] is running on core [" << CPU::id() << "]" << endl;
+    cout << print_count++ << ": Thread [" << Thread::self() << "] is running on core [" << CPU::id() << "]" << endl;
     print_lock.release();
 }
 
