@@ -253,9 +253,9 @@ public:
         register T old;
         register T one = 1;
         if(sizeof(T) == sizeof(Reg64))
-            ASM("   amoswap.d.aq %0, %2, (%1) \n" : "=&r"(old) : "r"(&lock), "r"(one) : "memory");
+            ASM("amoswap.d.aq %0, %2, (%1) \n" : "=&r"(old) : "r"(&lock), "r"(one) : "memory");
         else
-            ASM("   amoswap.w.aq %0, %2, (%1) \n" : "=&r"(old) : "r"(&lock), "r"(one) : "memory");
+            ASM("amoswap.w.aq %0, %2, (%1) \n" : "=&r"(old) : "r"(&lock), "r"(one) : "memory");
         return old;
     }
 
@@ -263,9 +263,9 @@ public:
     template<typename T>
     static void asz(volatile T & lock) {
         if(sizeof(T) == sizeof(Reg64))
-            ASM("   amoswap.d.rl zero, zero, (%0) \n" :: "r"(&lock) : "memory");
+            ASM("amoswap.d.rl zero, zero, (%0) \n" :: "r"(&lock) : "memory");
         else
-            ASM("   amoswap.w.rl zero, zero, (%0) \n" :: "r"(&lock) : "memory");
+            ASM("amoswap.w.rl zero, zero, (%0) \n" :: "r"(&lock) : "memory");
     }
 
     template<typename T>
@@ -273,9 +273,9 @@ public:
         register T old;
         register T one = 1;
         if(sizeof(T) == sizeof(Reg64))
-            ASM("   amoadd.d %0, %2, (%1)   \n" : "=&r"(old) : "r"(&value), "r"(one) : "memory");
+            ASM("amoadd.d %0, %2, (%1) \n" : "=&r"(old) : "r"(&value), "r"(one) : "memory");
         else
-            ASM("   amoadd.w %0, %2, (%1)   \n" : "=&r"(old) : "r"(&value), "r"(one) : "memory");
+            ASM("amoadd.w %0, %2, (%1) \n" : "=&r"(old) : "r"(&value), "r"(one) : "memory");
         return old;
     }
 
@@ -284,30 +284,32 @@ public:
         register T old;
         register T minus_one = -1;
         if(sizeof(T) == sizeof(Reg64))
-            ASM("   amoadd.d %0, %2, (%1)   \n" : "=&r"(old) : "r"(&value), "r"(minus_one) : "memory");
+            ASM("amoadd.d %0, %2, (%1) \n" : "=&r"(old) : "r"(&value), "r"(minus_one) : "memory");
         else
-            ASM("   amoadd.w %0, %2, (%1)   \n" : "=&r"(old) : "r"(&value), "r"(minus_one) : "memory");
+            ASM("amoadd.w %0, %2, (%1) \n" : "=&r"(old) : "r"(&value), "r"(minus_one) : "memory");
         return old;
     }
-
-        /*
-        Implementando CAS com AMO
-        TO-DO:
-            - [] Testar se AMO está funcionando;
-            - [] Testar se o spin está funcionando como deveria com CAS;
-            - [] Apagar esse comentário.
-        Atenção:
-            - "memory" é uma restrição de memória que garante que as
-            operações de AMO não sejam reordenadas com outras operações de memória.
-        */
 
     template <typename T>
     static T cas(volatile T & value, T compare, T replacement) {
         register T old;
-        if (sizeof(T) == sizeof(Reg64))
-            ASM("amoswap.d %0, %2, (%1)" : "=&r"(old) : "r"(&value), "r"(replacement) : "memory");
-        else
-            ASM("amoswap.w %0, %2, (%1)" : "=&r"(old) : "r"(&value), "r"(replacement) : "memory");
+        register int one = 1;
+        ASM("1: amoswap.w.aq t3, %1, (%0) \n"
+            "   bnez t3, 1b               \n" : : "r"(&_cas_internal_lock), "r"(one) : "t3", "cc", "memory");
+        if (sizeof(T) == sizeof(Reg64)) {
+            ASM("   ld %0, (%1)               \n"
+                "   bne %0, %2, 2f            \n"
+                "   amoswap.d.aq %0, %3, (%1) \n"
+                "2:                           \n" : "=&r"(old) : "r"(&value), "r"(compare), "r"(replacement) : "cc", "memory");
+        }
+        else {
+            ASM("   ld $0, (%1)               \n"
+                "   bne $0, %2, 2f            \n"
+                "   amoswap.w.aq %0, %3, (%1) \n"
+                "2:                           \n" : "=&r"(old) : "r"(&value), "r"(compare), "r"(replacement) : "cc", "memory");
+        }
+        ASM("amoswap.w.rl zero, zero, (%0) \n" : : "r"(&_cas_internal_lock) : "memory");
+
         return old;
     }
 
@@ -474,6 +476,7 @@ private:
 private:
     static unsigned int _cpu_clock;
     static unsigned int _bus_clock;
+    static volatile int _cas_internal_lock;
 };
 
 inline void CPU::Context::push(bool interrupt)
