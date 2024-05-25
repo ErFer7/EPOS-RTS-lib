@@ -4,6 +4,7 @@
 #include <machine.h>
 #include <system.h>
 #include <process.h>
+#include <synchronizer.h>
 
 extern "C" { volatile unsigned long _running() __attribute__ ((alias ("_ZN4EPOS1S6Thread4selfEv"))); }
 
@@ -26,6 +27,8 @@ void Thread::constructor_prologue(unsigned int stack_size)
     _scheduler.insert(this);
 
     _stack = new (SYSTEM) char[stack_size];
+    _synchronizers_in_use = new Sync_Queue;
+    _waiting = new Queue;
 }
 
 
@@ -100,6 +103,8 @@ Thread::~Thread()
 
     unlock();
 
+    delete _synchronizers_in_use;
+    delete _waiting;
     delete _stack;
 }
 
@@ -360,63 +365,116 @@ void Thread::wakeup_all(Queue * q)
     }
 }
 
-
-void Thread::prioritize(Queue * q)
-{
+void Thread::acquire_resource(Synchronizer_Common * synchronizer) {
     assert(locked()); // locking handled by caller
 
     if(priority_inversion_protocol == Traits<Build>::NONE)
         return;
 
-    db<Thread>(TRC) << "Thread::prioritize(q=" << q << ") [running=" << running() << "]" << endl;
+    db<Thread>(TRC) << "Thread::acquire_resource(synchronizer=" << synchronizer << ") [running=" << running() << "]" << endl;
 
-    Thread * r = running();
-    for(Queue::Iterator i = q->begin(); i != q->end(); ++i) {
-        if(i->object()->priority() > r->priority()) {
-            r->_natural_priority = r->criterion();
-            Criterion c = (priority_inversion_protocol == Traits<Build>::CEILING) ? CEILING : r->criterion();
-            if(r->_state == READY) {
-                _scheduler.suspend(r);
-                r->_link.rank(c);
-                _scheduler.resume(r);
-            } else if(r->state() == WAITING) {
-                r->_waiting->remove(&r->_link);
-                r->_link.rank(c);
-                r->_waiting->insert(&r->_link);
-            } else
-                r->_link.rank(c);
-        }
+    // TODOS pra retornar se for main ou idle?
+    // kout << "chegou aqui" << endl;
+    Thread * r = Thread::running(); // Already inserted in queue
+
+    // kout << "chegou aqui 1" << endl;
+
+    if (r->_synchronizers_in_use->empty()) {
+        // kout << "chegou aqui 1.5" << endl;
+        r->_natural_priority = r->criterion();
     }
+    
+    // kout << "chegou aqui 2" << endl;
+    r->_synchronizers_in_use->insert(new (SYSTEM) Sync_Queue::Element(synchronizer));
+
+    // kout << "chegou aqui 3" << endl;
+    synchronizer->priority(r->criterion()); // Atualmente todas as aquisições mudam a prioridade do recurso, avaliar com a ideia dos semáforos.
+    // kout << "chegou aqui 4" << endl;
 }
 
-
-void Thread::deprioritize(Queue * q)
-{
+void Thread::release_resource(Synchronizer_Common * synchronizer) {
     assert(locked()); // locking handled by caller
 
     if(priority_inversion_protocol == Traits<Build>::NONE)
         return;
 
-    db<Thread>(TRC) << "Thread::deprioritize(q=" << q << ") [running=" << running() << "]" << endl;
+    Queue * granted = synchronizer->granted();
 
-    Thread * r = running();
-    Criterion c = r->_natural_priority;
-    for(Queue::Iterator i = q->begin(); i != q->end(); ++i) {
-        if(i->object()->priority() != c) {
-            if(r->_state == READY) {
-                _scheduler.suspend(r);
-                r->_link.rank(c);
-                _scheduler.resume(r);
-            } else if(r->state() == WAITING) {
-                r->_waiting->remove(&r->_link);
-                r->_link.rank(c);
-                r->_waiting->insert(&r->_link);
-            } else
-                r->_link.rank(c);
+    db<Thread>(TRC) << "Thread::release_resource(q=" << granted << ") [running=" << running() << "]" << endl;
+
+    Thread * self = Thread::running();
+    // Criterion self_priority = self->priority();
+
+    Sync_Queue * synchronizers_in_use =  self->_synchronizers_in_use;
+
+    synchronizers_in_use->remove(synchronizer);
+
+    // Restauração de prioridade da thread
+    if (synchronizers_in_use->empty()) 
+        update_priority(self, self->_natural_priority);
+    else {
+        Criterion max_priority = IDLE;
+
+        // QUAL O TIPO DO ELEMENTO DA MINHA QUEUE?
+        for (auto * e = synchronizers_in_use->head(); e; e = e->next()) {
+            Criterion priority = e->object()->priority();
+
+            if (priority < max_priority)
+                max_priority = priority;
+        }
+
+        update_priority(self, max_priority);
+    }
+
+    granted->remove(self);
+    synchronizer->priority(IDLE);
+}
+
+void Thread::blocked_by_resource(Synchronizer_Common * synchronizer) {
+    // A queue vai ter as threads na seção crítica do 
+    assert(locked()); // locking handled by caller
+
+    if(priority_inversion_protocol == Traits<Build>::NONE)
+        return;
+
+    Queue * granted = synchronizer->granted();
+
+    db<Thread>(TRC) << "Thread::blocked_by_resource(q=" << granted << ") [running=" << running() << "]" << endl;
+
+    Thread * blocked = Thread::self();
+    Criterion blocked_priority = blocked->priority();
+
+    // TODO: checagens se não é main ou idle?
+    if (!granted->empty()) {
+        // Para mutex, só vai ter uma thread no granted. Mas se em um tô semáforo... Eu aumento de todo mundo? Avaliar depois;
+        Thread * critical_section_thread = granted->head()->object();
+
+        if (blocked_priority < critical_section_thread->priority()) {
+            Criterion new_priority = (priority_inversion_protocol == Traits<Build>::CEILING) ? CEILING : critical_section_thread->criterion();
+
+            synchronizer->priority(new_priority);
+            update_priority(critical_section_thread, new_priority);
         }
     }
 }
 
+// TODO: Método de atualização de prioridade específico -> Vou seguir a lógica do professor -> Avaliar se faz sentido
+// Verificar questões de multicore e particionado, também...
+void Thread::update_priority(Thread * t, Criterion c) {
+    switch(t->_state) {
+        case READY: 
+            _scheduler.suspend(t);
+            t->_link.rank(c);
+            break;
+        case WAITING:
+            t->_waiting->remove(&t->_link);
+            t->_link.rank(c);
+            t->_waiting->insert(&t->_link);
+            break;
+        default:
+            t->_link.rank(c);
+    }
+}
 
 void Thread::reschedule()
 {

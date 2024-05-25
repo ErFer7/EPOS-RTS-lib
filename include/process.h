@@ -56,6 +56,8 @@ public:
     // Thread Queue
     typedef Ordered_Queue<Thread, Criterion, Scheduler<Thread>::Element> Queue;
 
+    typedef Ordered_Queue<Synchronizer_Common> Sync_Queue; 
+
     // Thread Configuration
     struct Configuration {
         Configuration(State s = READY, Criterion c = NORMAL, unsigned int ss = STACK_SIZE)
@@ -108,8 +110,10 @@ protected:
     static void wakeup(Queue * queue);
     static void wakeup_all(Queue * queue);
 
-    static void prioritize(Queue * queue);
-    static void deprioritize(Queue * queue);
+    static void acquire_resource(Synchronizer_Common * synchronizer);
+    static void release_resource(Synchronizer_Common * synchronizer);
+    static void blocked_by_resource(Synchronizer_Common * synchronizer);
+    static void update_priority(Thread * t, Criterion c); // Only used in the methods above
 
     static void reschedule();
     static void reschedule(unsigned int cpu);
@@ -141,6 +145,7 @@ protected:
     Queue * _waiting;
     Thread * volatile _joining;
     Queue::Element _link;
+    Sync_Queue *_synchronizers_in_use; // TODO: Avaliar utilização de Queue assim
 
     static bool _not_booting;
     static volatile unsigned int _thread_count;
@@ -209,7 +214,7 @@ private:
 
 template<typename ... Tn>
 inline Thread::Thread(int (* entry)(Tn ...), Tn ... an)
-: _task(Task::self()), _state(READY), _waiting(0), _joining(0), _link(this, NORMAL)
+: _task(Task::self()), _state(READY), _waiting(0), _joining(0), _link(this, NORMAL), _synchronizers_in_use(0)
 {
     constructor_prologue(STACK_SIZE);
     _context = CPU::init_stack(0, _stack + STACK_SIZE, &__exit, entry, an ...);
@@ -218,7 +223,7 @@ inline Thread::Thread(int (* entry)(Tn ...), Tn ... an)
 
 template<typename ... Tn>
 inline Thread::Thread(Configuration conf, int (* entry)(Tn ...), Tn ... an)
-: _task(Task::self()), _state(conf.state), _waiting(0), _joining(0), _link(this, conf.criterion)
+: _task(Task::self()), _state(conf.state), _waiting(0), _joining(0), _link(this, conf.criterion), _synchronizers_in_use(0)
 {
     constructor_prologue(conf.stack_size);
     _context = CPU::init_stack(0, _stack + conf.stack_size, &__exit, entry, an ...);

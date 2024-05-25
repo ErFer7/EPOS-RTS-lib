@@ -13,6 +13,7 @@ class Synchronizer_Common
 {
 protected:
     typedef Thread::Queue Queue;
+    typedef Thread::Criterion Criterion;
 
 protected:
     Synchronizer_Common() {}
@@ -35,18 +36,30 @@ protected:
     long fdec(volatile long & number) { return CPU::fdec(number); }
 
     // Thread operations
-    void lock_for_acquiring() { Thread::lock(); Thread::prioritize(&_granted); }
-    void unlock_for_acquiring() { _granted.insert(new (SYSTEM) Queue::Element(Thread::running())); Thread::unlock(); }
-    void lock_for_releasing() { Thread::lock(); Queue::Element * e = _granted.remove(); if(e) delete e; Thread::deprioritize(&_granted); Thread::deprioritize(&_waiting); }
+    void lock_for_acquiring() { Thread::lock(); }
+    void unlock_for_acquiring() { _granted.insert(new (SYSTEM) Queue::Element(Thread::running())); Thread::acquire_resource(this); Thread::unlock(); }
+    void lock_for_releasing() { Thread::lock(); Queue::Element * e = _granted.remove(); if(e) delete e; Thread::release_resource(this); } // TODO: verify _waiting queue 
     void unlock_for_releasing() { Thread::unlock(); }
 
-    void sleep() { Thread::sleep(&_waiting); }
+    void sleep() { 
+        Thread::blocked_by_resource(this); // If a thread is going to be blocked, check if it has higher priority
+        Thread::sleep(&_waiting);
+    }
     void wakeup() { Thread::wakeup(&_waiting); }
     void wakeup_all() { Thread::wakeup_all(&_waiting); }
+
 
 protected:
     Queue _waiting;
     Queue _granted;
+    Criterion _priority;
+
+public:
+    Queue * waiting() { return &_waiting; }
+    Queue * granted() { return &_granted; }
+
+    Criterion priority() { return _priority; }
+    void priority(Criterion c) { _priority = c;}
 };
 
 

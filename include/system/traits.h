@@ -133,6 +133,7 @@ class Segment;
 
 class Boot_Synchronizer;
 class Synchronizer;
+class Synchronizer_Common;
 class Mutex;
 class Semaphore;
 class Condition;
