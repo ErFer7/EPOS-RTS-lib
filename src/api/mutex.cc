@@ -37,7 +37,7 @@ void Mutex::unlock()
 
     lock_for_releasing();
     if(_waiting.empty())
-        CPU::asz(_locked);
+        asz(_locked);
     else
         wakeup();
     unlock_for_releasing();

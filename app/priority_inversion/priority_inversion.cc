@@ -264,7 +264,7 @@ void test_low_and_high_case() {
     args_l->mutex[0] = mutex;
 
     Test_Args * args_h = new Test_Args('H', 1);
-    args_l->mutex[0] = mutex;
+    args_h->mutex[0] = mutex;
 
     threads[0] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations), &test_task, args_l);
     Delay pick_lock_first(100000);
@@ -298,7 +298,7 @@ void test_classical_case() {
     Test_Args * args_m = new Test_Args('M', 2);
 
     Test_Args * args_h = new Test_Args('H', 1);
-    args_l->mutex[0] = mutex;
+    args_h->mutex[0] = mutex;
 
     threads[0] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations), &test_task, args_l);
     Delay pick_lock_first(100000);
@@ -338,8 +338,8 @@ void test_nested_case() {
     Test_Args * args_m = new Test_Args('M', 2);
 
     Test_Args * args_h = new Test_Args('H', 1);
-    args_l->mutex[0] = mutex;
-    args_l->mutex[1] = nested_mutex;
+    args_h->mutex[0] = mutex;
+    args_h->mutex[1] = nested_mutex;
 
     threads[0] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations), &test_task, args_l);
     Delay pick_lock_first(100000);
@@ -382,9 +382,9 @@ void test_doubly_nested_case() {
     Test_Args * args_m = new Test_Args('M', 2);
 
     Test_Args * args_h = new Test_Args('H', 1);
-    args_l->mutex[0] = mutex;
-    args_l->mutex[1] = nested_mutex;
-    args_l->mutex[2] = doubly_nested_mutex;
+    args_h->mutex[0] = mutex;
+    args_h->mutex[1] = nested_mutex;
+    args_h->mutex[2] = doubly_nested_mutex;
 
     threads[0] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations), &test_task, args_l);
     Delay pick_lock_first(100000);
@@ -429,9 +429,9 @@ void test_doubly_nested_non_well_formed_case() {
     Test_Args * args_m = new Test_Args('M', 2);
 
     Test_Args * args_h = new Test_Args('H', 1);
-    args_l->mutex[0] = mutex;
-    args_l->mutex[1] = nested_mutex;
-    args_l->mutex[2] = doubly_nested_mutex;
+    args_h->mutex[0] = mutex;
+    args_h->mutex[1] = nested_mutex;
+    args_h->mutex[2] = doubly_nested_mutex;
 
     threads[0] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations), &test_task, args_l);
     Delay pick_lock_first(100000);
@@ -471,7 +471,7 @@ void test_simple_semaphore_case() {
     Test_Args * args_m = new Test_Args('M', 2);
 
     Test_Args * args_h = new Test_Args('H', 1);
-    args_l->semaphore = semaphore;
+    args_h->semaphore = semaphore;
 
     threads[0] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations), &test_task, args_l);
     Delay pick_lock_first(100000);

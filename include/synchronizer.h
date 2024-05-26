@@ -33,6 +33,7 @@ protected:
 
     // Atomic operations
     bool tsl(volatile int & lock) { return CPU::tsl(lock); }
+    void asz(volatile int & lock) { CPU::asz(lock); }
     long finc(volatile long & number) { return CPU::finc(number); }
     long fdec(volatile long & number) { return CPU::fdec(number); }
 
