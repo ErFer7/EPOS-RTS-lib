@@ -112,32 +112,7 @@ Thread::~Thread()
 void Thread::priority(Criterion c)
 {
     lock();
-
-    db<Thread>(TRC) << "Thread::priority(this=" << this << ",prio=" << c << ")" << endl;
-
-    if(_state != RUNNING) { // reorder the scheduling queue
-        _scheduler.suspend(this);
-        _link.rank(c);
-        _scheduler.resume(this);
-    } else
-        _link.rank(c);
-
-    if(preemptive) {
-        switch (Criterion::core_scheduling)
-        {
-        case Criterion::SINGLECORE:
-            reschedule();
-            break;
-        case Criterion::GLOBAL_MULTICORE:
-            for (unsigned long i = 0; i < Traits<Build>::CPUS; i++)
-                reschedule(i);
-            break;
-        case Criterion::PARTITIONED_MULTICORE:
-            reschedule(_link.rank().queue());
-            break;
-        }
-    }
-
+    update_priority(c);
     unlock();
 }
 
@@ -368,22 +343,14 @@ void Thread::acquire_resource(Synchronizer_Common * synchronizer) {
     db<Thread>(TRC) << "Thread::acquire_resource(synchronizer=" << synchronizer << ") [running=" << running() << "]" << endl;
 
     // TODOS pra retornar se for main ou idle?
-    // kout << "chegou aqui" << endl;
     Thread * r = Thread::running(); // Already inserted in queue
 
-    // kout << "chegou aqui 1" << endl;
-
     if (r->_synchronizers_in_use->empty()) {
-        // kout << "chegou aqui 1.5" << endl;
         r->_natural_priority = r->criterion();
     }
     
-    // kout << "chegou aqui 2" << endl;
     r->_synchronizers_in_use->insert(new (SYSTEM) Sync_Queue::Element(synchronizer));
-
-    // kout << "chegou aqui 3" << endl;
     synchronizer->priority(r->criterion()); // Atualmente todas as aquisições mudam a prioridade do recurso, avaliar com a ideia dos semáforos.
-    // kout << "chegou aqui 4" << endl;
 }
 
 void Thread::release_resource(Synchronizer_Common * synchronizer) {
@@ -405,7 +372,7 @@ void Thread::release_resource(Synchronizer_Common * synchronizer) {
 
     // Restauração de prioridade da thread
     if (synchronizers_in_use->empty()) 
-        update_priority(self, self->_natural_priority);
+        self->update_priority(self->_natural_priority);
     else {
         Criterion max_priority = IDLE;
 
@@ -417,7 +384,7 @@ void Thread::release_resource(Synchronizer_Common * synchronizer) {
                 max_priority = priority;
         }
 
-        update_priority(self, max_priority);
+        self->update_priority(max_priority);
     }
 
     granted->remove(self);
@@ -436,37 +403,46 @@ void Thread::blocked_by_resource(Synchronizer_Common * synchronizer) {
     db<Thread>(TRC) << "Thread::blocked_by_resource(q=" << granted << ") [running=" << running() << "]" << endl;
 
     Thread * blocked = Thread::self();
-    Criterion blocked_priority = blocked->priority();
+    Criterion blocked_priority = blocked->criterion();
 
     // TODO: checagens se não é main ou idle?
     if (!granted->empty()) {
         // Para mutex, só vai ter uma thread no granted. Mas se em um tô semáforo... Eu aumento de todo mundo? Avaliar depois;
         Thread * critical_section_thread = granted->head()->object();
 
-        if (blocked_priority < critical_section_thread->priority()) {
-            Criterion new_priority = (priority_inversion_protocol == Traits<Build>::CEILING) ? CEILING : critical_section_thread->criterion();
+        if (blocked_priority < critical_section_thread->criterion()) {
+            Criterion new_priority = (priority_inversion_protocol == Traits<Build>::CEILING) ? CEILING : blocked_priority;
 
             synchronizer->priority(new_priority);
-            update_priority(critical_section_thread, new_priority);
+            critical_section_thread->update_priority(new_priority);
         }
     }
 }
 
-// TODO: Método de atualização de prioridade específico -> Vou seguir a lógica do professor -> Avaliar se faz sentido
-// Verificar questões de multicore e particionado, também...
-void Thread::update_priority(Thread * t, Criterion c) {
-    switch(t->_state) {
-        case READY: 
-            _scheduler.suspend(t);
-            t->_link.rank(c);
+void Thread::update_priority(Criterion c) {
+    db<Thread>(TRC) << "Thread::update_priority(this=" << this << ",prio=" << c << ")" << endl;
+
+    if(_state != RUNNING) { // reorder the scheduling queue
+        _scheduler.suspend(this);
+        _link.rank(c);
+        _scheduler.resume(this);
+    } else
+        _link.rank(c);
+
+    if(preemptive) {
+        switch (Criterion::core_scheduling)
+        {
+        case Criterion::SINGLECORE:
+            reschedule();
             break;
-        case WAITING:
-            t->_waiting->remove(&t->_link);
-            t->_link.rank(c);
-            t->_waiting->insert(&t->_link);
+        case Criterion::GLOBAL_MULTICORE:
+            for (unsigned long i = 0; i < Traits<Build>::CPUS; i++)
+                reschedule(i);
             break;
-        default:
-            t->_link.rank(c);
+        case Criterion::PARTITIONED_MULTICORE:
+            reschedule(_link.rank().queue());
+            break;
+        }
     }
 }
 

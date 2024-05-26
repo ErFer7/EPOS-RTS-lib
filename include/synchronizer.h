@@ -42,7 +42,7 @@ protected:
     void unlock_for_acquiring() { 
         if (priority_inversion) {
             _granted.insert(new (SYSTEM) Queue::Element(Thread::running()));
-            Thread::acquire_resource(this); 
+            Thread::acquire_resource(this);
         }
         Thread::unlock();
     }

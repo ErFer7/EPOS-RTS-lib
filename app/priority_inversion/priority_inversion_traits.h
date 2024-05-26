@@ -119,7 +119,7 @@ template<> struct Traits<Thread>: public Traits<Build>
     static const bool simulate_capacity = false;
     static const int priority_inversion_protocol = INHERITANCE;
 
-    typedef IF<(CPUS > 1), LLF, LLF>::Result Criterion;
+    typedef IF<(CPUS > 1), PLLF, LM>::Result Criterion;
     static const unsigned int QUANTUM = 10000; // us
 };
 

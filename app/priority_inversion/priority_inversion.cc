@@ -9,6 +9,10 @@ using namespace EPOS;
 
 const unsigned int iterations = 2;
 const unsigned int period = 500;  // ms
+const unsigned int low_capacity = 0;
+const unsigned int medium_capacity = 100;
+const unsigned int high_capacity = 200;
+
 int test = 0;
 
 OStream cout;
@@ -240,7 +244,7 @@ void test_simple_case() {
     Test_Args * args = new Test_Args('M', 0);
     args->mutex[0] = mutex;
 
-    threads[0] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations), &test_task, args);
+    threads[0] = new Periodic_Thread(RTConf(period * 1000, 0, medium_capacity * 1000, 0, iterations), &test_task, args);
 
     int status = threads[0]->join();
 
@@ -266,9 +270,9 @@ void test_low_and_high_case() {
     Test_Args * args_h = new Test_Args('H', 1);
     args_h->mutex[0] = mutex;
 
-    threads[0] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations), &test_task, args_l);
+    threads[0] = new Periodic_Thread(RTConf(period * 1000, 0, low_capacity * 1000, 0, iterations), &test_task, args_l);
     Delay pick_lock_first(100000);
-    threads[1] = new Periodic_Thread(RTConf(period * 1000, 0, 0, 0, iterations), &test_task, args_h);
+    threads[1] = new Periodic_Thread(RTConf(period * 1000, 0, high_capacity * 1000, 0, iterations), &test_task, args_h);
 
     int status_l = threads[0]->join();
     int status_h = threads[1]->join();

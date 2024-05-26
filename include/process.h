@@ -100,6 +100,8 @@ protected:
 
     Queue::Element * link() { return &_link; }
 
+    void update_priority(Criterion c);
+
     static Thread * volatile running() { return _scheduler.chosen(); }
 
     static void lock() { _lock.acquire(); }
@@ -113,7 +115,6 @@ protected:
     static void acquire_resource(Synchronizer_Common * synchronizer);
     static void release_resource(Synchronizer_Common * synchronizer);
     static void blocked_by_resource(Synchronizer_Common * synchronizer);
-    static void update_priority(Thread * t, Criterion c); // Only used in the methods above
 
     static void reschedule();
     static void reschedule(unsigned int cpu);
