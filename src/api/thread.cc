@@ -53,7 +53,7 @@ void Thread::constructor_epilogue(Log_Addr entry, unsigned int stack_size)
     criterion().handle(Criterion::CREATE);
 
     if(preemptive && (_state == READY) && (_link.rank() != IDLE))
-        reschedule();
+        reschedule(_link.rank().queue());
 
     unlock();
 }
@@ -115,9 +115,6 @@ void Thread::priority(Criterion c)
 
     db<Thread>(TRC) << "Thread::priority(this=" << this << ",prio=" << c << ")" << endl;
 
-    unsigned long old_cpu = _link.rank().queue();
-    unsigned long new_cpu = c.queue();
-
     if(_state != RUNNING) { // reorder the scheduling queue
         _scheduler.suspend(this);
         _link.rank(c);
@@ -136,10 +133,7 @@ void Thread::priority(Criterion c)
                 reschedule(i);
             break;
         case Criterion::PARTITIONED_MULTICORE:
-            if (CPU::id() != old_cpu)
-                reschedule(old_cpu);
-            if (CPU::id() != new_cpu)
-                reschedule(new_cpu);
+            reschedule(_link.rank().queue());
             break;
         }
     }
@@ -485,6 +479,12 @@ void Thread::reschedule()
 
     Thread * prev = running();
     Thread * next = _scheduler.choose();
+
+    // if (Criterion::core_scheduling == Criterion::GLOBAL_MULTICORE) {
+    //     if (!(prev->priority() == IDLE && _scheduler.head() && _scheduler.head()->object()->priority() == IDLE))
+    //         next = _scheduler.choose();
+    // } else
+    //     next = _scheduler.choose();
 
     dispatch(prev, next);
 }

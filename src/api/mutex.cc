@@ -4,7 +4,7 @@
 
 __BEGIN_SYS
 
-Mutex::Mutex(bool priority_inversion): Synchronizer_Common(priority_inversion), _locked(false)
+Mutex::Mutex(bool priority_inversion): Synchronizer_Common(priority_inversion), _locked(0)
 {
     db<Synchronizer>(TRC) << "Mutex() => " << this << endl;
 
@@ -37,7 +37,7 @@ void Mutex::unlock()
 
     lock_for_releasing();
     if(_waiting.empty())
-        _locked = false;
+        CPU::asz(_locked);
     else
         wakeup();
     unlock_for_releasing();

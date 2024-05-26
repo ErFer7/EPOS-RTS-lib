@@ -32,14 +32,13 @@ protected:
     }
 
     // Atomic operations
-    bool tsl(volatile bool & lock) { kout <<"vai tsl com "<< lock << endl; return CPU::tsl(lock); }
+    bool tsl(volatile int & lock) { return CPU::tsl(lock); }
     long finc(volatile long & number) { return CPU::finc(number); }
     long fdec(volatile long & number) { return CPU::fdec(number); }
 
     // Thread operations
-    void lock_for_acquiring() { Thread::lock();  kout << "chegou no lock" << endl;}
+    void lock_for_acquiring() { Thread::lock(); }
     void unlock_for_acquiring() { 
-        kout << "chegou no unlock" << endl;
         if (priority_inversion) {
             _granted.insert(new (SYSTEM) Queue::Element(Thread::running()));
             Thread::acquire_resource(this); 
@@ -92,7 +91,7 @@ public:
     void unlock();
 
 private:
-    volatile bool _locked;
+    volatile int _locked;
 };
 
 
