@@ -9,6 +9,8 @@
 
 __BEGIN_SYS
 
+extern OStream kout;
+
 class Synchronizer_Common
 {
 protected:
@@ -16,13 +18,12 @@ protected:
     typedef Thread::Criterion Criterion;
 
 protected:
-    Synchronizer_Common() {}
+    Synchronizer_Common(bool priority_inversion = true): priority_inversion(priority_inversion) {}
     ~Synchronizer_Common() {
         Thread::lock();
         while(!_granted.empty()) {
             Queue::Element * e = _granted.remove();
-            if(e)
-                delete e;
+            if(e) delete e;
         }
         if(!_waiting.empty())
             db<Synchronizer>(WRN) << "~Synchronizer(this=" << this << ") called with active blocked clients!" << endl;
@@ -31,14 +32,30 @@ protected:
     }
 
     // Atomic operations
-    bool tsl(volatile bool & lock) { return CPU::tsl(lock); }
+    bool tsl(volatile bool & lock) { kout <<"vai tsl com "<< lock << endl; return CPU::tsl(lock); }
     long finc(volatile long & number) { return CPU::finc(number); }
     long fdec(volatile long & number) { return CPU::fdec(number); }
 
     // Thread operations
-    void lock_for_acquiring() { Thread::lock(); }
-    void unlock_for_acquiring() { _granted.insert(new (SYSTEM) Queue::Element(Thread::running())); Thread::acquire_resource(this); Thread::unlock(); }
-    void lock_for_releasing() { Thread::lock(); Queue::Element * e = _granted.remove(); if(e) delete e; Thread::release_resource(this); } // TODO: verify _waiting queue 
+    void lock_for_acquiring() { Thread::lock();  kout << "chegou no lock" << endl;}
+    void unlock_for_acquiring() { 
+        kout << "chegou no unlock" << endl;
+        if (priority_inversion) {
+            _granted.insert(new (SYSTEM) Queue::Element(Thread::running()));
+            Thread::acquire_resource(this); 
+        }
+        Thread::unlock();
+    }
+
+    void lock_for_releasing() { 
+        Thread::lock(); 
+        if (priority_inversion) {
+            Queue::Element * e = _granted.remove(); 
+            if(e) delete e; 
+            Thread::release_resource(this);
+        }
+    } // TODO: verify _waiting queue of resource. Where`s being used and initialized?
+    
     void unlock_for_releasing() { Thread::unlock(); }
 
     void sleep() { 
@@ -55,6 +72,8 @@ protected:
     Criterion _priority;
 
 public:
+    bool priority_inversion;
+
     Queue * waiting() { return &_waiting; }
     Queue * granted() { return &_granted; }
 
@@ -66,7 +85,7 @@ public:
 class Mutex: protected Synchronizer_Common
 {
 public:
-    Mutex();
+    Mutex(bool priority_inversion = true);
     ~Mutex();
 
     void lock();
@@ -80,7 +99,7 @@ private:
 class Semaphore: protected Synchronizer_Common
 {
 public:
-    Semaphore(long v = 1);
+    Semaphore(long v = 1, bool priority_inversion = true);
     ~Semaphore();
 
     void p();
@@ -96,7 +115,7 @@ private:
 class Condition: protected Synchronizer_Common
 {
 public:
-    Condition();
+    Condition(bool priority_inversion = true);
     ~Condition();
 
     void wait();

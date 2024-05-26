@@ -72,7 +72,7 @@ public:
     template<typename ... Tn>
     Periodic_Thread(Microsecond p, int (* entry)(Tn ...), Tn ... an)
     : Thread(Thread::Configuration(SUSPENDED, Criterion(p)), entry, an ...),
-      _semaphore(0), _handler(&_semaphore, this), _alarm(p, &_handler, INFINITE) {
+      _semaphore(0, false), _handler(&_semaphore, this), _alarm(p, &_handler, INFINITE) {
         resume();
         criterion().handle(Criterion::JOB_RELEASE);
     }
@@ -80,7 +80,7 @@ public:
     template<typename ... Tn>
     Periodic_Thread(Configuration conf, int (* entry)(Tn ...), Tn ... an)
     : Thread(Thread::Configuration(SUSPENDED, conf.criterion, conf.stack_size), entry, an ...),
-      _semaphore(0), _handler(&_semaphore, this), _alarm(conf.criterion.period(), &_handler, conf.times) {
+      _semaphore(0, false), _handler(&_semaphore, this), _alarm(conf.criterion.period(), &_handler, conf.times) {
         if((conf.state == READY) || (conf.state == RUNNING)) {
             _state = SUSPENDED;
             resume();

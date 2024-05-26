@@ -7,7 +7,7 @@
 
 __BEGIN_SYS
 
-Condition::Condition()
+Condition::Condition(bool priority_inversion) : Synchronizer_Common(priority_inversion)
 {
     db<Synchronizer>(TRC) << "Condition() => " << this << endl;
 

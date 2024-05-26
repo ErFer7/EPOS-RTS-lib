@@ -4,7 +4,7 @@
 
 __BEGIN_SYS
 
-Mutex::Mutex(): _locked(false)
+Mutex::Mutex(bool priority_inversion): Synchronizer_Common(priority_inversion), _locked(false)
 {
     db<Synchronizer>(TRC) << "Mutex() => " << this << endl;
 
