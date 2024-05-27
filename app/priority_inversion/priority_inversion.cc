@@ -48,6 +48,7 @@ void test_nested_case();
 void test_doubly_nested_case();
 void test_simple_semaphore_case();
 
+// The static scheduling was used to make it easier to see the priority inversion being handled.
 int main() {
     chrono.start();
 
