@@ -10,7 +10,7 @@ const int work_time = 1000000; // us
 const int thread_count = 16;
 
 int print_count = 0;
-Spin print_lock;
+Mutex print_lock;
 OStream cout;
 Thread * threads[thread_count];
 Chronometer chrono;
@@ -39,9 +39,9 @@ int main()
 }
 
 void print() {
-    print_lock.acquire();
-    cout << print_count++ << ": Thread [" << Thread::self() << "] is running on core [" << CPU::id() << "]" << endl;
-    print_lock.release();
+    print_lock.lock();
+    cout << "CPU [" << CPU::id() << "]" << " Thread [" << Thread::self() << "]" << " Priority [" << Thread::self()->priority() << "]: " << "is running (" << print_count++ << ")" << endl;
+    print_lock.unlock();
 }
 
 int simple_task() {

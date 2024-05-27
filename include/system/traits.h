@@ -125,7 +125,9 @@ class PEDF;
 class CEDF;
 class PRM;
 class EA_PEDF;
+class GLM;
 class GLLF;
+class PLM;
 class PLLF;
 
 class Address_Space;
