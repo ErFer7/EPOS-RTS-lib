@@ -54,7 +54,9 @@ public:
     };
 
     // Thread Queue
-    typedef Ordered_Queue<Thread, Criterion, Scheduler<Thread>::Element> Queue;
+    typedef Ordered_Queue<Thread, Criterion, Scheduler<Thread>::Element> Thread_Queue;
+
+    typedef Queue<Synchronizer_Common> Synchronizer_Queue;
 
     // Thread Configuration
     struct Configuration {
@@ -96,7 +98,10 @@ protected:
     void constructor_prologue(unsigned int stack_size);
     void constructor_epilogue(Log_Addr entry, unsigned int stack_size);
 
-    Queue::Element * link() { return &_link; }
+    Thread_Queue::Element * link() { return &_link; }
+
+    void update_priority(Criterion c);
+    Synchronizer_Queue * acquired_synchronizers() { return _acquired_synchronizers; }
 
     static Thread * volatile running() { return _scheduler.chosen(); }
 
@@ -104,12 +109,13 @@ protected:
     static void unlock() { _lock.release(); }
     static bool locked() { return _lock.taken(); }
 
-    static void sleep(Queue * queue);
-    static void wakeup(Queue * queue);
-    static void wakeup_all(Queue * queue);
+    static void sleep(Thread_Queue * queue);
+    static void wakeup(Thread_Queue * queue);
+    static void wakeup_all(Thread_Queue * queue);
 
-    static void prioritize(Queue * queue);
-    static void deprioritize(Queue * queue);
+    static void acquire_synchronizer(Synchronizer_Common * synchronizer);
+    static void release_synchronizer(Synchronizer_Common * synchronizer);
+    static void handle_synchronizer_blocking(Synchronizer_Common * synchronizer);
 
     static void reschedule();
     static void reschedule(unsigned int cpu);
@@ -119,7 +125,7 @@ protected:
     static void dispatch(Thread * prev, Thread * next, bool charge = true);
 
     static void for_all_threads(Criterion::Event event) {
-        for(Queue::Iterator i = _scheduler.begin(); i != _scheduler.end(); ++i)
+        for(Thread_Queue::Iterator i = _scheduler.begin(); i != _scheduler.end(); ++i)
             if(i->object()->criterion() != IDLE)
                 i->object()->criterion().handle(event);
     }
@@ -137,10 +143,10 @@ protected:
     char * _stack;
     Context * volatile _context;
     volatile State _state;
-    Criterion _natural_priority;
-    Queue * _waiting;
+    Thread_Queue * _waiting;
     Thread * volatile _joining;
-    Queue::Element _link;
+    Thread_Queue::Element _link;
+    Synchronizer_Queue * _acquired_synchronizers;
 
     static bool _not_booting;
     static volatile unsigned int _thread_count;
@@ -209,7 +215,7 @@ private:
 
 template<typename ... Tn>
 inline Thread::Thread(int (* entry)(Tn ...), Tn ... an)
-: _task(Task::self()), _state(READY), _waiting(0), _joining(0), _link(this, NORMAL)
+: _task(Task::self()), _state(READY), _waiting(0), _joining(0), _link(this, NORMAL), _acquired_synchronizers(0)
 {
     constructor_prologue(STACK_SIZE);
     _context = CPU::init_stack(0, _stack + STACK_SIZE, &__exit, entry, an ...);
@@ -218,7 +224,7 @@ inline Thread::Thread(int (* entry)(Tn ...), Tn ... an)
 
 template<typename ... Tn>
 inline Thread::Thread(Configuration conf, int (* entry)(Tn ...), Tn ... an)
-: _task(Task::self()), _state(conf.state), _waiting(0), _joining(0), _link(this, conf.criterion)
+: _task(Task::self()), _state(conf.state), _waiting(0), _joining(0), _link(this, conf.criterion), _acquired_synchronizers(0)
 {
     constructor_prologue(conf.stack_size);
     _context = CPU::init_stack(0, _stack + conf.stack_size, &__exit, entry, an ...);

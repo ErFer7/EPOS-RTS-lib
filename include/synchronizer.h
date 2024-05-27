@@ -9,19 +9,37 @@
 
 __BEGIN_SYS
 
+extern OStream kout;
+
 class Synchronizer_Common
 {
-protected:
-    typedef Thread::Queue Queue;
+    friend class Thread;
 
 protected:
-    Synchronizer_Common() {}
+    typedef Thread::Criterion Criterion;
+
+    struct Thread_Priority {
+        Thread_Priority(Thread * t, Criterion p): thread(t), priority(p) {}
+
+        Thread * thread;
+        Criterion priority;
+    };
+
+    typedef Queue<Thread_Priority> Priority_Queue;
+    typedef Thread::Thread_Queue Thread_Queue;
+
+protected:
+    Synchronizer_Common(bool priority_inversion = true): _solve_priority_inversion(priority_inversion), _priority_raised(false) {}
     ~Synchronizer_Common() {
         Thread::lock();
         while(!_granted.empty()) {
-            Queue::Element * e = _granted.remove();
-            if(e)
-                delete e;
+            Thread_Queue::Element * e = _granted.remove();
+            if(e) {
+                Thread * thread = e->object();
+                thread->release_synchronizer(this);
+
+                delete e;   
+            }
         }
         if(!_waiting.empty())
             db<Synchronizer>(WRN) << "~Synchronizer(this=" << this << ") called with active blocked clients!" << endl;
@@ -30,44 +48,101 @@ protected:
     }
 
     // Atomic operations
-    bool tsl(volatile bool & lock) { return CPU::tsl(lock); }
+    bool tsl(volatile int & lock) { return CPU::tsl(lock); }
+    void asz(volatile int & lock) { CPU::asz(lock); }
     long finc(volatile long & number) { return CPU::finc(number); }
     long fdec(volatile long & number) { return CPU::fdec(number); }
 
     // Thread operations
-    void lock_for_acquiring() { Thread::lock(); Thread::prioritize(&_granted); }
-    void unlock_for_acquiring() { _granted.insert(new (SYSTEM) Queue::Element(Thread::running())); Thread::unlock(); }
-    void lock_for_releasing() { Thread::lock(); Queue::Element * e = _granted.remove(); if(e) delete e; Thread::deprioritize(&_granted); Thread::deprioritize(&_waiting); }
+    void lock_for_acquiring() { Thread::lock(); }
+
+    void unlock_for_acquiring() {
+        if (_solve_priority_inversion) {
+            _granted.insert(new (SYSTEM) Thread_Queue::Element(Thread::running()));
+            Thread::acquire_synchronizer(this);
+        }
+
+        Thread::unlock();
+    }
+
+    void lock_for_releasing() { 
+        Thread::lock();
+
+        if (_solve_priority_inversion) {
+            Thread_Queue::Element * e = _granted.remove(); 
+            if(e) delete e; 
+            Thread::release_synchronizer(this);
+        }
+    }
+
     void unlock_for_releasing() { Thread::unlock(); }
 
-    void sleep() { Thread::sleep(&_waiting); }
+    void sleep() { 
+        Thread::handle_synchronizer_blocking(this);
+        Thread::sleep(&_waiting);
+    }
+
     void wakeup() { Thread::wakeup(&_waiting); }
+
     void wakeup_all() { Thread::wakeup_all(&_waiting); }
 
+    Thread_Queue * waiting() { return &_waiting; }
+    Thread_Queue * granted() { return &_granted; }
+
+    void save_thread_priority(Thread * t, Criterion p) {
+        _priorities.insert(new (SYSTEM) Priority_Queue::Element(new (SYSTEM) Thread_Priority(t, p)));
+    }
+
+    Criterion get_saved_thread_priority(Thread * t) {
+        for (Priority_Queue::Element * e = _priorities.head(); e; e = e->next()) {
+            if (e->object()->thread == t) {
+                Criterion priority = e->object()->priority;
+                _priorities.remove(e);
+
+                delete e->object();
+                delete e;
+
+                return priority;
+            }
+        }
+
+        return Thread::Criterion::NORMAL;
+    }
+
+    Criterion priority() { return _priority; }
+    void priority(Criterion c) { _priority = c; }
+
+    void priority_raised(bool priority_raised) { _priority_raised = true; }
+    bool priority_raised() { return _priority_raised; }
+
 protected:
-    Queue _waiting;
-    Queue _granted;
+    Thread_Queue _waiting;
+    Thread_Queue _granted;
+    Priority_Queue _priorities;  // Store the priorities of threads that are granted, this is used to restore the priorities correctly
+    Criterion _priority;         // Current inherited or ceiled priority
+    bool _solve_priority_inversion;
+    bool _priority_raised;
 };
 
 
 class Mutex: protected Synchronizer_Common
 {
 public:
-    Mutex();
+    Mutex(bool priority_inversion = true);
     ~Mutex();
 
     void lock();
     void unlock();
 
 private:
-    volatile bool _locked;
+    volatile int _locked;
 };
 
 
 class Semaphore: protected Synchronizer_Common
 {
 public:
-    Semaphore(long v = 1);
+    Semaphore(long v = 1, bool priority_inversion = true);
     ~Semaphore();
 
     void p();
@@ -83,7 +158,7 @@ private:
 class Condition: protected Synchronizer_Common
 {
 public:
-    Condition();
+    Condition(bool priority_inversion = true);
     ~Condition();
 
     void wait();

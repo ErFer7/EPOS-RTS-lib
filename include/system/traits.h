@@ -125,7 +125,9 @@ class PEDF;
 class CEDF;
 class PRM;
 class EA_PEDF;
+class GLM;
 class GLLF;
+class PLM;
 class PLLF;
 
 class Address_Space;
@@ -133,6 +135,7 @@ class Segment;
 
 class Boot_Synchronizer;
 class Synchronizer;
+class Synchronizer_Common;
 class Mutex;
 class Semaphore;
 class Condition;
