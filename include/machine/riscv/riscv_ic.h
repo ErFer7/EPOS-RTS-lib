@@ -267,7 +267,6 @@ private:
     static void dispatch();
 
     // Logical handlers
-    static void syscall(Interrupt_Id i);
     static void int_not(Interrupt_Id i);
     static void exception(Interrupt_Id i);
 

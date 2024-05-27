@@ -19,6 +19,7 @@ template<> struct Traits<Build>: public Traits_Tokens
 
     // Default flags
     static const bool enabled = true;
+    static const bool monitored = true;
     static const bool debugged = true;
     static const bool hysterically_debugged = false;
 };
@@ -115,6 +116,7 @@ template<> struct Traits<Thread>: public Traits<Build>
     static const bool enabled = Traits<System>::multithread;
     static const bool trace_idle = hysterically_debugged;
     static const bool simulate_capacity = false;
+    static const int priority_inversion_protocol = NONE;
 
     typedef RR Criterion;
     static const unsigned int QUANTUM = 100000; // us

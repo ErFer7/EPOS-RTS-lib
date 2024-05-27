@@ -7,10 +7,16 @@ __BEGIN_SYS
 
 unsigned int CPU::_cpu_clock;
 unsigned int CPU::_bus_clock;
+volatile int CPU::_cas_internal_lock = false;
 
-void CPU::Context::save() volatile
+void CPU::Context::save() const volatile
 {
-    ASM("       sd       x1,    8(a0)           \n");   // push RA as PC
+if(supervisor) {
+    ASM("       csrr     x3,    sepc            \n");
+} else {
+    ASM("       csrr     x3,    mepc            \n");
+}
+    ASM("       sd       x3,    0(a0)           \n");   // save PC
 if(supervisor) {
     ASM("       csrr     x3,  sstatus           \n");
 } else {

@@ -26,10 +26,10 @@ class Periodic_Thread: public Thread
 {
 public:
     enum {
-        SAME    = Real_Time_Scheduler_Common::SAME,
-        NOW     = Real_Time_Scheduler_Common::NOW,
-        UNKNOWN = Real_Time_Scheduler_Common::UNKNOWN,
-        ANY     = Real_Time_Scheduler_Common::ANY
+        SAME    = RT_Common::SAME,
+        NOW     = RT_Common::NOW,
+        UNKNOWN = RT_Common::UNKNOWN,
+        ANY     = RT_Common::ANY
     };
 
 protected:
@@ -49,8 +49,7 @@ protected:
         ~Dynamic_Handler() {}
 
         void operator()() {
-            _thread->criterion().update();
-
+            _thread->criterion().handle(Criterion::JOB_RELEASE);
             Semaphore_Handler::operator()();
         }
 
@@ -58,44 +57,47 @@ protected:
         Periodic_Thread * _thread;
     };
 
-    typedef IF<Criterion::dynamic, Dynamic_Handler, Static_Handler>::Result Handler;
+    typedef IF<Criterion::dynamic | Traits<System>::monitored, Dynamic_Handler, Static_Handler>::Result Handler;
 
 public:
     struct Configuration: public Thread::Configuration {
-        Configuration(const Microsecond & p, const Microsecond & d = SAME, const Microsecond & cap = UNKNOWN, const Microsecond & act = NOW, const unsigned int n = INFINITE, const State & s = READY, const Criterion & c = NORMAL, unsigned int ss = STACK_SIZE)
-        : Thread::Configuration(s, c, ss), period(p), deadline(d == SAME ? p : d), capacity(cap), activation(act), times(n) {}
+        Configuration(Microsecond p, Microsecond d = SAME, Microsecond c = UNKNOWN, Microsecond a = NOW, const unsigned int n = INFINITE, State s = READY, unsigned int ss = STACK_SIZE)
+        : Thread::Configuration(s, Criterion(p, d, c), ss), activation(a), times(n) {}
 
-        Microsecond period;
-        Microsecond deadline;
-        Microsecond capacity;
         Microsecond activation;
         unsigned int times;
     };
 
 public:
     template<typename ... Tn>
-    Periodic_Thread(const Microsecond & p, int (* entry)(Tn ...), Tn ... an)
+    Periodic_Thread(Microsecond p, int (* entry)(Tn ...), Tn ... an)
     : Thread(Thread::Configuration(SUSPENDED, Criterion(p)), entry, an ...),
-      _semaphore(0, false), _handler(&_semaphore, this), _alarm(p, &_handler, INFINITE) { resume(); }
+      _semaphore(0, false), _handler(&_semaphore, this), _alarm(p, &_handler, INFINITE) {
+        resume();
+        criterion().handle(Criterion::JOB_RELEASE);
+    }
 
     template<typename ... Tn>
-    Periodic_Thread(const Configuration & conf, int (* entry)(Tn ...), Tn ... an)
-    : Thread(Thread::Configuration(SUSPENDED, (conf.criterion != NORMAL) ? conf.criterion : Criterion(conf.deadline, conf.period, conf.capacity), conf.stack_size), entry, an ...),
-      _semaphore(0, false), _handler(&_semaphore, this), _alarm(conf.period, &_handler, conf.times) {
+    Periodic_Thread(Configuration conf, int (* entry)(Tn ...), Tn ... an)
+    : Thread(Thread::Configuration(SUSPENDED, conf.criterion, conf.stack_size), entry, an ...),
+      _semaphore(0, false), _handler(&_semaphore, this), _alarm(conf.criterion.period(), &_handler, conf.times) {
         if((conf.state == READY) || (conf.state == RUNNING)) {
             _state = SUSPENDED;
             resume();
+            criterion().handle(Criterion::JOB_RELEASE);
         } else
             _state = conf.state;
     }
 
-    const Microsecond & period() const { return _alarm.period(); }
-    void period(const Microsecond & p) { _alarm.period(p); }
+    Microsecond period() const { return _alarm.period(); }
+    void period(Microsecond p) { _alarm.period(p); }
 
     static volatile bool wait_next() {
         Periodic_Thread * t = reinterpret_cast<Periodic_Thread *>(running());
 
         db<Thread>(TRC) << "Thread::wait_next(this=" << t << ",times=" << t->_alarm.times() << ")" << endl;
+
+        t->criterion().handle(Criterion::JOB_FINISH);
 
         if(t->_alarm.times())
             t->_semaphore.p();
@@ -107,6 +109,44 @@ protected:
     Semaphore _semaphore;
     Handler _handler;
     Alarm _alarm;
+};
+
+class RT_Thread: public Periodic_Thread
+{
+public:
+    RT_Thread(void (* function)(), Microsecond p, Microsecond d = SAME, Microsecond c = UNKNOWN, Microsecond a = NOW, int n = INFINITE, unsigned int ss = STACK_SIZE)
+    : Periodic_Thread(Configuration(p, d, c, a, n, SUSPENDED, ss), &entry, this, function, a, n) {
+        resume();
+    }
+
+private:
+    static int entry(RT_Thread * t, void (* function)(), Microsecond a, int n) {
+        if(a) {
+            // Wait for activation time
+            t->_semaphore.p();
+
+            t->criterion().handle(Criterion::JOB_RELEASE);
+
+            // Adjust alarm's period
+            t->_alarm.~Alarm();
+            new (&t->_alarm) Alarm(t->criterion().period(), &t->_handler, n);
+        }
+
+        // Periodic execution loop
+        do {
+//            Alarm::Tick tick;
+//            if(Traits<Periodic_Thread>::simulate_capacity && t->criterion()._capacity)
+//                tick = Alarm::elapsed() + Alarm::ticks(t->criterion()._capacity);
+
+            // Release job
+            function();
+
+//            if(Traits<Periodic_Thread>::simulate_capacity && t->criterion()._capacity)
+//                while(Alarm::elapsed() < tick);
+        } while(wait_next());
+
+        return 0;
+    }
 };
 
 typedef Periodic_Thread::Configuration RTConf;

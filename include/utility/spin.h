@@ -62,6 +62,28 @@ private:
     volatile bool _locked;
 };
 
+class Core_Spin: protected Spin
+{
+public:
+    Core_Spin() {}
+
+    void acquire(bool disable_interruptions = true) {
+        if (disable_interruptions)
+            CPU::int_disable();
+
+        Spin::acquire();
+    }
+
+    void release(bool enable_interruptions = true) {
+        Spin::release();
+
+        if (enable_interruptions)
+            CPU::int_enable();
+    }
+
+    volatile bool taken() const { return Spin::taken(); }
+};
+
 __END_UTIL
 
 #endif

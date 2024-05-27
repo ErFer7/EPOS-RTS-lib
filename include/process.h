@@ -19,15 +19,13 @@ class Thread
     friend class Init_System;           // for init() on CPU != 0
     friend class Scheduler<Thread>;     // for link()
     friend class Synchronizer_Common;   // for lock() and sleep()
-    friend class Priority_Inversion_Solver;
     friend class Alarm;                 // for lock()
     friend class System;                // for init()
-    friend class IC;                    // for link() for priority ceiling
+    friend class Balanced_Queue_Scheduler;
 
 protected:
     static const bool preemptive = Traits<Thread>::Criterion::preemptive;
-    static const bool reboot = Traits<System>::reboot;
-
+    static const int priority_inversion_protocol = Traits<Thread>::priority_inversion_protocol;
     static const unsigned int QUANTUM = Traits<Thread>::QUANTUM;
     static const unsigned int STACK_SIZE = Traits<Application>::STACK_SIZE;
 
@@ -47,7 +45,7 @@ public:
     // Thread Scheduling Criterion
     typedef Traits<Thread>::Criterion Criterion;
     enum {
-        ISR     = Criterion::ISR,
+        CEILING = Criterion::CEILING,
         HIGH    = Criterion::HIGH,
         NORMAL  = Criterion::NORMAL,
         LOW     = Criterion::LOW,
@@ -56,14 +54,13 @@ public:
     };
 
     // Thread Queue
-    typedef Ordered_Queue<Thread, Criterion, Scheduler<Thread>::Element> Queue;
+    typedef Ordered_Queue<Thread, Criterion, Scheduler<Thread>::Element> Thread_Queue;
 
-    // Thread Priority_Inversion_Solver list
-    typedef List<Priority_Inversion_Solver> PIS_List;
+    typedef Queue<Synchronizer_Common> Synchronizer_Queue;
 
     // Thread Configuration
     struct Configuration {
-        Configuration(const State & s = READY, const Criterion & c = NORMAL, unsigned int ss = STACK_SIZE)
+        Configuration(State s = READY, Criterion c = NORMAL, unsigned int ss = STACK_SIZE)
         : state(s), criterion(c), stack_size(ss) {}
 
         State state;
@@ -76,15 +73,17 @@ public:
     template<typename ... Tn>
     Thread(int (* entry)(Tn ...), Tn ... an);
     template<typename ... Tn>
-    Thread(const Configuration & conf, int (* entry)(Tn ...), Tn ... an);
+    Thread(Configuration conf, int (* entry)(Tn ...), Tn ... an);
     ~Thread();
 
     const volatile State & state() const { return _state; }
-    const volatile Criterion::Statistics & statistics() { return criterion().statistics(); }
+    Criterion & criterion() { return const_cast<Criterion &>(_link.rank()); }
+    volatile Criterion::Statistics & statistics() { return criterion().statistics(); }
 
     const volatile Criterion & priority() const { return _link.rank(); }
-    void priority(const Criterion & p);
-    void non_locked_priority(const Criterion & p);
+    void priority(Criterion p);
+
+    Task * task() const { return _task; }
 
     int join();
     void pass();
@@ -99,62 +98,124 @@ protected:
     void constructor_prologue(unsigned int stack_size);
     void constructor_epilogue(Log_Addr entry, unsigned int stack_size);
 
-    Criterion & criterion() { return const_cast<Criterion &>(_link.rank()); }
-    Queue::Element * link() { return &_link; }
+    Thread_Queue::Element * link() { return &_link; }
+
+    void update_priority(Criterion c);
+    Synchronizer_Queue * acquired_synchronizers() { return _acquired_synchronizers; }
 
     static Thread * volatile running() { return _scheduler.chosen(); }
 
-    static void lock() {
-        CPU::int_disable();
-        _lock.acquire();
-    }
-
-    static void unlock() {
-        _lock.release();
-        CPU::int_enable();
-    }
-
+    static void lock() { _lock.acquire(); }
+    static void unlock() { _lock.release(); }
     static bool locked() { return _lock.taken(); }
 
-    void save_original_priority() { _original_priority = _link.rank(); }
-    const Criterion & original_priority() const { return _original_priority; }
-    PIS_List * synchronizers_in_use() { return _synchronizers_in_use; }
+    static void sleep(Thread_Queue * queue);
+    static void wakeup(Thread_Queue * queue);
+    static void wakeup_all(Thread_Queue * queue);
 
-    static void sleep(Queue * q);
-    static void wakeup(Queue * q);
-    static void wakeup_all(Queue * q);
+    static void acquire_synchronizer(Synchronizer_Common * synchronizer);
+    static void release_synchronizer(Synchronizer_Common * synchronizer);
+    static void handle_synchronizer_blocking(Synchronizer_Common * synchronizer);
 
     static void reschedule();
+    static void reschedule(unsigned int cpu);
+    static void rescheduler(IC::Interrupt_Id i);
     static void time_slicer(IC::Interrupt_Id interrupt);
 
     static void dispatch(Thread * prev, Thread * next, bool charge = true);
+
+    static void for_all_threads(Criterion::Event event) {
+        for(Thread_Queue::Iterator i = _scheduler.begin(); i != _scheduler.end(); ++i)
+            if(i->object()->criterion() != IDLE)
+                i->object()->criterion().handle(event);
+    }
 
     static int idle();
 
 private:
     static void init();
+    static unsigned int scheduler_size() { return _scheduler.schedulables(); }
+    static unsigned int scheduler_size(unsigned int queue) { return _scheduler.schedulables(queue); }
 
 protected:
+    Task * _task;
+
     char * _stack;
     Context * volatile _context;
     volatile State _state;
-    Queue * _waiting;
+    Thread_Queue * _waiting;
     Thread * volatile _joining;
-    Queue::Element _link;
-    PIS_List * _synchronizers_in_use;
-    Criterion _original_priority;
+    Thread_Queue::Element _link;
+    Synchronizer_Queue * _acquired_synchronizers;
 
     static bool _not_booting;
     static volatile unsigned int _thread_count;
     static Scheduler_Timer * _timer;
     static Scheduler<Thread> _scheduler;
-    static Spin _lock;
+    static Core_Spin _lock;
+};
+
+
+class Task
+{
+    friend class Thread;           // for Task(), enroll() and dismiss()
+    friend class Alarm;            // for enroll() and dismiss()
+    friend class Mutex;            // for enroll() and dismiss()
+    friend class Condition;        // for enroll() and dismiss()
+    friend class Semaphore;        // for enroll() and dismiss()
+    friend class Segment;          // for enroll() and dismiss()
+
+private:
+    typedef Typed_List<> Resources;
+    typedef Resources::Element Resource;
+
+protected:
+    // This constructor is only used by Thread::init()
+    template<typename ... Tn>
+    Task(int (* entry)(Tn ...), Tn ... an) {
+        db<Task, Init>(TRC) << "Task(entry=" << reinterpret_cast<void *>(entry) << ") => " << this << endl;
+
+        _current = this;
+        _main = new (SYSTEM) Thread(Thread::Configuration(Thread::RUNNING, Thread::MAIN), entry, an ...);
+    }
+
+public:
+    ~Task();
+
+    Thread * main() const { return _main; }
+
+    int join() { return _main->join(); }
+
+    static Task * volatile self() { return current(); }
+
+private:
+    template<typename T>
+    void enroll(T * o) {
+    	db<Task>(TRC) << "Task::enroll(t=" << Type<T>::ID << ", o=" << o << ")" << endl;
+    	_resources.insert(new (SYSTEM) Resource(o, Type<T>::ID));
+    }
+    void dismiss(void * o) {
+    	db<Task>(TRC) << "Task::dismiss(" << o << ")" << endl;
+    	Resource * r = _resources.remove(o);
+    	if(r) delete r;
+    }
+
+    static Task * volatile current() { return _current; }
+    static void current(Task * t) { _current = t; }
+
+    static void init();
+
+private:
+    Thread * _main;
+    Resources _resources;
+
+    static Task * volatile _current;
 };
 
 
 template<typename ... Tn>
 inline Thread::Thread(int (* entry)(Tn ...), Tn ... an)
-: _state(READY), _waiting(0), _joining(0), _link(this, NORMAL)
+: _task(Task::self()), _state(READY), _waiting(0), _joining(0), _link(this, NORMAL), _acquired_synchronizers(0)
 {
     constructor_prologue(STACK_SIZE);
     _context = CPU::init_stack(0, _stack + STACK_SIZE, &__exit, entry, an ...);
@@ -162,8 +223,8 @@ inline Thread::Thread(int (* entry)(Tn ...), Tn ... an)
 }
 
 template<typename ... Tn>
-inline Thread::Thread(const Configuration & conf, int (* entry)(Tn ...), Tn ... an)
-: _state(conf.state), _waiting(0), _joining(0), _link(this, conf.criterion)
+inline Thread::Thread(Configuration conf, int (* entry)(Tn ...), Tn ... an)
+: _task(Task::self()), _state(conf.state), _waiting(0), _joining(0), _link(this, conf.criterion), _acquired_synchronizers(0)
 {
     constructor_prologue(conf.stack_size);
     _context = CPU::init_stack(0, _stack + conf.stack_size, &__exit, entry, an ...);

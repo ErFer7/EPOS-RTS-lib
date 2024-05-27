@@ -124,7 +124,7 @@ public:
             }
         }
 
-        void save() volatile __attribute__ ((naked));
+        void save() const volatile __attribute__ ((naked));
         void load() const volatile __attribute__ ((naked));
 
         friend OStream & operator<<(OStream & os, const Context & c) {
@@ -253,9 +253,9 @@ public:
         register T old;
         register T one = 1;
         if(sizeof(T) == sizeof(Reg64))
-            ASM("   amoswap.d.aq %0, %2, (%1) \n" : "=&r"(old) : "r"(&lock), "r"(one) : "memory");
+            ASM("amoswap.d.aq %0, %2, (%1) \n" : "=&r"(old) : "r"(&lock), "r"(one) : "memory");
         else
-            ASM("   amoswap.w.aq %0, %2, (%1) \n" : "=&r"(old) : "r"(&lock), "r"(one) : "memory");
+            ASM("amoswap.w.aq %0, %2, (%1) \n" : "=&r"(old) : "r"(&lock), "r"(one) : "memory");
         return old;
     }
 
@@ -263,9 +263,9 @@ public:
     template<typename T>
     static void asz(volatile T & lock) {
         if(sizeof(T) == sizeof(Reg64))
-            ASM("   amoswap.d.rl zero, zero, (%0) \n" :: "r"(&lock) : "memory");
+            ASM("amoswap.d.rl zero, zero, (%0) \n" :: "r"(&lock) : "memory");
         else
-            ASM("   amoswap.w.rl zero, zero, (%0) \n" :: "r"(&lock) : "memory");
+            ASM("amoswap.w.rl zero, zero, (%0) \n" :: "r"(&lock) : "memory");
     }
 
     template<typename T>
@@ -273,9 +273,9 @@ public:
         register T old;
         register T one = 1;
         if(sizeof(T) == sizeof(Reg64))
-            ASM("   amoadd.d %0, %2, (%1)   \n" : "=&r"(old) : "r"(&value), "r"(one) : "memory");
+            ASM("amoadd.d %0, %2, (%1) \n" : "=&r"(old) : "r"(&value), "r"(one) : "memory");
         else
-            ASM("   amoadd.w %0, %2, (%1)   \n" : "=&r"(old) : "r"(&value), "r"(one) : "memory");
+            ASM("amoadd.w %0, %2, (%1) \n" : "=&r"(old) : "r"(&value), "r"(one) : "memory");
         return old;
     }
 
@@ -284,27 +284,32 @@ public:
         register T old;
         register T minus_one = -1;
         if(sizeof(T) == sizeof(Reg64))
-            ASM("   amoadd.d %0, %2, (%1)   \n" : "=&r"(old) : "r"(&value), "r"(minus_one) : "memory");
+            ASM("amoadd.d %0, %2, (%1) \n" : "=&r"(old) : "r"(&value), "r"(minus_one) : "memory");
         else
-            ASM("   amoadd.w %0, %2, (%1)   \n" : "=&r"(old) : "r"(&value), "r"(minus_one) : "memory");
+            ASM("amoadd.w %0, %2, (%1) \n" : "=&r"(old) : "r"(&value), "r"(minus_one) : "memory");
         return old;
     }
 
     template <typename T>
     static T cas(volatile T & value, T compare, T replacement) {
         register T old;
-        if(sizeof(T) == sizeof(Reg64))
-            ASM("1: lr.d    %0, (%1)        \n"
-                "   bne     %0, %2, 2f      \n"
-                "   sc.d    t3, %3, (%1)    \n"
-                "   bnez    t3, 1b          \n"
-                "2:                         \n" : "=&r"(old) : "r"(&value), "r"(compare), "r"(replacement) : "t3", "cc", "memory");
-        else
-            ASM("1: lr.w    %0, (%1)        \n"
-                "   bne     %0, %2, 2f      \n"
-                "   sc.w    t3, %3, (%1)    \n"
-                "   bnez    t3, 1b          \n"
-                "2:                         \n" : "=&r"(old) : "r"(&value), "r"(compare), "r"(replacement) : "t3", "cc", "memory");
+        register int one = 1;
+        ASM("1: amoswap.w.aq t3, %1, (%0) \n"
+            "   bnez t3, 1b               \n" : : "r"(&_cas_internal_lock), "r"(one) : "t3", "cc", "memory");
+        if (sizeof(T) == sizeof(Reg64)) {
+            ASM("   ld %0, (%1)               \n"
+                "   bne %0, %2, 2f            \n"
+                "   amoswap.d.aq %0, %3, (%1) \n"
+                "2:                           \n" : "=&r"(old) : "r"(&value), "r"(compare), "r"(replacement) : "cc", "memory");
+        }
+        else {
+            ASM("   lw $0, (%1)               \n"
+                "   bne $0, %2, 2f            \n"
+                "   amoswap.w.aq %0, %3, (%1) \n"
+                "2:                           \n" : "=&r"(old) : "r"(&value), "r"(compare), "r"(replacement) : "cc", "memory");
+        }
+        ASM("amoswap.w.rl zero, zero, (%0) \n" : : "r"(&_cas_internal_lock) : "memory");
+
         return old;
     }
 
@@ -471,6 +476,7 @@ private:
 private:
     static unsigned int _cpu_clock;
     static unsigned int _bus_clock;
+    static volatile int _cas_internal_lock;
 };
 
 inline void CPU::Context::push(bool interrupt)
@@ -486,11 +492,6 @@ if(interrupt) {
     ASM("       mv       x3,    x1              \n");   // push RA as PC on context switches
 }
     ASM("       sd       x3,    0(sp)           \n");   // push PC
-
-//if(!interrupt && supervisor) {
-//    ASM("       li       x3,      %0            \n"
-//        "       csrs     sstatus, x3            \n": : "i"(SPP_S));   // set SPP_S inside the kernel; the push(true) on IC::entry() has already saved the correct value to eventually return to the application
-//}
 if(supervisor) {
     ASM("       csrr     x3, sstatus            \n");
 } else {
@@ -532,23 +533,15 @@ if(interrupt) {
 
 inline void CPU::Context::pop(bool interrupt)
 {
-if(interrupt) {
-    int_disable();                                      // atomize Context::pop() by disabling interrupts (SPIE will restore the flag on iret())
-}
     ASM("       ld       x3,    0(sp)           \n");   // pop PC into TMP
-if(interrupt) {
-    ASM("       add      x3, x3, a0             \n");   // A0 is set by exception handlers to adjust [M|S]EPC to point to the next instruction if needed
-}
 if(supervisor) {
     ASM("       csrw     sepc, x3               \n");   // SEPC = PC
 } else {
     ASM("       csrw     mepc, x3               \n");   // MEPC = PC
 }
-    ASM("       ld       x3,    8(sp)           \n");   // pop ST into TMP
-if(!interrupt) {
-    ASM("       li      x10, %0                 \n"     // use X10 as a second TMP, since it will be restored later
+    ASM("       ld       x3,    8(sp)           \n"     // pop ST into TMP
+        "       li      x10, %0                 \n"     // use X10 as a second TMP, since it will be restored later
         "       or       x3, x3, x10            \n" : : "i"(supervisor ? SPP_S : MPP_M)); // [M|S]STATUS.[S|M]PP is automatically cleared on the [M|S]RET in the ISR, so we need to recover it here
-}
     ASM("       ld       x1,   16(sp)           \n"     // pop RA
         "       ld       x5,   24(sp)           \n"     // pop X5-X31
         "       ld       x6,   32(sp)           \n"

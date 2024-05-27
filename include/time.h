@@ -32,47 +32,38 @@ class Alarm
 {
     friend class System;                        // for init()
     friend class Alarm_Chronometer;             // for elapsed()
-    friend class Periodic_Thread;               // for ticks(), times(), and elapsed()
-    friend class FCFS;                          // for ticks() and elapsed()
-    friend class EDF;                           // for ticks() and elapsed()
-    friend class LLF;                           // for ticks() and elapsed()
+    friend class Thread;                        // for elapsed()
+    friend class RT_Common;                     // for elapsed()
+    friend class Periodic_Thread;               // for times()
 
 private:
     typedef Timer_Common::Tick Tick;
     typedef Relative_Queue<Alarm, Tick> Queue;
 
 public:
-    Alarm(const Microsecond & time, Handler * handler, unsigned int times = 1);
+    Alarm(Microsecond time, Handler * handler, unsigned int times = 1);
     ~Alarm();
 
     const Microsecond & period() const { return _time; }
-    void period(const Microsecond & p);
+    void period(Microsecond p);
 
     void reset();
 
     static Hertz frequency() { return _timer->frequency(); }
 
-    static void delay(const Microsecond & time);
+    static void delay(Microsecond time);
 
 private:
     unsigned int times() const { return _times; }
 
     static volatile Tick & elapsed() { return _elapsed; }
 
-    static Microsecond timer_period() { return 1000000 / frequency(); }
-    static Tick ticks(const Microsecond & time) { return (time + timer_period() / 2) / timer_period(); }
+    static Alarm_Timer * timer() { return _timer; }
 
-    static void lock() {
-        CPU::int_disable();
-        _lock.acquire();
-    }
+    static Tick ticks(Microsecond time) { return Timer_Common::ticks(time, frequency()); }
 
-    static void unlock() {
-        _lock.release();
-        CPU::int_enable();
-    }
-
-    static bool locked() { return _lock.taken(); }
+    static void lock() { _lock.acquire(); }
+    static void unlock() { _lock.release(); }
 
     static void handler(IC::Interrupt_Id i);
 
@@ -88,14 +79,14 @@ private:
     static Alarm_Timer * _timer;
     static volatile Tick _elapsed;
     static Queue _request;
-    static Spin _lock;
+    static Core_Spin _lock;
 };
 
 
 class Delay
 {
 public:
-    Delay(const Microsecond & time): _time(time)  { Alarm::delay(_time); }
+    Delay(Microsecond time): _time(time)  { Alarm::delay(_time); }
 
 private:
     Microsecond _time;

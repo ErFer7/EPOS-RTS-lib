@@ -6,17 +6,6 @@
 
 __BEGIN_SYS
 
-void Machine::panic()
-{
-    CPU::int_disable();
-    Display::position(24, 73);
-    Display::puts("PANIC!");
-    if(Traits<System>::reboot)
-        Machine::reboot();
-    else
-        CPU::halt();
-}
-
 void Machine::reboot()
 {
     for(int i = 0; (i < 300) && (i8042::status() & i8042::IN_BUF_FULL); i++)

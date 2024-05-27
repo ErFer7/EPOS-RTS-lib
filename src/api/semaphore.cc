@@ -4,15 +4,19 @@
 
 __BEGIN_SYS
 
-Semaphore::Semaphore(long v, bool solve_priority_inversion) : _value(v), _solve_priority_inversion(solve_priority_inversion)
+Semaphore::Semaphore(long v, bool priority_inversion) : Synchronizer_Common(priority_inversion), _value(v)
 {
     db<Synchronizer>(TRC) << "Semaphore(value=" << _value << ") => " << this << endl;
+    
+    Task::self()->enroll(this);
 }
 
 
 Semaphore::~Semaphore()
 {
     db<Synchronizer>(TRC) << "~Semaphore(this=" << this << ")" << endl;
+
+    Task::self()->dismiss(this);
 }
 
 
@@ -20,16 +24,10 @@ void Semaphore::p()
 {
     db<Synchronizer>(TRC) << "Semaphore::p(this=" << this << ",value=" << _value << ")" << endl;
 
-    begin_atomic();
-    if(fdec(_value) < 1) {
-        if (_solve_priority_inversion)
-            _pis.blocked();
+    lock_for_acquiring();
+    if(fdec(_value) < 1)
         sleep();
-    }
-
-    if (_solve_priority_inversion && _value == 0)
-        _pis.acquire_resource();
-    end_atomic();
+    unlock_for_acquiring();
 }
 
 
@@ -37,13 +35,10 @@ void Semaphore::v()
 {
     db<Synchronizer>(TRC) << "Semaphore::v(this=" << this << ",value=" << _value << ")" << endl;
 
-    begin_atomic();
-    if(finc(_value) < 0) {
-        if (_solve_priority_inversion)
-            _pis.release_resource();
+    lock_for_releasing();
+    if(finc(_value) < 0)
         wakeup();
-    }
-    end_atomic();
+    unlock_for_releasing();
 }
 
 __END_SYS

@@ -4,15 +4,19 @@
 
 __BEGIN_SYS
 
-Mutex::Mutex(bool solve_priority_inversion): _locked(false), _solve_priority_inversion(solve_priority_inversion)
+Mutex::Mutex(bool priority_inversion): Synchronizer_Common(priority_inversion), _locked(0)
 {
     db<Synchronizer>(TRC) << "Mutex() => " << this << endl;
+
+    Task::self()->enroll(this);
 }
 
 
 Mutex::~Mutex()
 {
     db<Synchronizer>(TRC) << "~Mutex(this=" << this << ")" << endl;
+
+    Task::self()->dismiss(this);
 }
 
 
@@ -20,15 +24,10 @@ void Mutex::lock()
 {
     db<Synchronizer>(TRC) << "Mutex::lock(this=" << this << ")" << endl;
 
-    begin_atomic();
-    if(tsl(_locked)) {
-        if (_solve_priority_inversion)
-            _pis.blocked();
+    lock_for_acquiring();
+    if(tsl(_locked))
         sleep();
-    }
-    if (_solve_priority_inversion)
-        _pis.acquire_resource();
-    end_atomic();
+    unlock_for_acquiring();
 }
 
 
@@ -36,15 +35,12 @@ void Mutex::unlock()
 {
     db<Synchronizer>(TRC) << "Mutex::unlock(this=" << this << ")" << endl;
 
-    begin_atomic();
-    if (_solve_priority_inversion)
-        _pis.release_resource();
-
-    if(_queue.empty())
+    lock_for_releasing();
+    if(_waiting.empty())
         asz(_locked);
     else
         wakeup();
-    end_atomic();
+    unlock_for_releasing();
 }
 
 __END_SYS

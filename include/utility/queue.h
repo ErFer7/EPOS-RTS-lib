@@ -50,6 +50,8 @@ public:
     using typename T::Object_Type;
     using typename T::Element;
     using typename T::Iterator;
+    using T::begin;
+    using T::end;
 
 public:
     bool empty() { return T::empty(); }
