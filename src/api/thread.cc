@@ -402,7 +402,7 @@ void Thread::handle_synchronizer_blocking(Synchronizer_Common * synchronizer) {
         for (Thread_Queue::Element * e = granted->head(); e; e = e->next()) {
             Thread * critical_section_thread = e->object();
             Criterion critical_section_thread_priority = critical_section_thread->criterion();
-            
+
             if (critical_section_thread_priority != MAIN && new_priority < critical_section_thread->criterion()) {
                 synchronizer->priority(new_priority);
                 synchronizer->priority_raised(true);

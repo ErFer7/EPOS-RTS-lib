@@ -38,7 +38,7 @@ protected:
                 Thread * thread = e->object();
                 thread->release_synchronizer(this);
 
-                delete e;   
+                delete e;
             }
         }
         if(!_waiting.empty())
@@ -65,19 +65,19 @@ protected:
         Thread::unlock();
     }
 
-    void lock_for_releasing() { 
+    void lock_for_releasing() {
         Thread::lock();
 
         if (_solve_priority_inversion) {
-            Thread_Queue::Element * e = _granted.remove(); 
-            if(e) delete e; 
+            Thread_Queue::Element * e = _granted.remove();
+            if(e) delete e;
             Thread::release_synchronizer(this);
         }
     }
 
     void unlock_for_releasing() { Thread::unlock(); }
 
-    void sleep() { 
+    void sleep() {
         Thread::handle_synchronizer_blocking(this);
         Thread::sleep(&_waiting);
     }
