@@ -13,7 +13,7 @@ template<> struct Traits<Build>: public Traits_Tokens
     static const unsigned int ARCHITECTURE = RV64;
     static const unsigned int MACHINE = RISCV;
     static const unsigned int MODEL = SiFive_U;
-    static const unsigned int CPUS = 1;
+    static const unsigned int CPUS = 4;
     static const unsigned int NETWORKING = STANDALONE;
     static const unsigned int EXPECTED_SIMULATION_TIME = 60; // s (0 => not simulated)
 
@@ -118,7 +118,7 @@ template<> struct Traits<Thread>: public Traits<Build>
     static const bool simulate_capacity = false;
     static const int priority_inversion_protocol = NONE;
 
-    typedef RR Criterion;
+    typedef IF<(CPUS > 1), PLLF, LLF>::Result Criterion;
     static const unsigned int QUANTUM = 10000; // us
 };
 

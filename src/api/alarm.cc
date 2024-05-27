@@ -10,6 +10,7 @@ __BEGIN_SYS
 Alarm_Timer * Alarm::_timer;
 volatile Alarm::Tick Alarm::_elapsed;
 Alarm::Queue Alarm::_request;
+Core_Spin Alarm::_lock;
 
 Alarm::Alarm(Microsecond time, Handler * handler, unsigned int times)
 : _time(time), _handler(handler), _times(times), _ticks(ticks(time)), _link(this, _ticks)
@@ -81,7 +82,7 @@ void Alarm::delay(Microsecond time)
 {
     db<Alarm>(TRC) << "Alarm::delay(time=" << time << ")" << endl;
 
-    Semaphore semaphore(0);
+    Semaphore semaphore(0, false);
     Semaphore_Handler handler(&semaphore);
     Alarm alarm(time, &handler, 1); // if time < tick trigger v()
     semaphore.p();

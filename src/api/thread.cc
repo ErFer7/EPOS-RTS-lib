@@ -1,16 +1,22 @@
 // EPOS Thread Implementation
 
+#include <boot_synchronizer.h>
 #include <machine.h>
 #include <system.h>
 #include <process.h>
+#include <synchronizer.h>
+
+extern "C" { volatile unsigned long _running() __attribute__ ((alias ("_ZN4EPOS1S6Thread4selfEv"))); }
 
 __BEGIN_SYS
 
 extern OStream kout;
 
+bool Thread::_not_booting;
 volatile unsigned int Thread::_thread_count;
 Scheduler_Timer * Thread::_timer;
 Scheduler<Thread> Thread::_scheduler;
+Core_Spin Thread::_lock;
 
 
 void Thread::constructor_prologue(unsigned int stack_size)
@@ -21,6 +27,8 @@ void Thread::constructor_prologue(unsigned int stack_size)
     _scheduler.insert(this);
 
     _stack = new (SYSTEM) char[stack_size];
+    _acquired_synchronizers = new Synchronizer_Queue;
+    _waiting = new Thread_Queue;
 }
 
 
@@ -45,7 +53,7 @@ void Thread::constructor_epilogue(Log_Addr entry, unsigned int stack_size)
     criterion().handle(Criterion::CREATE);
 
     if(preemptive && (_state == READY) && (_link.rank() != IDLE))
-        reschedule();
+        reschedule(_link.rank().queue());
 
     unlock();
 }
@@ -95,6 +103,8 @@ Thread::~Thread()
 
     unlock();
 
+    delete _acquired_synchronizers;
+    delete _waiting;
     delete _stack;
 }
 
@@ -102,19 +112,7 @@ Thread::~Thread()
 void Thread::priority(Criterion c)
 {
     lock();
-
-    db<Thread>(TRC) << "Thread::priority(this=" << this << ",prio=" << c << ")" << endl;
-
-    if(_state != RUNNING) { // reorder the scheduling queue
-        _scheduler.suspend(this);
-        _link.rank(c);
-        _scheduler.resume(this);
-    } else
-        _link.rank(c);
-
-    if(preemptive)
-        reschedule();
-
+    update_priority(c);
     unlock();
 }
 
@@ -196,12 +194,22 @@ void Thread::resume()
         _state = READY;
         _scheduler.resume(this);
 
-        if(preemptive)
-            reschedule();
+        if(preemptive) {
+            if (Criterion::core_scheduling == Criterion::GLOBAL_MULTICORE) {
+                for (unsigned long i = 0; i < Traits<Build>::CPUS; i++)
+                    reschedule(i);
+            } else
+                reschedule(_link.rank().queue());
+        }
     } else
         db<Thread>(WRN) << "Resume called for unsuspended object!" << endl;
 
     unlock();
+}
+
+
+Thread * volatile Thread::self() {
+    return _not_booting ? running() : reinterpret_cast<Thread * volatile>(CPU::id() + 1);
 }
 
 
@@ -248,7 +256,7 @@ void Thread::exit(int status)
 }
 
 
-void Thread::sleep(Queue * q)
+void Thread::sleep(Thread_Queue * q)
 {
     db<Thread>(TRC) << "Thread::sleep(running=" << running() << ",q=" << q << ")" << endl;
 
@@ -266,7 +274,7 @@ void Thread::sleep(Queue * q)
 }
 
 
-void Thread::wakeup(Queue * q)
+void Thread::wakeup(Thread_Queue * q)
 {
     db<Thread>(TRC) << "Thread::wakeup(running=" << running() << ",q=" << q << ")" << endl;
 
@@ -278,13 +286,18 @@ void Thread::wakeup(Queue * q)
         t->_waiting = 0;
         _scheduler.resume(t);
 
-        if(preemptive)
-            reschedule();
+        if(preemptive) {
+            if (Criterion::core_scheduling == Criterion::GLOBAL_MULTICORE) {
+                for (unsigned long i = 0; i < Traits<Build>::CPUS; i++)
+                    reschedule(i);
+            } else
+                reschedule(t->_link.rank().queue());
+        }
     }
 }
 
 
-void Thread::wakeup_all(Queue * q)
+void Thread::wakeup_all(Thread_Queue * q)
 {
     db<Thread>(TRC) << "Thread::wakeup_all(running=" << running() << ",q=" << q << ")" << endl;
 
@@ -298,68 +311,142 @@ void Thread::wakeup_all(Queue * q)
             _scheduler.resume(t);
         }
 
-        if(preemptive)
-            reschedule();
+        if(preemptive) {
+            for(unsigned long i = 0; i < Traits<Build>::CPUS; i++)
+                reschedule(i);
+        }
     }
 }
 
+void Thread::acquire_synchronizer(Synchronizer_Common * synchronizer) {
+    db<Thread>(TRC) << "Thread::acquire_resource(synchronizer=" << synchronizer << ") [running=" << running() << "]" << endl;
 
-void Thread::prioritize(Queue * q)
-{
     assert(locked()); // locking handled by caller
 
     if(priority_inversion_protocol == Traits<Build>::NONE)
         return;
 
-    db<Thread>(TRC) << "Thread::prioritize(q=" << q << ") [running=" << running() << "]" << endl;
+    Thread * running = Thread::running();
+    Criterion running_priority = running->criterion();
 
-    Thread * r = running();
-    for(Queue::Iterator i = q->begin(); i != q->end(); ++i) {
-        if(i->object()->priority() > r->priority()) {
-            r->_natural_priority = r->criterion();
-            Criterion c = (priority_inversion_protocol == Traits<Build>::CEILING) ? CEILING : r->criterion();
-            if(r->_state == READY) {
-                _scheduler.suspend(r);
-                r->_link.rank(c);
-                _scheduler.resume(r);
-            } else if(r->state() == WAITING) {
-                r->_waiting->remove(&r->_link);
-                r->_link.rank(c);
-                r->_waiting->insert(&r->_link);
-            } else
-                r->_link.rank(c);
-        }
-    }
+    if (running_priority == MAIN)
+        return;
+
+    running->_acquired_synchronizers->insert(new (SYSTEM) Synchronizer_Queue::Element(synchronizer));
+    synchronizer->save_thread_priority(running, running_priority);
 }
 
-
-void Thread::deprioritize(Queue * q)
-{
+void Thread::release_synchronizer(Synchronizer_Common * synchronizer) {
     assert(locked()); // locking handled by caller
 
     if(priority_inversion_protocol == Traits<Build>::NONE)
         return;
 
-    db<Thread>(TRC) << "Thread::deprioritize(q=" << q << ") [running=" << running() << "]" << endl;
+    Thread_Queue * granted = synchronizer->granted();
 
-    Thread * r = running();
-    Criterion c = r->_natural_priority;
-    for(Queue::Iterator i = q->begin(); i != q->end(); ++i) {
-        if(i->object()->priority() != c) {
-            if(r->_state == READY) {
-                _scheduler.suspend(r);
-                r->_link.rank(c);
-                _scheduler.resume(r);
-            } else if(r->state() == WAITING) {
-                r->_waiting->remove(&r->_link);
-                r->_link.rank(c);
-                r->_waiting->insert(&r->_link);
-            } else
-                r->_link.rank(c);
+    db<Thread>(TRC) << "Thread::release_resource(q=" << granted << ") [running=" << running() << "]" << endl;
+
+    Thread * running = Thread::running();
+
+    synchronizer->priority_raised(false);
+
+    Synchronizer_Queue::Element * removed = running->_acquired_synchronizers->remove(synchronizer);
+
+    Criterion max = IDLE;
+
+    for (Synchronizer_Queue::Element * e = removed->prev(); e; e = e->prev()) {
+        Synchronizer_Common * previours_synchronizer = e->object();
+
+        if (previours_synchronizer->priority_raised() && previours_synchronizer->priority() < max)
+            max = previours_synchronizer->priority();
+    }
+
+    if (max != IDLE) {
+        for (Thread_Queue::Element * e = granted->head(); e; e = e->next()) {
+            Thread * thread = e->object();
+            Criterion priority = thread->criterion();
+
+            if (priority != MAIN && max < priority)
+                thread->update_priority(max);
+        }
+        running->update_priority(max);
+    } else {
+        for (Thread_Queue::Element * e = granted->head(); e; e = e->next()) {
+            Thread * thread = e->object();
+            Criterion priority = thread->criterion();
+
+            if (priority != MAIN)
+                synchronizer->get_saved_thread_priority(thread);
+        }
+        running->update_priority(synchronizer->get_saved_thread_priority(running));
+    }
+
+    delete removed;
+}
+
+void Thread::handle_synchronizer_blocking(Synchronizer_Common * synchronizer) {
+    assert(locked()); // locking handled by caller
+
+    if(priority_inversion_protocol == Traits<Build>::NONE)
+        return;
+
+    Thread_Queue * granted = synchronizer->granted();
+
+    db<Thread>(TRC) << "Thread::blocked_by_resource(q=" << granted << ") [running=" << running() << "]" << endl;
+
+    Criterion blocked_thread_priority = Thread::running()->criterion();
+
+    if (!granted->empty()) {
+        Criterion new_priority = (priority_inversion_protocol == Traits<Build>::CEILING) ? CEILING : blocked_thread_priority;
+
+        for (Thread_Queue::Element * e = granted->head(); e; e = e->next()) {
+            Thread * critical_section_thread = e->object();
+            Criterion critical_section_thread_priority = critical_section_thread->criterion();
+
+            if (critical_section_thread_priority != MAIN && new_priority < critical_section_thread->criterion()) {
+                synchronizer->priority(new_priority);
+                synchronizer->priority_raised(true);
+                critical_section_thread->update_priority(new_priority);
+            }
+
+            Synchronizer_Queue * acquired_synchronizers = critical_section_thread->acquired_synchronizers();
+
+            for (Synchronizer_Queue::Element * e = acquired_synchronizers->head(); e; e = e->next()) {
+                Synchronizer_Common * synchronizer = e->object();
+                Thread_Queue * granted = synchronizer->granted();
+
+                for (Thread_Queue::Element * e = granted->head(); e; e = e->next()) {
+                    Thread * thread = e->object();
+                    Criterion priority = thread->criterion();
+
+                    if (priority != MAIN && new_priority < priority)
+                        thread->update_priority(new_priority);
+                }
+            }
         }
     }
 }
 
+void Thread::update_priority(Criterion c) {
+    db<Thread>(TRC) << "Thread::update_priority(this=" << this << ",prio=" << c << ")" << endl;
+
+    assert(locked());
+
+    if(_state != RUNNING) { // reorder the scheduling queue
+        _scheduler.suspend(this);
+        _link.rank(c);
+        _scheduler.resume(this);
+    } else
+        _link.rank(c);
+
+    if(preemptive) {
+        if (Criterion::core_scheduling == Criterion::GLOBAL_MULTICORE) {
+            for (unsigned long i = 0; i < Traits<Build>::CPUS; i++)
+                reschedule(i);
+        } else
+            reschedule(_link.rank().queue());
+    }
+}
 
 void Thread::reschedule()
 {
@@ -369,9 +456,36 @@ void Thread::reschedule()
     assert(locked()); // locking handled by caller
 
     Thread * prev = running();
-    Thread * next = _scheduler.choose();
+    Thread * next = prev;
+
+    if (Criterion::core_scheduling == Criterion::GLOBAL_MULTICORE) {
+        if (!(prev->priority() == IDLE && _scheduler.head() && _scheduler.head()->object()->priority() == IDLE))
+            next = _scheduler.choose();
+    } else
+        next = _scheduler.choose();
 
     dispatch(prev, next);
+}
+
+
+void Thread::reschedule(unsigned int cpu)
+{
+    assert(locked()); // locking handled by caller
+
+    if(Criterion::core_scheduling == Criterion::SINGLECORE || CPU::id() == cpu)
+        reschedule();
+    else {
+        db<Thread>(TRC) << "Thread::reschedule(cpu=" << cpu << ")" << endl;
+        IC::ipi(cpu, IC::INT_RESCHEDULER);
+    }
+}
+
+
+void Thread::rescheduler(IC::Interrupt_Id i)
+{
+    lock();
+    reschedule();
+    unlock();
 }
 
 
@@ -409,12 +523,16 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
         }
         db<Thread>(INF) << "Thread::dispatch:next={" << next << ",ctx=" << *next->_context << "}" << endl;
 
+        _lock.release(false);
+
         // The non-volatile pointer to volatile pointer to a non-volatile context is correct
         // and necessary because of context switches, but here, we are locked() and
         // passing the volatile to switch_constext forces it to push prev onto the stack,
         // disrupting the context (it doesn't make a difference for Intel, which already saves
         // parameters on the stack anyway).
         CPU::switch_context(const_cast<Context **>(&prev->_context), next->_context);
+
+        _lock.acquire();
     }
 }
 
@@ -423,7 +541,7 @@ int Thread::idle()
 {
     db<Thread>(TRC) << "Thread::idle(this=" << running() << ")" << endl;
 
-    while(_thread_count > 1) { // someone else besides idle
+    while(_thread_count > CPU::cores()) { // someone else besides idle
         if(Traits<Thread>::trace_idle)
             db<Thread>(TRC) << "Thread::idle(this=" << running() << ")" << endl;
 
@@ -434,8 +552,11 @@ int Thread::idle()
             yield();
     }
 
-    kout << "\n\n*** The last thread under control of EPOS has finished." << endl;
-    kout << "*** EPOS is shutting down!" << endl;
+    if (Boot_Synchronizer::acquire_single_core_section()) {
+        kout << "\n\n*** The last thread under control of EPOS has finished." << endl;
+        kout << "*** EPOS is shutting down!" << endl;
+    }
+
     Machine::reboot();
 
     return 0;

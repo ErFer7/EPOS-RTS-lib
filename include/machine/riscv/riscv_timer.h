@@ -17,6 +17,7 @@ class Timer: private Timer_Common, private CLINT
     friend Machine;
     friend IC;
     friend class Init_System;
+    friend class Frequency_Profiler;
 
 protected:
     static const unsigned int CHANNELS = 2;
@@ -46,7 +47,8 @@ protected:
         else
             db<Timer>(WRN) << "Timer not installed!"<< endl;
 
-        _current = _initial;
+        for (unsigned int i = 0; i < Traits<Machine>::CPUS; i++)
+            _current[i] = _initial;
     }
 
 public:
@@ -56,13 +58,13 @@ public:
         _channels[_channel] = 0;
     }
 
-    Tick read() { return _current; }
+    Tick read() { return _current[CPU::id()]; }
 
     int restart() {
         db<Timer>(TRC) << "Timer::restart() => {f=" << frequency() << ",h=" << reinterpret_cast<void *>(_handler) << ",count=" << _current << "}" << endl;
 
-        int percentage = _current * 100 / _initial;
-        _current = _initial;
+        int percentage = _current[CPU::id()] * 100 / _initial;
+        _current[CPU::id()] = _initial;
 
         return percentage;
     }
@@ -87,9 +89,10 @@ protected:
     unsigned int _channel;
     Tick _initial;
     bool _retrigger;
-    volatile Tick _current;
+    volatile Tick _current[Traits<Machine>::CPUS];
     Handler _handler;
 
+    static unsigned int _alarm_handler_cpu;
     static Timer * _channels[CHANNELS];
 };
 

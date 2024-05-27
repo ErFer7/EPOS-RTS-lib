@@ -24,7 +24,7 @@ public:
     static const bool supervisor = !library;                                                    // Run EPOS library in machine mode (works in supervisor as well)
 
     // CPU numbering
-    static const unsigned long CPU_OFFSET       = supervisor ? 1 : 0;                           // We skip core zero, which is a E CPU without MMU
+    static const unsigned long CPU_OFFSET       = 1;                                            // We skip core zero, which is a E CPU without MMU
 
     // Clocks
     static const unsigned long CLOCK            = 1000000000;                                   // CORECLK
@@ -94,7 +94,15 @@ template <> struct Traits<Timer>: public Traits<Machine_Common>
     // Meaningful values for the timer frequency range from 100 to 10000 Hz. The
     // choice must respect the scheduler time-slice, i. e., it must be higher
     // than the scheduler invocation frequency.
-    static const long FREQUENCY = 100; // Hz
+    static const long FREQUENCY = 1000; // Hz
+};
+
+template <> struct Traits<Frequency_Profiler>: public Traits<Machine_Common>
+{
+    static const bool profiled = false;
+    static const unsigned long PROFILING_TIME = 1000000;
+    static const unsigned long PROFILING_WAIT_LOAD = 100;
+    static constexpr float INTERRUPTION_TIME_RATIO_THRESHOLD = 0.02f;
 };
 
 template <> struct Traits<UART>: public Traits<Machine_Common>

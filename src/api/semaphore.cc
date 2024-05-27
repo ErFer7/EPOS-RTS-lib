@@ -4,7 +4,7 @@
 
 __BEGIN_SYS
 
-Semaphore::Semaphore(long v) : _value(v)
+Semaphore::Semaphore(long v, bool priority_inversion) : Synchronizer_Common(priority_inversion), _value(v)
 {
     db<Synchronizer>(TRC) << "Semaphore(value=" << _value << ") => " << this << endl;
     

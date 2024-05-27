@@ -20,6 +20,7 @@ class Predictors;
 class Queues;
 class Random;
 class Spin;
+class Core_Spin;
 class SREC;
 class Vectors;
 template<typename> class Scheduler;
@@ -81,6 +82,9 @@ class GEM;
 class IEEE802_15_4_NIC;
 class Ethernet_NIC;
 
+// Machine Specific Profiler
+class Frequency_Profiler;
+
 // Transducer Mediators (i.e. sensors and actuators)
 class Transducers;
 class Dummy_Transducer;
@@ -105,6 +109,7 @@ class Periodic_Thread;
 class RT_Thread;
 class Task;
 class Priority;
+class Balanced_Queue_Scheduler;
 class FCFS;
 class RR;
 class RM;
@@ -120,11 +125,17 @@ class PEDF;
 class CEDF;
 class PRM;
 class EA_PEDF;
+class GLM;
+class GLLF;
+class PLM;
+class PLLF;
 
 class Address_Space;
 class Segment;
 
+class Boot_Synchronizer;
 class Synchronizer;
+class Synchronizer_Common;
 class Mutex;
 class Semaphore;
 class Condition;
@@ -207,6 +218,9 @@ struct Traits_Tokens
 
     // Priority inversion protocols
     enum {CEILING, INHERITANCE};
+
+    // Core scheduling policies
+    enum {SINGLECORE, GLOBAL_MULTICORE, PARTITIONED_MULTICORE};
 
     // Default aspects
     typedef ALIST<> ASPECTS;

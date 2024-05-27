@@ -70,10 +70,17 @@ public:
         UPDATE          = 1 << 19
     };
 
+    enum Core_Scheduling {
+        SINGLECORE,
+        GLOBAL_MULTICORE,
+        PARTITIONED_MULTICORE
+    };
+
     // Policy traits
     static const bool timed = false;
     static const bool dynamic = false;
     static const bool preemptive = true;
+    static const Core_Scheduling core_scheduling = SINGLECORE;
 
     // Runtime Statistics (for policies that don't use any; that's why its a union)
     union Dummy_Statistics {  // for Traits<System>::monitored = false
@@ -122,6 +129,9 @@ public:
     Microsecond deadline() { return 0; }
     Microsecond capacity() { return 0; }
 
+    unsigned int queue() const { return 0; }
+    void queue(unsigned int q) {}
+
     bool periodic() { return false; }
 
     volatile Statistics & statistics() { return _statistics; }
@@ -146,6 +156,19 @@ public:
 
 protected:
     volatile int _priority;
+};
+
+class Balanced_Queue_Scheduler
+{
+protected:
+    Balanced_Queue_Scheduler(unsigned int queue): _queue(queue) {};
+
+    const volatile unsigned int & queue() const volatile { return _queue; }
+    void queue(unsigned int q) { _queue = q; }
+    static unsigned int next_queue();
+
+protected:
+    volatile unsigned int _queue;
 };
 
 // Round-Robin
@@ -261,7 +284,6 @@ public:
     void handle(Event event);
 };
 
-
 // Least Laxity First
 class LLF: public RT_Common
 {
@@ -275,6 +297,88 @@ public:
     void handle(Event event);
 };
 
+class GLM: public LM
+{
+public:
+    static const unsigned int HEADS = Traits<Machine>::CPUS;
+    static const Core_Scheduling core_scheduling = GLOBAL_MULTICORE;
+
+public:
+    GLM(int p = APERIODIC): LM(p) {}
+    GLM(const Microsecond & d, const Microsecond & p = SAME, const Microsecond & c = UNKNOWN, unsigned int cpu = ANY):
+        LM(d, p, c) {}
+
+    unsigned int queue() const { return current_head(); }
+    void queue(unsigned int q) {}
+    static unsigned int current_head() { return CPU::id(); }
+};
+
+class GLLF: public LLF
+{
+public:
+    static const unsigned int HEADS = Traits<Machine>::CPUS;
+    static const Core_Scheduling core_scheduling = GLOBAL_MULTICORE;
+
+public:
+    GLLF(int p = APERIODIC): LLF(p) {}
+    GLLF(const Microsecond & d, const Microsecond & p = SAME, const Microsecond & c = UNKNOWN, unsigned int cpu = ANY):
+        LLF(d, p, c) {}
+
+    unsigned int queue() const { return current_head(); }
+    void queue(unsigned int q) {}
+    static unsigned int current_head() { return CPU::id(); }
+};
+
+class PLM: public LM, public Balanced_Queue_Scheduler
+{
+public:
+    static const unsigned int QUEUES = Traits<Machine>::CPUS;
+    static const Core_Scheduling core_scheduling = PARTITIONED_MULTICORE;
+
+public:
+    PLM(int p = APERIODIC)
+    : LM(p), Balanced_Queue_Scheduler(((p == IDLE) || (p == MAIN)) ? CPU::id() : next_queue()) {}
+
+    PLM(const Microsecond & d, const Microsecond & p = SAME, const Microsecond & c = UNKNOWN, unsigned int cpu = ANY)
+    : LM(d, p, c), Balanced_Queue_Scheduler((cpu != ANY) ? cpu : next_queue()) {}
+
+    using Balanced_Queue_Scheduler::queue;
+    static unsigned int current_queue() { return CPU::id(); }
+};
+
+class PLLF: public LLF, public Balanced_Queue_Scheduler
+{
+public:
+    static const unsigned int QUEUES = Traits<Machine>::CPUS;
+    static const Core_Scheduling core_scheduling = PARTITIONED_MULTICORE;
+
+public:
+    PLLF(int p = APERIODIC)
+    : LLF(p), Balanced_Queue_Scheduler(((p == IDLE) || (p == MAIN)) ? CPU::id() : next_queue()) {}
+
+    PLLF(const Microsecond & d, const Microsecond & p = SAME, const Microsecond & c = UNKNOWN, unsigned int cpu = ANY)
+    : LLF(d, p, c), Balanced_Queue_Scheduler((cpu != ANY) ? cpu : next_queue()) {}
+
+    using Balanced_Queue_Scheduler::queue;
+    static unsigned int current_queue() { return CPU::id(); }
+};
+
 __END_SYS
+
+__BEGIN_UTIL
+
+template<typename T>
+class Scheduling_Queue<T, GLLF>:
+public Multihead_Scheduling_List<T> {};
+
+template<typename T>
+class Scheduling_Queue<T, PLM>:
+public Scheduling_Multilist<T> {};
+
+template<typename T>
+class Scheduling_Queue<T, PLLF>:
+public Scheduling_Multilist<T> {};
+
+__END_UTIL
 
 #endif

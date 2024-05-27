@@ -113,12 +113,13 @@ template<> struct Traits<System>: public Traits<Build>
 
 template<> struct Traits<Thread>: public Traits<Build>
 {
+    static const bool debugged = true;
     static const bool enabled = Traits<System>::multithread;
     static const bool trace_idle = hysterically_debugged;
     static const bool simulate_capacity = false;
-    static const int priority_inversion_protocol = NONE;
+    static const int priority_inversion_protocol = INHERITANCE;
 
-    typedef IF<(CPUS > 1), PLLF, LLF>::Result Criterion;
+    typedef IF<(CPUS > 1), PLM, LM>::Result Criterion;
     static const unsigned int QUANTUM = 10000; // us
 };
 
@@ -130,6 +131,7 @@ template<> struct Traits<Scheduler<Thread>>: public Traits<Build>
 template<> struct Traits<Synchronizer>: public Traits<Build>
 {
     static const bool enabled = Traits<System>::multithread;
+    static const bool debugged = true;
 };
 
 template<> struct Traits<Alarm>: public Traits<Build>

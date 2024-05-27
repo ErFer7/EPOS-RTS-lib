@@ -1,6 +1,7 @@
 // EPOS RISC-V IC Mediator Implementation
 
 #include <architecture.h>
+#include <machine/frequency_profiler.h>
 #include <machine/machine.h>
 #include <machine/ic.h>
 #include <machine/timer.h>
@@ -18,6 +19,9 @@ void IC::entry()
     // Save context into the stack
     CPU::Context::push(true);
 
+    if(Traits<Frequency_Profiler>::profiled)
+        Frequency_Profiler::measure_initial_time();
+
     if(Traits<IC>::hysterically_debugged)
         print_context(true);
 
@@ -25,6 +29,9 @@ void IC::entry()
 
     if(Traits<IC>::hysterically_debugged)
         print_context(false);
+
+    if(Traits<Frequency_Profiler>::profiled)
+        Frequency_Profiler::measure_final_time();
 
     // Restore context from the stack
     CPU::Context::pop(true);
@@ -43,7 +50,8 @@ void IC::dispatch()
             CPU::ecall();   // we can't clear CPU::sipc(CPU::STI) in supervisor mode, so let's ecall int_m2s to do it for us
         else
             Timer::reset(); // MIP.MTI is a direct logic on (MTIME == MTIMECMP) and reseting the Timer seems to be the only way to clear it
-    }
+    } else if (id == INT_RESCHEDULER)
+        IC::ipi_eoi(id & CLINT::INT_MASK);
 
     _int_vector[id](id);
 }
